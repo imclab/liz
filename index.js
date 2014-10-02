@@ -6,21 +6,20 @@ var bodyParser  = require('body-parser');
 var session = require('express-session');
 var gcal = require('google-calendar');
 var passport = require('passport');
+var argv = require('yargs').argv;
+
 var GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
 
-try {
-  var config = require('./config');
+var CLIENT_ID = argv.clientID || process.env.clientID;
+var CLIENT_SECRET = argv.clientSecret || process.env.clientSecret;
+var PORT = argv.port || process.env.port || 8082;
+
+if (!CLIENT_ID) {
+  throw new Error('No clientID configured. Provide a clientID via command line arguments or an environment variable');
 }
-catch (err) {
-  console.log('Error: config.json missing.');
-  console.log('Create a file config.json in the root of the project with the following contents:');
-  console.log('{\n' +
-    '  "client_id": CLIENT_ID,\n' +
-    '  "client_secret" : CLIENT_SECRET\n' +
-  '}');
-  process.exit();
+if (!CLIENT_SECRET) {
+  throw new Error('No clientSecret configured. Provide a clientSecret via command line arguments or an environment variable');
 }
-var PORT = config.port || 8082;
 
 var app = express();
 app.use(cookieParser());
@@ -42,8 +41,8 @@ console.log('Server listening at http://localhost:' + PORT);
 
 // Setup passportjs server for authentication
 passport.use(new GoogleStrategy({
-      clientID: config.client_id,
-      clientSecret: config.client_secret,
+      clientID: CLIENT_ID,
+      clientSecret: CLIENT_SECRET,
       callbackURL: "http://localhost:8082/auth/callback",
       scope: ['openid', 'email', 'https://www.googleapis.com/auth/calendar']
     },
