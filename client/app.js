@@ -15,12 +15,23 @@ function getUser() {
   return ajax.get('/user/');
 }
 
+function loadCalendars() {
+  return ajax.get('/calendar/')
+      .then(function (calendars) {
+        console.log('calendars', calendars);
+        var calendarList = React.renderComponent(
+            <CalendarList calendars={calendars.items} />,
+            document.getElementById('calendars')
+        );
+      })
+}
+
 function loadEvents(calendarId) {
   return ajax.get('/calendar/' + calendarId)
       .then(function (events) {
         console.log('events', events);
         var eventList = React.renderComponent(
-            <EventList data={events.items} />,
+            <EventList events={events.items} />,
             document.getElementById('events')
         );
       })
@@ -43,7 +54,10 @@ getUser()
 
       if (user.loggedIn) {
         var calendarId = user.email;
-        return Promise.all([loadEvents(calendarId), loadFreeBusy(calendarId)]);
+        return Promise.all([
+          loadCalendars(),
+          loadEvents(calendarId),
+          loadFreeBusy(calendarId)]);
       }
     })
     .catch(function (err) {

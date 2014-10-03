@@ -15,6 +15,32 @@ var UserMenu = React.createClass({
   }
 });
 
+var Calendar = React.createClass({
+  render: function() {
+    var calendar = this.props.calendar;
+    var style = {
+      'background-color': calendar.backgroundColor,
+      color: calendar.foregroundColor
+    };
+
+    return (<div className="calendar"
+    style={style}>{calendar.summary}</div>);
+  }
+});
+
+var CalendarList = React.createClass({
+  getInitialState: function () {
+    return {calendars: []}
+  },
+  render: function() {
+    var calendars = this.props.calendars.map(function (calendar) {
+      return (<Calendar calendar={calendar} key={calendar.id}/>)
+    });
+
+    return (<div>{calendars}</div>)
+  }
+});
+
 var Event = React.createClass({
   render: function() {
     var item = this.props.data;
@@ -53,7 +79,7 @@ var Event = React.createClass({
 
 var EventList = React.createClass({
   render: function() {
-    var data = this.props.data || [];
+    var data = this.props.events || [];
     var items = data.map(function (item) {
       return (<Event data={item} key={item.id}/>)
     });
