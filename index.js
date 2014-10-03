@@ -56,10 +56,11 @@ app.get('/auth',
     passport.authenticate('google', { session: false }));
 
 app.get('/auth/callback',
-    passport.authenticate('google', { session: false, failureRedirect: '/login' }),
+    passport.authenticate('google', { session: false, failureRedirect: '/' }),
     function(req, res) {
       var redirectTo = req.session.redirectTo || '/';
-      req.session.access_token = req.user.accessToken;
+      req.session.accessToken = req.user.accessToken;
+      console.log('accessToken', req.session.accessToken);
       res.redirect(redirectTo);
     });
 
@@ -82,7 +83,7 @@ app.get('/user/logout', function(req, res, next) {
 });
 
 app.all('/calendar*', function(req, res, next) {
-  if(!req.session.access_token) {
+  if(!req.session.accessToken) {
     req.session.redirectTo = req.url;
     return res.redirect('/auth');
   }
@@ -92,7 +93,7 @@ app.all('/calendar*', function(req, res, next) {
 });
 
 app.all('/calendar', function(req, res){
-  var accessToken = req.session.access_token;
+  var accessToken = req.session.accessToken;
 
   gcal(accessToken).calendarList.list(function(err, data) {
     if(err) return res.status(500).send(err);
@@ -102,7 +103,7 @@ app.all('/calendar', function(req, res){
 });
 
 app.all('/calendar/:calendarId', function(req, res){
-  var accessToken     = req.session.access_token;
+  var accessToken     = req.session.accessToken;
   var calendarId      = req.params.calendarId;
   var now = new Date();
   var options = {
@@ -118,7 +119,7 @@ app.all('/calendar/:calendarId', function(req, res){
 });
 
 app.all('/calendar/:calendarId/add', function(req, res){
-  var accessToken     = req.session.access_token;
+  var accessToken     = req.session.accessToken;
   var calendarId      = req.params.calendarId;
   var text            = req.query.text || 'Hello World';
 
@@ -129,13 +130,31 @@ app.all('/calendar/:calendarId/add', function(req, res){
 });
 
 app.all('/calendar/:calendarId/:eventId/remove', function(req, res){
-  var accessToken     = req.session.access_token;
+  var accessToken     = req.session.accessToken;
   var calendarId      = req.params.calendarId;
   var eventId         = req.params.eventId;
 
   gcal(accessToken).events.delete(calendarId, eventId, function(err, data) {
     if(err) return res.status(500).send(err);
     return res.redirect('/calendar/'+calendarId);
+  });
+});
+
+app.all('/freeBusy', function(req, res){
+  var accessToken     = req.session.accessToken;
+  var now = new Date();
+  var query = {
+    timeMin: new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString(),
+    timeMax: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7).toISOString(),
+    items: [
+      {id: 'jos@almende.org'}
+    ]
+  };
+
+  gcal(accessToken).freebusy.query(query, function(err, data) {
+    if(err) return res.status(500).send(err);
+    return res.header('content-type', 'application/json')
+        .send(data);
   });
 });
 
@@ -146,7 +165,7 @@ app.all('/calendar/:calendarId/:eventId/remove', function(req, res){
  */
 function getUser (session, callback) {
   var user = {
-    loggedIn: session.access_token != null,
+    loggedIn: session.accessToken != null,
     name: session.name || null,
     email: session.email || null
   };
@@ -155,9 +174,9 @@ function getUser (session, callback) {
     callback(user);
   }
   else {
-    var access_token = session.access_token;
-    if (access_token) {
-      var url = 'https://www.googleapis.com/oauth2/v1/userinfo?access_token=' + access_token;
+    var accessToken = session.accessToken;
+    if (accessToken) {
+      var url = 'https://www.googleapis.com/oauth2/v1/userinfo?access_token=' + accessToken;
       request(url, function (error, response, body) {
         try {
           if (!error && body.length > 0) {

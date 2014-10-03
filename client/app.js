@@ -19,6 +19,10 @@ function getEvents(calendarId) {
   return ajax.get('/calendar/' + calendarId);
 }
 
+function getFreeBusy() {
+  return ajax.get('/freeBusy/')
+}
+
 getUser()
     .then(function (user) {
       login.setState({user: user});
@@ -32,6 +36,11 @@ getUser()
           <EventList data={events.items} />,
           document.getElementById('events')
       );
+
+      return getFreeBusy();
+    })
+    .then(function (freeBusy) {
+      console.log('freeBusy', freeBusy);
     })
     .catch(function (err) {
       console.log('Error', err);

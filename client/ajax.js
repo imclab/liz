@@ -11,7 +11,7 @@ var ajax = (function () {
           try {
             if (xhr.readyState == 4) {
               var contentType = xhr.getResponseHeader('content-type');
-              if (contentType.toLowerCase().indexOf('application/json') == 0) {
+              if (contentType && contentType.toLowerCase().indexOf('application/json') == 0) {
                 resolve(JSON.parse(xhr.responseText), xhr.status, xhr);
               }
               else {
