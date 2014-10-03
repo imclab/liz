@@ -15,32 +15,36 @@ function getUser() {
   return ajax.get('/user/');
 }
 
-function getEvents(calendarId) {
-  return ajax.get('/calendar/' + calendarId);
+function loadEvents(calendarId) {
+  return ajax.get('/calendar/' + calendarId)
+      .then(function (events) {
+        console.log('events', events);
+        var eventList = React.renderComponent(
+            <EventList data={events.items} />,
+            document.getElementById('events')
+        );
+      })
 }
 
-function getFreeBusy() {
-  return ajax.get('/freeBusy/')
+function loadFreeBusy(calendarId) {
+  return ajax.get('/freeBusy/' + calendarId)
+      .then(function (freeBusy) {
+        console.log('freeBusy', freeBusy);
+        var freeBusyList = React.renderComponent(
+            <FreeBusyList calendars={freeBusy.calendars} />,
+            document.getElementById('freeBusy')
+        );
+      })
 }
 
 getUser()
     .then(function (user) {
       login.setState({user: user});
 
-      return getEvents(user.email);
-    })
-    .then(function (events) {
-      console.log('events', events);
-
-      var eventList = React.renderComponent(
-          <EventList data={events.items} />,
-          document.getElementById('events')
-      );
-
-      return getFreeBusy();
-    })
-    .then(function (freeBusy) {
-      console.log('freeBusy', freeBusy);
+      if (user.loggedIn) {
+        var calendarId = user.email;
+        return Promise.all([loadEvents(calendarId), loadFreeBusy(calendarId)]);
+      }
     })
     .catch(function (err) {
       console.log('Error', err);

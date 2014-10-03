@@ -3,11 +3,17 @@ html, body {
   background: url(img/wavegrid/wavegrid.png);
 }
 
+h2 {
+  margin-top: 40px;
+}
+
 #content {
   width: 700px;
+  max-width: 100%;
   min-height: 700px;
   margin: 20px auto 0 auto;
   padding: 40px 60px;
+  box-sizing: border-box;
   background-color: white;
   border: 1px solid lightgray;
   border-radius: 3px;

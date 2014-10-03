@@ -60,7 +60,7 @@ app.get('/auth/callback',
     function(req, res) {
       var redirectTo = req.session.redirectTo || '/';
       req.session.accessToken = req.user.accessToken;
-      console.log('accessToken', req.session.accessToken);
+      console.log('accessToken', req.session.accessToken); // TODO: remove logging of access token
       res.redirect(redirectTo);
     });
 
@@ -92,7 +92,7 @@ app.all('/calendar*', function(req, res, next) {
   }
 });
 
-app.all('/calendar', function(req, res){
+app.get('/calendar', function(req, res){
   var accessToken = req.session.accessToken;
 
   gcal(accessToken).calendarList.list(function(err, data) {
@@ -102,11 +102,13 @@ app.all('/calendar', function(req, res){
   });
 });
 
-app.all('/calendar/:calendarId', function(req, res){
+app.get('/calendar/:calendarId', function(req, res){
   var accessToken     = req.session.accessToken;
   var calendarId      = req.params.calendarId;
   var now = new Date();
   var options = {
+    singleEvents: true, // expand recurring events
+    orderBy: 'startTime',
     timeMin: new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString(),
     timeMax: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7).toISOString()
   };
@@ -118,7 +120,7 @@ app.all('/calendar/:calendarId', function(req, res){
   });
 });
 
-app.all('/calendar/:calendarId/add', function(req, res){
+app.get('/calendar/:calendarId/add', function(req, res){
   var accessToken     = req.session.accessToken;
   var calendarId      = req.params.calendarId;
   var text            = req.query.text || 'Hello World';
@@ -129,7 +131,7 @@ app.all('/calendar/:calendarId/add', function(req, res){
   });
 });
 
-app.all('/calendar/:calendarId/:eventId/remove', function(req, res){
+app.del('/calendar/:calendarId/:eventId/remove', function(req, res){
   var accessToken     = req.session.accessToken;
   var calendarId      = req.params.calendarId;
   var eventId         = req.params.eventId;
@@ -140,14 +142,16 @@ app.all('/calendar/:calendarId/:eventId/remove', function(req, res){
   });
 });
 
-app.all('/freeBusy', function(req, res){
+app.get('/freeBusy/:calendarId', function(req, res) {
+  // TODO: get freeBusy for a list with calendars
   var accessToken     = req.session.accessToken;
+  var calendarId      = req.params.calendarId;
   var now = new Date();
   var query = {
     timeMin: new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString(),
     timeMax: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7).toISOString(),
     items: [
-      {id: 'jos@almende.org'}
+      {id: calendarId}
     ]
   };
 
