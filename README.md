@@ -33,10 +33,11 @@ To deploy at Heroku:
 
 The app is available at [http://smartplanner.herokuapp.com](http://smartplanner.herokuapp.com).
 
-To set the environment variables for clientID and clientSecret:
+Set the following environment variables:
 
     heroku config:set GOOGLE_CLIENT_ID=<your client id>
     heroku config:set GOOGLE_CLIENT_SECRET=<your client secret>
+    heroku config:set NODE_ENV=production
 
 Alternatively, the variables can be set via the Heroku dashboard at the apps settings.
 

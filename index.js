@@ -13,8 +13,9 @@ var GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
 var GOOGLE_CLIENT_ID = argv.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
 var GOOGLE_CLIENT_SECRET = argv.GOOGLE_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET;
 var PORT = argv.PORT || process.env.PORT || 8082;
-
-console.log('process.env', process.env);
+var CALLBACK_URL = (process.env.NODE_ENV == 'production') ?
+    'https://smartplanner.herokuapp.com/auth/callback' :
+    'http://localhost:' + PORT + '/auth/callback';
 
 if (!GOOGLE_CLIENT_ID) {
   throw new Error('No GOOGLE_CLIENT_ID configured. Provide a GOOGLE_CLIENT_ID via command line arguments or an environment variable');
@@ -45,7 +46,7 @@ console.log('Server listening at http://localhost:' + PORT);
 passport.use(new GoogleStrategy({
       clientID: GOOGLE_CLIENT_ID,
       clientSecret: GOOGLE_CLIENT_SECRET,
-      callbackURL: 'http://localhost:8082/auth/callback',
+      callbackURL: CALLBACK_URL,
       scope: ['openid', 'email', 'https://www.googleapis.com/auth/calendar']
     },
     function(accessToken, refreshToken, profile, done) {
