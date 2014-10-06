@@ -27,7 +27,7 @@ Then open the web interface in your browser:
 
 # Deploy
 
-To deploy at heroku:
+To deploy at Heroku:
 
     git push -u heroku master
 
@@ -39,3 +39,9 @@ To set the environment variables for clientID and clientSecret:
     heroku config:set clientSecret=CLIENT_SECRET
 
 Alternatively, the variables can be set via the Heroku dashboard at the apps settings.
+
+The Heroku app uses the following add-ons:
+
+    heroku addons:add papertrail
+    heroku addons:add mongohq
+
