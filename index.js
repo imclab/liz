@@ -131,7 +131,7 @@ app.get('/calendar/:calendarId/add', function(req, res){
   });
 });
 
-app.del('/calendar/:calendarId/:eventId/remove', function(req, res){
+app.delete('/calendar/:calendarId/:eventId/remove', function(req, res){
   var accessToken     = req.session.accessToken;
   var calendarId      = req.params.calendarId;
   var eventId         = req.params.eventId;
