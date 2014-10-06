@@ -23,3 +23,19 @@ Note that CLIENT_ID and CLIENT_SECRET must be configured via the
 Then open the web interface in your browser:
  
     http://localhost:8082
+
+
+# Deploy
+
+To deploy at heroku:
+
+    git push -u heroku master
+
+The app is available at [http://smartplanner.herokuapp.com](http://smartplanner.herokuapp.com).
+
+To set the environment variables for clientID and clientSecret:
+
+    heroku config:set clientID=CLIENT_ID
+    heroku config:set clientSecret=CLIENT_SECRET
+
+Alternatively, the variables can be set via the Heroku dashboard at the apps settings.
