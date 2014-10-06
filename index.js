@@ -8,12 +8,18 @@ var gcal = require('google-calendar');
 var passport = require('passport');
 var argv = require('yargs').argv;
 
+var MongoStore = require('connect-mongo')(session);
 var GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
 
+var PRODUCTION = (process.env.NODE_ENV == 'production');
+var MONGO_URL = argv.MONGO_URL ||
+    process.argv.MONGO_URL ||
+    process.argv.MONGOHQ_URL ||
+    'mongodb://127.0.0.1:27017/smartplanner/sessions';
 var GOOGLE_CLIENT_ID = argv.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
 var GOOGLE_CLIENT_SECRET = argv.GOOGLE_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET;
 var PORT = argv.PORT || process.env.PORT || 8082;
-var CALLBACK_URL = (process.env.NODE_ENV == 'production') ?
+var CALLBACK_URL = PRODUCTION ?
     'https://smartplanner.herokuapp.com/auth/callback' :
     'http://localhost:' + PORT + '/auth/callback';
 
@@ -24,11 +30,14 @@ if (!GOOGLE_CLIENT_SECRET) {
   throw new Error('No GOOGLE_CLIENT_SECRET configured. Provide a GOOGLE_CLIENT_SECRET via command line arguments or an environment variable');
 }
 
+console.log('MONGO_URL (or MONGOHQ_URL):', MONGO_URL);
+
 var app = express();
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 app.use(session({
+  store: new MongoStore({url: MONGO_URL, ssl: PRODUCTION}),
   secret: 'youre not going to guess this one',
   resave: true,
   saveUninitialized: true
