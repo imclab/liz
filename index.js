@@ -13,9 +13,10 @@ var GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
 
 var PRODUCTION = (process.env.NODE_ENV == 'production');
 var MONGO_URL = argv.MONGO_URL ||
-    process.argv.MONGO_URL ||
-    process.argv.MONGOHQ_URL ||
-    'mongodb://127.0.0.1:27017/smartplanner/sessions';
+    process.env.MONGO_URL ||
+    process.env.MONGOHQ_URL ||
+    'mongodb://127.0.0.1:27017';
+var MONGO_DB = 'smartplanner';
 var GOOGLE_CLIENT_ID = argv.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
 var GOOGLE_CLIENT_SECRET = argv.GOOGLE_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET;
 var PORT = argv.PORT || process.env.PORT || 8082;
@@ -37,7 +38,7 @@ app.use(cookieParser());
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 app.use(session({
-  store: new MongoStore({url: MONGO_URL, ssl: PRODUCTION}),
+  store: new MongoStore({url: MONGO_URL + '/' + MONGO_DB + '/sessions', ssl: PRODUCTION}),
   secret: 'youre not going to guess this one',
   resave: true,
   saveUninitialized: true
