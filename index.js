@@ -10,15 +10,15 @@ var argv = require('yargs').argv;
 
 var GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
 
-var CLIENT_ID = argv.clientID || process.env.clientID;
-var CLIENT_SECRET = argv.clientSecret || process.env.clientSecret;
-var PORT = argv.port || process.env.port || 8082;
+var GOOGLE_CLIENT_ID = argv.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
+var GOOGLE_CLIENT_SECRET = argv.GOOGLE_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET;
+var PORT = argv.PORT || process.env.PORT || 8082;
 
-if (!CLIENT_ID) {
-  throw new Error('No clientID configured. Provide a clientID via command line arguments or an environment variable');
+if (!GOOGLE_CLIENT_ID) {
+  throw new Error('No GOOGLE_CLIENT_ID configured. Provide a GOOGLE_CLIENT_ID via command line arguments or an environment variable');
 }
-if (!CLIENT_SECRET) {
-  throw new Error('No clientSecret configured. Provide a clientSecret via command line arguments or an environment variable');
+if (!GOOGLE_CLIENT_SECRET) {
+  throw new Error('No GOOGLE_CLIENT_SECRET configured. Provide a GOOGLE_CLIENT_SECRET via command line arguments or an environment variable');
 }
 
 var app = express();
@@ -41,8 +41,8 @@ console.log('Server listening at http://localhost:' + PORT);
 
 // Setup passportjs server for authentication
 passport.use(new GoogleStrategy({
-      clientID: CLIENT_ID,
-      clientSecret: CLIENT_SECRET,
+      clientID: GOOGLE_CLIENT_ID,
+      clientSecret: GOOGLE_CLIENT_SECRET,
       callbackURL: "http://localhost:8082/auth/callback",
       scope: ['openid', 'email', 'https://www.googleapis.com/auth/calendar']
     },
@@ -60,7 +60,6 @@ app.get('/auth/callback',
     function(req, res) {
       var redirectTo = req.session.redirectTo || '/';
       req.session.accessToken = req.user.accessToken;
-      console.log('accessToken', req.session.accessToken); // TODO: remove logging of access token
       res.redirect(redirectTo);
     });
 
