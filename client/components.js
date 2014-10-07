@@ -1,17 +1,83 @@
 /** @jsx React.DOM */
 
-var UserMenu = React.createClass({
+//var Menu = React.createClass({
+//  render: function() {
+//    var user = this.state && this.state.user;
+//    if (!user) {
+//      return (<div>loading...</div>)
+//    }
+//    else if (user.loggedIn) {
+//      return (<div><img src={user.picture} className="user-icon"></img> {user.name} ({user.email}) <a href="/user/logout">logout</a></div>);
+//    }
+//    else {
+//      return (<div><a href="/user/login">login</a></div>);
+//    }
+//  }
+//});
+
+var Menu = React.createClass({
   render: function() {
+
+    // <img src={user.picture} className="user-icon"></img>
+
+    var login;
     var user = this.state && this.state.user;
     if (!user) {
-      return (<div>loading...</div>)
+      // TODO: non clickable loading message          <p class="navbar-text navbar-right">loading...</p>
+      login = (
+          <ul className="nav navbar-nav navbar-right">
+            <li>
+            <a>loading...</a>
+            </li>
+          </ul>
+          );
     }
     else if (user.loggedIn) {
-      return (<div><img src={user.picture} className="user-icon"></img> {user.name} ({user.email}) <a href="/user/logout">logout</a></div>);
+      var title = 'Signed in as ' + user.name + ' (' + user.email + ')';
+      login = (
+          <ul className="nav navbar-nav navbar-right">
+            <li className="dropdown">
+              <a href="#" className="dropdown-toggle" data-toggle="dropdown"><span title={title}>{user.name}</span> <span className="caret"></span>
+              </a>
+              <ul className="dropdown-menu" role="menu">
+                <li><a href="/user/signout">Sign out</a></li>
+              </ul>
+            </li>
+          </ul>
+          );
     }
     else {
-      return (<div><a href="/user/login">login</a></div>);
+      login = (
+          <ul className="nav navbar-nav navbar-right">
+            <li>
+              <a href="/user/signin">Sign in</a>
+            </li>
+          </ul>
+          );
     }
+
+    return (
+        <nav className="navbar navbar-default" role="navigation">
+          <div className="container-fluid">
+            <div className="navbar-header">
+              <button type="button" className="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+                <span className="sr-only">Toggle navigation</span>
+                <span className="icon-bar"></span>
+                <span className="icon-bar"></span>
+                <span className="icon-bar"></span>
+              </button>
+            </div>
+
+            <div className="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+              <ul className="nav navbar-nav">
+                <li className="active"><a href="?page=home">Home</a></li>
+                <li><a href="?page=settings">Settings</a></li>
+              </ul>
+              {login}
+            </div>
+          </div>
+        </nav>
+        );
   }
 });
 
@@ -38,6 +104,22 @@ var CalendarList = React.createClass({
     });
 
     return (<div>{calendars}</div>)
+  }
+});
+
+var Settings = React.createClass({
+  getInitialState: function () {
+    return {
+      busy: [],
+      availability: null
+    }
+  },
+  render: function() {
+    return (
+        <div>
+
+        </div>
+        )
   }
 });
 

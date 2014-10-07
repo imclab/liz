@@ -1,8 +1,11 @@
 /** @jsx React.DOM */
 
-var login = React.renderComponent(
-    <UserMenu/>,
-    document.getElementById('login')
+var user = null;
+var calendars = null;
+
+var menu = React.renderComponent(
+    <Menu/>,
+    document.getElementById('menu')
 );
 
 /**
@@ -49,15 +52,18 @@ function loadFreeBusy(calendarId) {
 }
 
 getUser()
-    .then(function (user) {
-      login.setState({user: user});
+    .then(function (loadedUser) {
+      user = loadedUser;
+      console.log('user', user);
+      menu.setState({user: user});
 
       if (user.loggedIn) {
         var calendarId = user.email;
         return Promise.all([
-          loadCalendars(),
-          loadEvents(calendarId),
-          loadFreeBusy(calendarId)]);
+          loadCalendars(user.calendars)
+          //loadEvents(calendarId),
+          //loadFreeBusy(calendarId)
+          ]);
       }
     })
     .catch(function (err) {

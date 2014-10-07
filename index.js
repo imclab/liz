@@ -87,12 +87,12 @@ app.get('/auth/callback',
       res.redirect(redirectTo);
     });
 
-app.get('/user/login', function(req, res, next) {
+app.get('/user/signin', function(req, res, next) {
   req.session.redirectTo = '/';
   return res.redirect('/auth');
 });
 
-app.get('/user/logout', function(req, res, next) {
+app.get('/user/signout', function(req, res, next) {
   req.session.destroy(function(err) {
     res.redirect('/');
   })
