@@ -7,7 +7,7 @@ var UserMenu = React.createClass({
       return (<div>loading...</div>)
     }
     else if (user.loggedIn) {
-      return (<div>{user.name} ({user.email}) <a href="/user/logout">logout</a></div>);
+      return (<div><img src={user.picture} className="user-icon"></img> {user.name} ({user.email}) <a href="/user/logout">logout</a></div>);
     }
     else {
       return (<div><a href="/user/login">login</a></div>);

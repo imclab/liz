@@ -35,3 +35,8 @@ div.calendar {
   margin: 5px 0;
   padding: 10px;
 }
+
+img.user-icon {
+  width: 32px;
+  height: 32px;
+}

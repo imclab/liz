@@ -7,6 +7,7 @@ var session = require('express-session');
 var gcal = require('google-calendar');
 var passport = require('passport');
 var argv = require('yargs').argv;
+var mongojs = require('mongojs');
 
 var MongoStore = require('connect-mongo')(session);
 var GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
@@ -32,7 +33,9 @@ if (!GOOGLE_CLIENT_SECRET) {
 }
 
 console.log('MONGO_URL (or MONGOHQ_URL):', MONGO_URL);
+console.log('Authentication callback url:', CALLBACK_URL);
 
+// create an express app
 var app = express();
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({extended: true}));
@@ -46,6 +49,9 @@ app.use(session({
 }));
 app.use(passport.initialize());
 
+// create a connection to mongodb
+var db = mongojs(MONGO_URL + '/' + MONGO_DB, ['users', 'sessions']);
+
 // serve static content
 app.use('/', express.static(__dirname + '/client'));
 app.use('/node_modules/', express.static(__dirname + '/node_modules'));
@@ -58,7 +64,9 @@ passport.use(new GoogleStrategy({
       clientID: GOOGLE_CLIENT_ID,
       clientSecret: GOOGLE_CLIENT_SECRET,
       callbackURL: CALLBACK_URL,
-      scope: ['openid', 'email', 'https://www.googleapis.com/auth/calendar']
+      scope: ['openid', 'email', 'https://www.googleapis.com/auth/calendar'],
+      accessType: 'offline',
+      approvalPrompt: 'force'
     },
     function(accessToken, refreshToken, profile, done) {
       profile.accessToken = accessToken;
@@ -68,21 +76,16 @@ passport.use(new GoogleStrategy({
 
 app.get('/auth',
     passport.authenticate('google', { session: false }));
+// TODO: if auth token was not valid, logout
 
 app.get('/auth/callback',
     passport.authenticate('google', { session: false, failureRedirect: '/' }),
     function(req, res) {
       var redirectTo = req.session.redirectTo || '/';
       req.session.accessToken = req.user.accessToken;
+      req.session.email = req.user._json.email;
       res.redirect(redirectTo);
     });
-
-app.get('/user', function(req, res, next) {
-  getUser(req.session, function (user) {
-    res.header('content-type', 'application/json')
-        .send(JSON.stringify(user));
-  })
-});
 
 app.get('/user/login', function(req, res, next) {
   req.session.redirectTo = '/';
@@ -95,7 +98,7 @@ app.get('/user/logout', function(req, res, next) {
   })
 });
 
-app.all('/calendar*', function(req, res, next) {
+function auth(req, res, next) {
   if(!req.session.accessToken) {
     req.session.redirectTo = req.url;
     return res.redirect('/auth');
@@ -103,15 +106,79 @@ app.all('/calendar*', function(req, res, next) {
   else {
     return next();
   }
+}
+
+// retrieve user settings
+// note: this call does not authorize the session, returns {loggedIn: false} when not logged in
+app.get('/user', function(req, res, next) {
+  var loggedIn = req.session.accessToken != null;
+  if (loggedIn) {
+    var email = req.session.email;
+    db.users.findOne({email: email}, function (err, docs) {
+      if(err) return res.status(500).send(err);
+      if (docs == null) {
+        getUserInfo(req.session.accessToken, function (err, user) {
+          if(err) return res.status(500).send(err);
+
+          // store user in the database
+          updateUser(user, function (err, user) {
+            if(err) return res.status(500).send(err);
+            return res.json(user);
+          })
+        });
+      }
+      else {
+        docs.loggedIn = true;
+        return res.json(docs);
+      }
+    });
+  }
+  else {
+    // not logged in
+    return res.json({loggedIn: false});
+  }
 });
+
+
+// store (update) user settings
+app.put('/user', auth);
+app.put('/user', function(req, res, next) {
+  var user = req.body;
+  var email = req.session.email;
+  if (email && (user.email == email || user.email == null)) { // only allow saving the users own profile
+    user.email = email;
+
+    updateUser(user, function (err, user) {
+      if(err) return res.status(500).send(err);
+      return res.json(user);
+    });
+  }
+  else {
+    return res.status(403).send('Not logged in');
+  }
+});
+
+function updateUser(user, callback) {
+  user.updated = new Date().toISOString();
+
+  db.users.findAndModify({
+    query: {email: user.email},
+    update: {$set: user, $inc: {seq: 1}},
+    upsert: true,   // create a new document when not existing
+    new: true       // return the newly created or the updated document
+  }, function (err, updatedUser, lastErrorObject) {
+    callback(err, updatedUser);
+  });
+}
+
+app.all('/calendar*', auth);
 
 app.get('/calendar', function(req, res){
   var accessToken = req.session.accessToken;
 
   gcal(accessToken).calendarList.list(function(err, data) {
     if(err) return res.status(500).send(err);
-    return res.header('content-type', 'application/json')
-        .send(data);
+    return res.json(data);
   });
 });
 
@@ -128,8 +195,7 @@ app.get('/calendar/:calendarId', function(req, res){
 
   gcal(accessToken).events.list(calendarId, options, function(err, data) {
     if(err) return res.status(500).send(err);
-    return res.header('content-type', 'application/json')
-        .send(data);
+    return res.json(data);
   });
 });
 
@@ -170,48 +236,31 @@ app.get('/freeBusy/:calendarId', function(req, res) {
 
   gcal(accessToken).freebusy.query(query, function(err, data) {
     if(err) return res.status(500).send(err);
-    return res.header('content-type', 'application/json')
-        .send(data);
+    return res.json(data);
   });
 });
 
 /**
- * Retrieve user information
- * @param session
- * @param callback
+ * Retrieve user information from google
+ * @param {string} accessToken
+ * @param {function} callback   called as `callback(err, user)`
  */
-function getUser (session, callback) {
-  var user = {
-    loggedIn: session.accessToken != null,
-    name: session.name || null,
-    email: session.email || null
-  };
-
-  if (typeof user.name === 'string' && typeof user.email === 'string') {
-    callback(user);
-  }
-  else {
-    var accessToken = session.accessToken;
-    if (accessToken) {
-      var url = 'https://www.googleapis.com/oauth2/v1/userinfo?access_token=' + accessToken;
-      request(url, function (error, response, body) {
-        try {
-          if (!error && body.length > 0) {
-            var data = JSON.parse(body);
-            session.name = data.name || '(unknown)';
-            session.email = data.email || '(unknown)';
-            user.name = session.name;
-            user.email = session.email;
-            callback(user);
-          }
-        }
-        catch (err) {
-          callback(null);
-        }
-      });
+function getUserInfo (accessToken, callback) {
+  var url = 'https://www.googleapis.com/oauth2/v1/userinfo?access_token=' + accessToken;
+  request(url, function (error, response, body) {
+    try {
+      if (!error && body.length > 0) {
+        var data = JSON.parse(body);
+        callback(null, {
+          loggedIn: true,
+          name: data.name || null,
+          email: data.email || null,
+          picture: data.picture || null
+        });
+      }
     }
-    else {
-      callback(user);
+    catch (err) {
+      callback(err, null);
     }
-  }
+  });
 }
