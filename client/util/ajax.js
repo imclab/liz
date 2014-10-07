@@ -31,7 +31,14 @@ var ajax = (function () {
             }
           }
         }
-        xhr.send(body);
+
+        if (typeof body === 'string') {
+          xhr.send(body);
+        }
+        else {
+          xhr.setRequestHeader('Content-Type', 'application/json');
+          xhr.send(JSON.stringify(body));
+        }
       }
       catch (err) {
         reject(err);

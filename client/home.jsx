@@ -31,20 +31,24 @@ var HomePage = React.createClass({
   },
 
   loadEvents: function (calendarId) {
-    var me = this;
     return ajax.get('/calendar/' + calendarId)
         .then(function (events) {
           console.log('events', events);
-          me.setState({events: events.items});
-        })
+          this.setState({events: events.items || []});
+        }.bind(this))
+        .catch(function (err) {
+          console.log('Error', err);
+        });
   },
 
   loadFreeBusy: function (calendarId) {
-    var me = this;
     return ajax.get('/freeBusy/' + calendarId)
         .then(function (freeBusy) {
           console.log('freeBusy', freeBusy);
-          me.setState({freeBusy: freeBusy.calendars});
+          this.setState({freeBusy: freeBusy.calendars || []});
+        }.bind(this))
+        .catch(function (err) {
+          console.log('Error', err);
         })
   }
 });

@@ -3,7 +3,6 @@
 var menu = null;
 var page = null;
 var user = null;
-var calendars = null;
 
 var pageId = queryparams.get('page') || 'home';
 var container = document.getElementById('contents');

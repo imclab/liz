@@ -1,18 +1,20 @@
 html, body {
   font: 11pt arial;
+  line-height: 1.5em;
   background: url(img/wavegrid/wavegrid.png);
 }
 
 h1 {
-  font-size: 2em;
+  font-size: 1.5em;
+  margin: 32px 0;
 }
 
 h2 {
-  font-size: 1.5em;
+  font-size: 1.2em;
 }
 
 h3 {
-  font-size: 1.2em;
+  font-size: 1em;
 }
 
 h1, h2, h3 {
@@ -45,9 +47,15 @@ h1, h2, h3 {
   box-shadow: 2px 2px 10px rgba(128, 128, 128, 0.2);
 }
 
-div.calendar {
+div.calendar-item {
   margin: 5px 0;
-  padding: 10px;
+}
+
+div.calendar-item div.calendar-color {
+  display: inline-block;
+  vertical-align: middle;
+  width: 24px;
+  height: 24px;
 }
 
 img.user-icon {
