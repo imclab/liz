@@ -3,11 +3,34 @@ html, body {
   background: url(img/wavegrid/wavegrid.png);
 }
 
+h1 {
+  font-size: 2em;
+}
+
 h2 {
+  font-size: 1.5em;
+}
+
+h3 {
+  font-size: 1.2em;
+}
+
+h1, h2, h3 {
+  font-family: monospace;
+  font-weight: normal;
+}
+
+#header {
+  font-size: 3em;
+  font-weight: bold;
+  font-family: monospace;
+}
+
+#menu {
   margin-top: 40px;
 }
 
-#content {
+#page {
   position: relative;
   width: 700px;
   max-width: 100%;

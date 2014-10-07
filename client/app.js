@@ -1,70 +1,32 @@
 /** @jsx React.DOM */
 
+var menu = null;
+var page = null;
 var user = null;
 var calendars = null;
 
-var menu = React.renderComponent(
-    <Menu/>,
-    document.getElementById('menu')
-);
+var pageId = queryparams.get('page') || 'home';
+var container = document.getElementById('contents');
 
-/**
- * Get the current user
- * @returns {Promise.<Object, Error>}
- *   Returns a promise which resolves with a user object:
- *   {loggedIn: boolean, name: string, email: string}
- */
-function getUser() {
-  return ajax.get('/user/');
+menu = React.renderComponent(<Menu/>, document.getElementById('menu'));
+
+switch(pageId) {
+  case 'settings':
+    page = React.renderComponent(<SettingsPage/>, container);
+    break;
+
+  default: // home
+    page = React.renderComponent(<HomePage/>, container);
+    break;
 }
 
-function loadCalendars() {
-  return ajax.get('/calendar/')
-      .then(function (calendars) {
-        console.log('calendars', calendars);
-        var calendarList = React.renderComponent(
-            <CalendarList calendars={calendars.items} />,
-            document.getElementById('calendars')
-        );
-      })
-}
-
-function loadEvents(calendarId) {
-  return ajax.get('/calendar/' + calendarId)
-      .then(function (events) {
-        console.log('events', events);
-        var eventList = React.renderComponent(
-            <EventList events={events.items} />,
-            document.getElementById('events')
-        );
-      })
-}
-
-function loadFreeBusy(calendarId) {
-  return ajax.get('/freeBusy/' + calendarId)
-      .then(function (freeBusy) {
-        console.log('freeBusy', freeBusy);
-        var freeBusyList = React.renderComponent(
-            <FreeBusyList calendars={freeBusy.calendars} />,
-            document.getElementById('freeBusy')
-        );
-      })
-}
-
-getUser()
+ajax.get('/user/')
     .then(function (loadedUser) {
       user = loadedUser;
       console.log('user', user);
-      menu.setState({user: user});
 
-      if (user.loggedIn) {
-        var calendarId = user.email;
-        return Promise.all([
-          loadCalendars(user.calendars)
-          //loadEvents(calendarId),
-          //loadFreeBusy(calendarId)
-          ]);
-      }
+      menu.setState({user: user});
+      page.setState({user: user});
     })
     .catch(function (err) {
       console.log('Error', err);
