@@ -64,26 +64,38 @@ passport.use(new GoogleStrategy({
       clientID: GOOGLE_CLIENT_ID,
       clientSecret: GOOGLE_CLIENT_SECRET,
       callbackURL: CALLBACK_URL,
-      scope: ['openid', 'email', 'https://www.googleapis.com/auth/calendar'],
+      scope: ['profile', 'email', 'https://www.googleapis.com/auth/calendar'],
       accessType: 'offline',
       approvalPrompt: 'force'
     },
-    function(accessToken, refreshToken, profile, done) {
-      profile.accessToken = accessToken;
+    function(accessToken, refreshToken, params, profile, done) {
+      // FIXME: refreshToken is undefined
+      profile.auth = {
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+        params: params
+      };
+      //console.log('auth', profile.auth);
       return done(null, profile);
     }
 ));
 
 app.get('/auth',
-    passport.authenticate('google', { session: false }));
+    passport.authenticate('google', { session: false}));
 // TODO: if auth token was not valid, logout
 
 app.get('/auth/callback',
     passport.authenticate('google', { session: false, failureRedirect: '/' }),
     function(req, res) {
-      var redirectTo = req.session.redirectTo || '/';
-      req.session.accessToken = req.user.accessToken;
+      // copy required fields to the session object
+      var expires_in = req.user.auth.params.expires_in * 1000; // ms
+      req.session.cookie.expires = new Date(Date.now() + expires_in);
+      req.session.cookie.maxAge = expires_in;
       req.session.email = req.user._json.email;
+      req.session.accessToken = req.user.auth.accessToken;
+      req.session.refreshToken = req.user.auth.refreshToken;
+
+      var redirectTo = req.session.redirectTo || '/';
       res.redirect(redirectTo);
     });
 
