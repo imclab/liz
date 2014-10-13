@@ -128,9 +128,9 @@ app.get('/user', function(req, res, next) {
   var loggedIn = req.session.accessToken != null;
   if (loggedIn) {
     var email = req.session.email;
-    db.users.findOne({email: email}, function (err, docs) {
+    db.users.findOne({email: email}, function (err, user) {
       if(err) return res.status(500).send(err.toString());
-      if (docs == null) {
+      if (user == null) {
         // get user info from google
         getUserInfo(req.session.accessToken, function (err, user) {
           if(err) return res.status(500).send(err.toString());
@@ -143,8 +143,8 @@ app.get('/user', function(req, res, next) {
         });
       }
       else {
-        docs.loggedIn = true;
-        return res.json(docs);
+        user.loggedIn = true;
+        return res.json(user);
       }
     });
   }
@@ -171,6 +171,20 @@ app.put('/user', function(req, res, next) {
   else {
     return res.status(403).send('Not logged in');
   }
+});
+
+// Delete the user
+app.delete('/user', auth);
+app.delete('/user', function(req, res, next) {
+  var email = req.session.email;
+
+  db.users.remove({email: email}, function (err, result) {
+    console.log('removing', err, result);
+
+    req.session.destroy(function(err) {
+      res.json('User ' + email + ' deleted');
+    })
+  });
 });
 
 function updateUser(user, callback) {

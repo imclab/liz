@@ -47,7 +47,7 @@ var ajax = (function () {
   }
 
   function get (url, headers) {
-    return fetch('GET', url, null, headers);
+    return fetch('GET', url, '', headers);
   }
 
   function post (url, body, headers) {
@@ -59,7 +59,7 @@ var ajax = (function () {
   }
 
   function del (url, headers) {
-    return fetch('DELETE', url, null, headers)
+    return fetch('DELETE', url, '', headers)
   }
 
   return {

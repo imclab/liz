@@ -30,6 +30,9 @@ var SettingsPage = React.createClass({
           <h1>Availability profile</h1>
           <p>Select one of your calendars as availability profile. Fill this calendar with (repeating) events describing your availability. This can for example be your working hours, like Monday to Friday 9:00-18:00.</p>
           <p>(not yet implemented...)</p>
+          <h1>Delete account</h1>
+          <p>Click the following button to remove your account completely: <button onClick={this.deleteAccount} value="Delete account" className="btn btn-danger">Delete account</button>
+          </p>
         </div>
         )
   },
@@ -45,6 +48,19 @@ var SettingsPage = React.createClass({
         .catch(function (err) {
           console.log('Error', err);
         });
+  },
+
+  deleteAccount: function () {
+    if (confirm ('Are you sure you want to delete your account?\n\nThis action cannot be undone.')) {
+      ajax.del('/user/')
+          .then(function () {
+            // go to home
+            location.href = '/';
+          })
+          .catch(function (err) {
+            console.log('Error', err);
+          })
+    }
   }
 });
 
