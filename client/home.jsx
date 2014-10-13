@@ -19,13 +19,13 @@ var HomePage = React.createClass({
 
   render: function () {
     var events = this.state.events;
-    var freeBusy = this.state.freeBusy;
+    var busy = this.state.busy;
     return (
         <div>
         <h1>Events</h1>
         <EventList events={events} />
         <h1>Busy</h1>
-        <FreeBusyList freeBusy={freeBusy} />
+        <FreeBusyList busy={busy} />
         </div>
         );
   },
@@ -45,7 +45,7 @@ var HomePage = React.createClass({
     return ajax.get('/freeBusy/' + calendarId)
         .then(function (freeBusy) {
           console.log('freeBusy', freeBusy);
-          this.setState({freeBusy: freeBusy.calendars || []});
+          this.setState({busy: freeBusy.busy || []});
         }.bind(this))
         .catch(function (err) {
           console.log('Error', err);
@@ -109,20 +109,11 @@ var FreeBusy = React.createClass({
 
 var FreeBusyList = React.createClass({
   render: function() {
-    var calendars = this.props.freeBusy || {};
+    var busy = this.props.busy || [];
 
-    function buildItems(items) {
-      return items.map(function (item) {
-        return (<FreeBusy data={item} key={item.start}/>)
-      });
-    }
-
-    var items = [];
-    for (var calendarId in calendars) {
-      if (calendars.hasOwnProperty(calendarId)) {
-        items = items.concat(buildItems(calendars[calendarId].busy));
-      }
-    }
+    var items = busy.map(function (interval) {
+      return (<FreeBusy data={interval} key={interval.start}/>)
+    });
 
     return (<div>{items}</div>)
   }

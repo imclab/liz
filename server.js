@@ -1,4 +1,3 @@
-var util = require('util');
 var request = require('request');
 var express  = require('express');
 var cookieParser  = require('cookie-parser');
@@ -11,6 +10,9 @@ var mongojs = require('mongojs');
 
 var MongoStore = require('connect-mongo')(session);
 var GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
+
+var intervals = require('./lib/intervals');
+
 
 var PRODUCTION = (process.env.NODE_ENV == 'production');
 var MONGO_URL = argv.MONGO_URL ||
@@ -127,15 +129,15 @@ app.get('/user', function(req, res, next) {
   if (loggedIn) {
     var email = req.session.email;
     db.users.findOne({email: email}, function (err, docs) {
-      if(err) return res.status(500).send(err);
+      if(err) return res.status(500).send(err.toString());
       if (docs == null) {
         // get user info from google
         getUserInfo(req.session.accessToken, function (err, user) {
-          if(err) return res.status(500).send(err);
+          if(err) return res.status(500).send(err.toString());
 
           // store user in the database
           updateUser(user, function (err, user) {
-            if(err) return res.status(500).send(err);
+            if(err) return res.status(500).send(err.toString());
             return res.json(user);
           })
         });
@@ -162,7 +164,7 @@ app.put('/user', function(req, res, next) {
     user.email = email;
 
     updateUser(user, function (err, user) {
-      if(err) return res.status(500).send(err);
+      if(err) return res.status(500).send(err.toString());
       return res.json(user);
     });
   }
@@ -198,7 +200,7 @@ app.get('/calendar', function(req, res){
   var accessToken = req.session.accessToken;
 
   gcal(accessToken).calendarList.list(function(err, data) {
-    if(err) return res.status(500).send(err);
+    if(err) return res.status(500).send(err.toString());
     return res.json(data);
   });
 });
@@ -215,18 +217,19 @@ app.get('/calendar/:calendarId', function(req, res){
   };
 
   gcal(accessToken).events.list(calendarId, options, function(err, data) {
-    if(err) return res.status(500).send(err);
+    if(err) return res.status(500).send(err.toString());
     return res.json(data);
   });
 });
 
+// TODO: remove this?
 app.get('/calendar/:calendarId/add', function(req, res){
   var accessToken     = req.session.accessToken;
   var calendarId      = req.params.calendarId;
   var text            = req.query.text || 'Hello World';
 
   gcal(accessToken).events.quickAdd(calendarId, text, function(err, data) {
-    if(err) return res.status(500).send(err);
+    if(err) return res.status(500).send(err.toString());
     return res.redirect('/calendar/'+calendarId);
   });
 });
@@ -237,7 +240,7 @@ app.delete('/calendar/:calendarId/:eventId/remove', function(req, res){
   var eventId         = req.params.eventId;
 
   gcal(accessToken).events.delete(calendarId, eventId, function(err, data) {
-    if(err) return res.status(500).send(err);
+    if(err) return res.status(500).send(err.toString());
     return res.redirect('/calendar/'+calendarId);
   });
 });
@@ -266,9 +269,20 @@ app.get('/freeBusy/:calendarId?', function(req, res) {
     };
 
     gcal(accessToken).freebusy.query(query, function(err, data) {
-      if(err) return res.status(500).send(err);
+      try {
+        // merge the free busy intervals
+        if (data && data.calendars) {
+          var busy = Object.keys(data.calendars).reduce(function (busy, key) {
+            return busy.concat(data.calendars[key].busy);
+          }, []);
+          data.busy = intervals.merge(busy);
+        }
+      }
+      catch (error) {
+        err = error;
+      }
 
-      // TODO: merge the freeBusy intervals of all selected calendars
+      if(err) return res.status(500).send(err.toString());
 
       return res.json(data);
     });
@@ -289,7 +303,7 @@ app.get('/freeBusy/:calendarId', function(req, res) {
   };
 
   gcal(accessToken).freebusy.query(query, function(err, data) {
-    if(err) return res.status(500).send(err);
+    if(err) return res.status(500).send(err.toString());
     return res.json(data);
   });
 });

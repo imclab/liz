@@ -7,7 +7,7 @@ Dynamic planning tool
 
 To start the server:
 
-    node index.js --clientID CLIENT_ID --clientSecret CLIENT_SECRET
+    node server.js --clientID CLIENT_ID --clientSecret CLIENT_SECRET
 
 Note that CLIENT_ID and CLIENT_SECRET must be configured via the 
 [Google Developers Console](https://console.developers.google.com/). You will have to:
