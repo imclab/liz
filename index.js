@@ -175,7 +175,11 @@ function updateUser(user, callback) {
 
   db.users.findAndModify({
     query: {email: user.email},
-    update: {$set: user, $inc: {seq: 1}},
+    update: {
+      $set: user,
+      $setOnInsert: { calendars: [user.email] }, // requires Mongo v2.4
+      $inc: {seq: 1}
+    },
     upsert: true,   // create a new document when not existing
     new: true       // return the newly created or the updated document
   }, function (err, updatedUser, lastErrorObject) {
@@ -233,8 +237,41 @@ app.delete('/calendar/:calendarId/:eventId/remove', function(req, res){
   });
 });
 
+app.get('/freeBusy/:calendarId?', function(req, res) {
+  var calendarId  = req.params.calendarId; // TODO: retrieve for requested calendarId
+  var accessToken = req.session.accessToken;
+  var email       = req.session.email;
+  db.users.findOne({email: email}, function (err, user) {
+    var items;
+    if (user && user.calendars) {
+      items = user.calendars.map(function (calendarId) {
+        return {id: calendarId};
+      })
+    }
+    else {
+      // default: just use the users own calendar
+      items = [{id: email}];
+    }
+
+    var now = new Date();
+    var query = {
+      timeMin: new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString(),
+      timeMax: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7).toISOString(),
+      items: items
+    };
+
+    gcal(accessToken).freebusy.query(query, function(err, data) {
+      if(err) return res.status(500).send(err);
+
+      // TODO: merge the freeBusy intervals of all selected calendars
+
+      return res.json(data);
+    });
+  });
+});
+
+// TODO: remove this function
 app.get('/freeBusy/:calendarId', function(req, res) {
-  // TODO: get freeBusy for a list with calendars
   var accessToken     = req.session.accessToken;
   var calendarId      = req.params.calendarId;
   var now = new Date();
