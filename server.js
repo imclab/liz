@@ -177,11 +177,18 @@ app.put('/user', function(req, res, next) {
 app.delete('/user', auth);
 app.delete('/user', function(req, res, next) {
   var email = req.session.email;
+  var accessToken = req.session.accessToken;
 
+  // remove the user from our database
   db.users.remove({email: email}, function (err, result) {
-    req.session.destroy(function(err) {
-      res.json('User ' + email + ' deleted');
-    })
+    //revoke granted permissions at google
+    var url = 'https://accounts.google.com/o/oauth2/revoke?token=' + accessToken;
+    request(url, function (error, response, body) {
+      // remove the users session (with authentication token)
+      req.session.destroy(function(err) {
+        res.json('User ' + email + ' deleted');
+      })
+    });
   });
 });
 
