@@ -179,8 +179,6 @@ app.delete('/user', function(req, res, next) {
   var email = req.session.email;
 
   db.users.remove({email: email}, function (err, result) {
-    console.log('removing', err, result);
-
     req.session.destroy(function(err) {
       res.json('User ' + email + ' deleted');
     })

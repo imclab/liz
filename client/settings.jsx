@@ -80,6 +80,7 @@ var CalendarList = React.createClass({
     return (
           <CheckboxGroup
           name="calendars"
+          className="calendars"
           value={this.props.selection}
           ref="calendars"
           onChange={this.handleChange}

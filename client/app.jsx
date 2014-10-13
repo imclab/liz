@@ -30,3 +30,13 @@ ajax.get('/user/')
     .catch(function (err) {
       console.log('Error', err);
     });
+
+// change layout for different screen sizes
+function resize () {
+  var width = document.body.clientWidth;
+
+  var page = document.getElementById('page');
+  page.className = (width < 500) ? 'small' : 'normal';
+}
+resize();
+window.onresize = resize;
