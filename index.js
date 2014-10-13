@@ -129,6 +129,7 @@ app.get('/user', function(req, res, next) {
     db.users.findOne({email: email}, function (err, docs) {
       if(err) return res.status(500).send(err);
       if (docs == null) {
+        // get user info from google
         getUserInfo(req.session.accessToken, function (err, user) {
           if(err) return res.status(500).send(err);
 
@@ -173,11 +174,15 @@ app.put('/user', function(req, res, next) {
 function updateUser(user, callback) {
   user.updated = new Date().toISOString();
 
+  // add field with default calendar
+  if (!user.calendars) {
+    user.calendars = [user.email];
+  }
+
   db.users.findAndModify({
     query: {email: user.email},
     update: {
       $set: user,
-      $setOnInsert: { calendars: [user.email] }, // requires Mongo v2.4
       $inc: {seq: 1}
     },
     upsert: true,   // create a new document when not existing
