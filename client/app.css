@@ -26,6 +26,7 @@ h1, h2, h3 {
   font-size: 3em;
   font-weight: bold;
   font-family: monospace;
+  color: inherit;
 }
 
 #menu {
@@ -66,4 +67,31 @@ div.calendar-item div.calendar-color {
 img.user-icon {
   width: 24px;
   height: 24px;
+}
+
+div.scheduler table th,
+div.scheduler table td {
+  padding: 5px 10px;
+}
+
+div.scheduler table th:first-child,
+div.scheduler table td:first-child {
+  padding-left: 0;
+}
+
+div.scheduler img.loading {
+  vertical-align: middle;
+}
+
+div.scheduler table,
+div.scheduler ul {
+  margin: 24px 0;
+}
+
+div.scheduler ul {
+  list-style-type: none;
+}
+
+p.error {
+  color: red;
 }

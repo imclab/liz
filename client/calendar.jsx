@@ -71,6 +71,7 @@ var Event = React.createClass({
   }
 });
 
+// TODO: group events per day
 var EventList = React.createClass({
   render: function() {
     var data = this.props.events || [];

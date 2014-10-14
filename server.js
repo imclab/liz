@@ -219,7 +219,7 @@ app.get('/calendar', function(req, res){
   var accessToken = req.session.accessToken;
 
   gcal(accessToken).calendarList.list(function(err, data) {
-    if(err) return res.status(500).send(err.toString());
+    if(err) return sendError(res, err);
     return res.json(data);
   });
 });
@@ -227,16 +227,21 @@ app.get('/calendar', function(req, res){
 app.get('/calendar/:calendarId', function(req, res){
   var accessToken     = req.session.accessToken;
   var calendarId      = req.params.calendarId;
+
   var now = new Date();
+  var defaultTimeMin = new Date(now.getFullYear(), now.getMonth(), now.getDate(),
+      now.getHours(), Math.round(now.getMinutes() / 30) * 30, 0);
+  var defaultTimeMax = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7);
+
   var options = {
     singleEvents: true, // expand recurring events
     orderBy: 'startTime',
-    timeMin: new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString(),
-    timeMax: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7).toISOString()
+    timeMin: req.query.timeMin || defaultTimeMin.toISOString(),
+    timeMax: req.query.timeMax || defaultTimeMax.toISOString()
   };
 
   gcal(accessToken).events.list(calendarId, options, function(err, data) {
-    if(err) return res.status(500).send(err.toString());
+    if(err) return sendError(res, err);
     return res.json(data);
   });
 });
@@ -247,9 +252,21 @@ app.get('/calendar/:calendarId/add', function(req, res){
   var calendarId      = req.params.calendarId;
   var text            = req.query.text || 'Hello World';
 
-  gcal(accessToken).events.quickAdd(calendarId, text, function(err, data) {
-    if(err) return res.status(500).send(err.toString());
+  gcal(accessToken).events.insert(calendarId, text, function(err, data) {
+    if(err) return sendError(res, err);
     return res.redirect('/calendar/'+calendarId);
+  });
+});
+
+// insert a new event
+app.put('/calendar/:calendarId', function(req, res){
+  var accessToken = req.session.accessToken;
+  var calendarId = req.params.calendarId;
+  var event = req.body;
+
+  gcal(accessToken).events.insert(calendarId, event, function(err, createdEvent) {
+    if(err) return sendError(res, err);
+    return res.json(createdEvent);
   });
 });
 
@@ -259,7 +276,7 @@ app.delete('/calendar/:calendarId/:eventId/remove', function(req, res){
   var eventId         = req.params.eventId;
 
   gcal(accessToken).events.delete(calendarId, eventId, function(err, data) {
-    if(err) return res.status(500).send(err.toString());
+    if(err) return sendError(res, err);
     return res.redirect('/calendar/'+calendarId);
   });
 });
@@ -281,9 +298,13 @@ app.get('/freeBusy/:calendarId?', function(req, res) {
     }
 
     var now = new Date();
+    var defaultTimeMin = new Date(now.getFullYear(), now.getMonth(), now.getDate(),
+        now.getHours(), Math.round(now.getMinutes() / 30) * 30, 0);
+    var defaultTimeMax = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7);
+
     var query = {
-      timeMin: new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString(),
-      timeMax: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7).toISOString(),
+      timeMin: req.query.timeMin || defaultTimeMin.toISOString(),
+      timeMax: req.query.timeMax || defaultTimeMax.toISOString(),
       items: items
     };
 
@@ -294,14 +315,15 @@ app.get('/freeBusy/:calendarId?', function(req, res) {
           var busy = Object.keys(data.calendars).reduce(function (busy, key) {
             return busy.concat(data.calendars[key].busy);
           }, []);
-          data.busy = intervals.merge(busy);
+          data.busy = busy;
+          data.free = intervals.invert(busy, query.timeMin, query.timeMax);
         }
       }
       catch (error) {
         err = error;
       }
 
-      if(err) return res.status(500).send(err.toString());
+      if(err) return sendError(res, err);
 
       return res.json(data);
     });
@@ -322,10 +344,31 @@ app.get('/freeBusy/:calendarId', function(req, res) {
   };
 
   gcal(accessToken).freebusy.query(query, function(err, data) {
-    if(err) return res.status(500).send(err.toString());
+    if(err) return sendError(res, err);
     return res.json(data);
   });
 });
+
+/**
+ * Send an error
+ * @param {Object} res
+ * @param {Error | string | Object} err
+ */
+function sendError(res, err) {
+  var body;
+
+  if (err instanceof Error) {
+    body = err.toString();
+  }
+  else if (typeof err === 'string') {
+    body = err;
+  }
+  else {
+    body = JSON.stringify(err);
+  }
+
+  return res.status(500).send(body);
+}
 
 /**
  * Retrieve user information from google

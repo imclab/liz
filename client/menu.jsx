@@ -43,7 +43,7 @@ var Menu = React.createClass({
               <a href="#" className="dropdown-toggle" data-toggle="dropdown"><span title={title}>{user.name}</span> <span className="caret"></span>
               </a>
               <ul className="dropdown-menu" role="menu">
-                <li><a href="javascript: alert('Why is this entry? Well, else the dropdown looks so empty...')">More</a></li>
+                <li><a href="?page=settings">Settings</a></li>
                 <li className="divider"></li>
                 <li><a href="/user/signout">Sign out</a></li>
               </ul>
@@ -77,7 +77,6 @@ var Menu = React.createClass({
               <ul className="nav navbar-nav">
                 <li className={isHome}><a href="?page=home">Home</a></li>
                 <li className={isCalendar}><a href="?page=calendar">Calendar</a></li>
-                <li className={isSettings}><a href="?page=settings">Settings</a></li>
               </ul>
               {login}
             </div>
