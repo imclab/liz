@@ -47,7 +47,7 @@ h1, h2, h3 {
   box-shadow: 2px 2px 10px rgba(128, 128, 128, 0.2);
 }
 
-#page.small {
+#page.small-screen {
   margin: 0 auto;
   padding: 40px 10px;
 }

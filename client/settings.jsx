@@ -31,7 +31,7 @@ var SettingsPage = React.createClass({
           <p>Select one of your calendars as availability profile. Fill this calendar with (repeating) events describing your availability. This can for example be your working hours, like Monday to Friday 9:00-18:00.</p>
           <p>(not yet implemented...)</p>
           <h1>Delete account</h1>
-          <p>Click the following button to remove your account completely: <button onClick={this.deleteAccount} value="Delete account" className="btn btn-danger">Delete account</button>
+          <p><button onClick={this.deleteAccount} value="Delete account" className="btn btn-danger">Delete account</button>
           </p>
         </div>
         )

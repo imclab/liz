@@ -14,6 +14,10 @@ switch(pageId) {
     page = React.renderComponent(<SettingsPage/>, container);
     break;
 
+  case 'calendar':
+    page = React.renderComponent(<CalendarPage/>, container);
+    break;
+
   default: // home
     page = React.renderComponent(<HomePage/>, container);
     break;
@@ -36,7 +40,7 @@ function resize () {
   var width = document.body.clientWidth;
 
   var page = document.getElementById('page');
-  page.className = (width < 500) ? 'small' : 'normal';
+  page.className = (width < 500) ? 'small-screen' : 'normal';
 }
 resize();
 window.onresize = resize;

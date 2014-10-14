@@ -18,8 +18,9 @@
 var Menu = React.createClass({
   render: function() {
     var pageId = queryparams.get('page');
-    var isHome = pageId != 'settings' ? 'active' : null;
+    var isCalendar = pageId == 'calendar' ? 'active' : null;
     var isSettings = pageId == 'settings' ? 'active' : null;
+    var isHome = (isCalendar == null && isSettings == null) ? 'active' : null;
     // <img src={user.picture} className="user-icon"></img>
 
     var login;
@@ -75,6 +76,7 @@ var Menu = React.createClass({
             <div className="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
               <ul className="nav navbar-nav">
                 <li className={isHome}><a href="?page=home">Home</a></li>
+                <li className={isCalendar}><a href="?page=calendar">Calendar</a></li>
                 <li className={isSettings}><a href="?page=settings">Settings</a></li>
               </ul>
               {login}
