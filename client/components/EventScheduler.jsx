@@ -1,47 +1,5 @@
 /** @jsx React.DOM */
 
-var HomePage = React.createClass({
-  getInitialState: function () {
-    return {
-      user: null,
-      timeslots: null,
-      created: false
-    };
-  },
-
-  render: function () {
-    var user = this.state.user;
-
-    if (user && user.loggedIn == true) {
-      // logged in
-      return (
-          <div>
-            <h1>Plan an event</h1>
-            <EventScheduler user={user} />
-          </div>
-          );
-    }
-    else if (user && user.loggedIn == false) {
-      // not logged in
-      return (
-          <div>
-            <h1>Plan an event</h1>
-            <p><a href='/user/signin' className="btn btn-primary">Sign in</a>
-            </p>
-          </div>
-          );
-    }
-    else {
-      // loading
-      return (
-          <div>
-            loading...
-          </div>
-          );
-    }
-  }
-});
-
 var EventScheduler = React.createClass({
   STEPS: ['input', 'select', 'create'],
 
@@ -114,38 +72,38 @@ var EventScheduler = React.createClass({
   renderInput: function () {
     return (
         <div className="scheduler">
-            <table>
-              <tr>
-                <th>Title</th>
-                <td><input type="text"
-                            className="form-control"
-                            name="summary"
-                            ref="summary"
-                            value={this.state.summary}
-                            onChange={this.handleChange} /></td>
-              </tr>
-              <tr>
-                <th>Duration (minutes)</th>
-                <td><input type="text"
-                            className="form-control"
-                            name="duration"
-                            ref="duration"
-                            value={this.state.duration}
-                            onChange={this.handleChange} /></td>
-              </tr>
-              <tr>
-                <th>Location</th>
-                <td><input type="text"
-                            className="form-control"
-                            name="location"
-                            ref="location"
-                            value={this.state.location}
-                            onChange={this.handleChange} /></td>
-              </tr>
-            </table>
-            <p>
+          <table>
+            <tr>
+              <th>Title</th>
+              <td><input type="text"
+              className="form-control"
+              name="summary"
+              ref="summary"
+              value={this.state.summary}
+              onChange={this.handleChange} /></td>
+            </tr>
+            <tr>
+              <th>Duration (minutes)</th>
+              <td><input type="text"
+              className="form-control"
+              name="duration"
+              ref="duration"
+              value={this.state.duration}
+              onChange={this.handleChange} /></td>
+            </tr>
+            <tr>
+              <th>Location</th>
+              <td><input type="text"
+              className="form-control"
+              name="location"
+              ref="location"
+              value={this.state.location}
+              onChange={this.handleChange} /></td>
+            </tr>
+          </table>
+          <p>
             <button onClick={this.next} className="btn btn-primary">Find a date</button>
-            </p>
+          </p>
         </div>
         );
   },
@@ -159,13 +117,13 @@ var EventScheduler = React.createClass({
             </p>
             {
                 (this.state.timeslots.length > 0) ?
-                <TimeslotList
+                    <TimeslotList
                     ref="timeslots"
                     data={this.state.timeslots}
                     value={this.state.selected}
                     onChange={this.handleChecked} /> :
-                <p className="error">Sorry, there is no suitable date found to plan this event.</p>
-            }
+                    <p className="error">Sorry, there is no suitable date found to plan this event.</p>
+                }
             <p>
               <button onClick={this.back} className="btn btn-normal">Back</button
               > <button onClick={this.createEvent} className="btn btn-primary">Create</button>
@@ -276,50 +234,3 @@ var EventScheduler = React.createClass({
     this.setState({step: 'create'});
   }
 });
-
-var TimeslotList = React.createClass({
-  MAX_TIMESLOTS: 10,
-
-  getInitialState: function () {
-    return {
-      value: this.props.value
-    }
-  },
-
-  render: function() {
-    var timeslots = this.props.data || [];
-
-    var items = timeslots.slice(0, this.MAX_TIMESLOTS).map(function (timeslot, index) {
-      return (<li key={timeslot.start}>
-        <label>
-          <input type="radio" name="timeslot" value={index + ''} onChange={this.handleChange}
-          /> {formatDate(timeslot.start)} {formatTime(timeslot.start)} - {formatTime(timeslot.end)}
-        </label>
-      </li>);
-    }.bind(this));
-
-    return (<RadioGroup
-        name="timeslots"
-        value={this.state.value}
-        ref="timeslots"
-        onChange={this.handleChange}
-        >
-          <ul>{items}</ul>
-        </RadioGroup>);
-  },
-
-  getCheckedValue: function () {
-    return this.refs.timeslots.getCheckedValue();
-  },
-
-  setCheckedValue: function (value) {
-    return this.refs.timeslots.setCheckedValue(value);
-  },
-
-  handleChange: function () {
-    if (this.props.onChange) {
-      this.props.onChange();
-    }
-  }
-});
-
