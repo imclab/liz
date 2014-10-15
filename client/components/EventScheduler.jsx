@@ -185,14 +185,10 @@ var EventScheduler = React.createClass({
   },
 
   createEvent: function () {
-    if (this.state.selected == null) {
-      alert('Select one of the dates first');
-      return;
-    }
-
     var timeslot = this.state.timeslots[this.state.selected];
     if (!timeslot) {
-      throw new Error('No timeslot selected');
+      alert('Select one of the available dates first');
+      return;
     }
 
     this.setState({

@@ -53,6 +53,32 @@ h1, h2, h3 {
   padding: 40px 10px;
 }
 
+table.events th,
+table.events td {
+  padding: 4px 20px 4px 0;
+}
+
+table.events td:last-child {
+  padding-right: 0;
+}
+
+table.events .nowrap {
+  white-space: nowrap;
+}
+
+table.events .first {
+  border-top: 1px solid lightgray;
+}
+
+table.events .last {
+  padding-bottom: 20px;
+}
+
+table.events th,
+table.events td {
+  vertical-align: top;
+}
+
 div.calendar-item {
   margin: 5px 0;
 }
