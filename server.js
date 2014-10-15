@@ -315,8 +315,8 @@ app.get('/freeBusy/:calendarId?', function(req, res) {
           var busy = Object.keys(data.calendars).reduce(function (busy, key) {
             return busy.concat(data.calendars[key].busy);
           }, []);
-          data.busy = busy;
-          data.free = intervals.invert(busy, query.timeMin, query.timeMax);
+          data.busy = intervals.merge(busy);
+          data.free = intervals.invert(data.busy, query.timeMin, query.timeMax);
         }
       }
       catch (error) {
