@@ -31,38 +31,40 @@ var EventScheduler = React.createClass({
   renderInput: function () {
     return (
         <div className="scheduler">
-          <table>
-            <tr>
-              <th>Title</th>
-              <td><input type="text"
-              className="form-control"
-              name="summary"
-              ref="summary"
-              value={this.state.summary}
-              onChange={this.handleChange} /></td>
-            </tr>
-            <tr>
-              <th>Duration (minutes)</th>
-              <td><input type="text"
-              className="form-control"
-              name="duration"
-              ref="duration"
-              value={this.state.duration}
-              onChange={this.handleChange} /></td>
-            </tr>
-            <tr>
-              <th>Location</th>
-              <td><input type="text"
-              className="form-control"
-              name="location"
-              ref="location"
-              value={this.state.location}
-              onChange={this.handleChange} /></td>
-            </tr>
-          </table>
-          <p>
-            <button onClick={this.calculateTimeslots} className="btn btn-primary">Find a date</button>
-          </p>
+          <form onSubmit={this.calculateTimeslots} >
+            <table>
+              <tr>
+                <th>Title</th>
+                <td><input type="text"
+                className="form-control"
+                name="summary"
+                ref="summary"
+                value={this.state.summary}
+                onChange={this.handleChange} /></td>
+              </tr>
+              <tr>
+                <th>Duration (minutes)</th>
+                <td><input type="text"
+                className="form-control"
+                name="duration"
+                ref="duration"
+                value={this.state.duration}
+                onChange={this.handleChange} /></td>
+              </tr>
+              <tr>
+                <th>Location</th>
+                <td><input type="text"
+                className="form-control"
+                name="location"
+                ref="location"
+                value={this.state.location}
+                onChange={this.handleChange} /></td>
+              </tr>
+            </table>
+            <p>
+              <input type="submit" className="btn btn-primary" value="Find a date" />
+            </p>
+          </form>
         </div>
         );
   },
@@ -78,14 +80,13 @@ var EventScheduler = React.createClass({
                 (this.state.timeslots.length > 0) ?
                     <TimeslotList
                     ref="timeslots"
-                    data={this.state.timeslots}
-                    value={this.state.selected}
-                    onChange={this.handleChecked} /> :
+                    timeslots={this.state.timeslots}
+                    value={this.state.selected} /> :
                     <p className="error">Sorry, there is no suitable date found to plan this event.</p>
                 }
             <p>
               <button onClick={this.back} className="btn btn-normal">Back</button
-              > <button onClick={this.createEvent} className="btn btn-primary">Create</button>
+              > <button onClick={this.createEvent} className="btn btn-primary">Create event</button>
             </p>
           </div>
           );
@@ -109,11 +110,17 @@ var EventScheduler = React.createClass({
             <p>
             Event created
             </p>
-            <ul>
-              <li>Title: {this.state.summary}</li>
-              <li>Start: {this.state.timeslot.start}</li>
-              <li>End: {this.state.timeslot.end}</li>
-            </ul>
+            <table className="dates">
+              <tr>
+                <th>Title</th><td>{this.state.summary}</td>
+              </tr>
+              <tr>
+                <th>Location</th><td>{this.state.location}</td>
+              </tr>
+              <tr>
+                <th>Time</th><td>{formatDate(this.state.timeslot.start)} {formatTime(this.state.timeslot.start)} &ndash; {formatTime(this.state.timeslot.end)}</td>
+              </tr>
+            </table>
             <p>
               <button onClick={this.done} className="btn btn-primary">Done</button>
             </p>
@@ -152,13 +159,9 @@ var EventScheduler = React.createClass({
     })
   },
 
-  handleChecked: function () {
-    this.setState({
-      selected: this.refs.timeslots.getCheckedValue()
-    })
-  },
+  calculateTimeslots: function (event) {
+    event.preventDefault(); // prevent form from submitting
 
-  calculateTimeslots: function () {
     this.setState({
       step: 'select',
       timeslots: null,
@@ -181,11 +184,12 @@ var EventScheduler = React.createClass({
         }.bind(this))
         .catch(function (err) {
           console.log('Error', err);
-        })
+        });
   },
 
   createEvent: function () {
-    var timeslot = this.state.timeslots[this.state.selected];
+    var selected = this.refs.timeslots.getValue();
+    var timeslot = this.state.timeslots[selected];
     if (!timeslot) {
       alert('Select one of the available dates first');
       return;

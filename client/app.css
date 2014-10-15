@@ -105,6 +105,12 @@ div.scheduler table td:first-child {
   padding-left: 0;
 }
 
+div.scheduler table td.selected {
+  background-color: #3bafda;
+  border-radius: 3px;
+  color: white;
+}
+
 div.scheduler img.loading {
   vertical-align: middle;
 }
@@ -120,4 +126,11 @@ div.scheduler ul {
 
 p.error {
   color: red;
+}
+
+
+/** Fix a bug in flatboot */
+.icheckbox_flat,
+.iradio_flat {
+  background: url("/node_modules/bootflat/bootflat/img/check_flat/default.png") no-repeat;
 }
