@@ -1,5 +1,13 @@
 /** @jsx React.DOM */
 
+/**
+ * Renders Google Calendar events in a table view
+ *
+ * Usage:
+ *
+ *     <EventList events={events} />
+ *
+ */
 var EventList = React.createClass({
   render: function() {
     var events = this.props.events || [];
@@ -28,20 +36,16 @@ var EventList = React.createClass({
 
             return (<tr key={item.id}>
               <th className={className + 'nowrap'}>
-                {index == 0 ? date : ''}
+                {index == 0 ? moment(date).format('ddd DD MMM') : ''}
               </th>
               <td className={className + 'nowrap'}>
-                {formatTime(item.start.dateTime)}&nbsp;&ndash;&nbsp;{formatTime(item.end.dateTime)}
+                {formatTime(item.start.dateTime)} &ndash; {formatTime(item.end.dateTime)}
               </td>
               <td className={className}>
                 <a href={item.htmlLink}>{item.summary}</a>
               </td>
             </tr>);
           });
-
-//          var day = moment(date).format('dddd');
-//          if (date == formatDate(moment())) day = 'Today';
-//          if (date == formatDate(moment().add(1, 'day'))) day = 'Tomorrow';
 
           return rows.concat(items);
         }, []);

@@ -15,10 +15,19 @@ var CalendarPage = React.createClass({
 
   render: function () {
     var events = this.state.events;
+    var contents;
+
+    if (events != null) {
+      contents = (<EventList events={events} />);
+    }
+    else {
+      contents = (<p>Loading calendar events... <img class="loading" src="img/ajax-loader.gif" /></p>);
+    }
+
     return (
         <div>
-        <h1>Calendar events</h1>
-        <EventList events={events} />
+          <h1>Calendar events</h1>
+          {contents}
         </div>
         );
   },
