@@ -4,56 +4,15 @@ var EventScheduler = React.createClass({
   STEPS: ['input', 'select', 'create'],
 
   getInitialState: function () {
-    var params = queryparams.getAll();
-
     return {
       step: this.STEPS[0],
-      summary: params.summary || 'new event',
-      duration: params.duration || 60,
-      location: params.location || '',
+      summary: 'new event',
+      duration: 60,
+      location: '',
+      timeslots: null,
+      timeslot: null,
       selected: null
     };
-  },
-
-  componentWillUpdate: function (nextProps, nextState) {
-    if (this.state.step != nextState.step) {
-      if (nextState.step == 'select') {
-        // calculate available time slots
-        nextState.timeslots = null;
-        nextState.selected = null;
-        this.calculateTimeslots();
-      }
-
-      if (nextState.step == 'create') {
-        nextState.timeslot = nextState.timeslots[nextState.selected];
-        if (nextState.timeslot) {
-          nextState.created = false;
-
-          var calendarId = this.props.user.email;
-          var event = {
-            attendees: [
-              {email: calendarId}
-            ],
-            summary: this.state.summary,
-            location: this.state.location,
-            start: {dateTime: nextState.timeslot.start},
-            end: {dateTime: nextState.timeslot.end}
-          };
-
-          ajax.put('/calendar/' + calendarId, event)
-              .then(function (response) {
-                console.log('event created', response);
-                this.setState({created: true});
-              }.bind(this))
-              .catch(function (err) {
-                console.log('Error', err);
-              }.bind(this));
-        }
-        else {
-          throw new Error('No timeslot selected');
-        }
-      }
-    }
   },
 
   render: function () {
@@ -102,7 +61,7 @@ var EventScheduler = React.createClass({
             </tr>
           </table>
           <p>
-            <button onClick={this.next} className="btn btn-primary">Find a date</button>
+            <button onClick={this.calculateTimeslots} className="btn btn-primary">Find a date</button>
           </p>
         </div>
         );
@@ -170,15 +129,6 @@ var EventScheduler = React.createClass({
     }
   },
 
-  next: function () {
-    var index = this.STEPS.indexOf(this.state.step);
-    var nextStep = this.STEPS[index + 1];
-
-    if (nextStep) {
-      this.setState({step: nextStep});
-    }
-  },
-
   back: function () {
     var index = this.STEPS.indexOf(this.state.step);
     var prevStep = this.STEPS[index - 1];
@@ -209,6 +159,13 @@ var EventScheduler = React.createClass({
   },
 
   calculateTimeslots: function () {
+    this.setState({
+      step: 'select',
+      timeslots: null,
+      selected: null
+    });
+
+    // calculate available time slots
     return ajax.get('/freeBusy/')
         .then(function (freeBusy) {
           console.log('freeBusy', freeBusy);
@@ -218,7 +175,9 @@ var EventScheduler = React.createClass({
 
           console.log('timeslots', timeslots);
 
-          this.setState({timeslots: timeslots});
+          this.setState({
+            timeslots: timeslots
+          });
         }.bind(this))
         .catch(function (err) {
           console.log('Error', err);
@@ -231,6 +190,37 @@ var EventScheduler = React.createClass({
       return;
     }
 
-    this.setState({step: 'create'});
+    var timeslot = this.state.timeslots[this.state.selected];
+    if (!timeslot) {
+      throw new Error('No timeslot selected');
+    }
+
+    this.setState({
+      step: 'create',
+      timeslot: timeslot,
+      created: false
+    });
+
+    var calendarId = this.props.user.email;
+    var event = {
+      attendees: [
+        {email: calendarId}
+      ],
+      summary: this.state.summary,
+      location: this.state.location,
+      start: {dateTime: timeslot.start},
+      end: {dateTime: timeslot.end}
+    };
+
+    ajax.put('/calendar/' + calendarId, event)
+        .then(function (response) {
+          console.log('event created', response);
+          this.setState({
+            created: true
+          });
+        }.bind(this))
+        .catch(function (err) {
+          console.log('Error', err);
+        }.bind(this));
   }
 });
