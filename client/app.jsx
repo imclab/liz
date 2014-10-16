@@ -1,40 +1,7 @@
 /** @jsx React.DOM */
 
-var menu = null;
-var page = null;
-var user = null;
-
-window.onload = function () {
-  var pageId = queryparams.get('page') || 'home';
-  var container = document.getElementById('contents');
-
-  menu = React.renderComponent(<Menu/>, document.getElementById('menu'));
-
-  switch(pageId) {
-    case 'settings':
-      page = React.renderComponent(<SettingsPage/>, container);
-      break;
-
-    case 'calendar':
-      page = React.renderComponent(<CalendarPage/>, container);
-      break;
-
-    default: // home
-      page = React.renderComponent(<HomePage/>, container);
-      break;
-  }
-
-  ajax.get('/user/')
-      .then(function (loadedUser) {
-        user = loadedUser;
-        console.log('user', user);
-
-        menu.setState({user: user});
-        page.setState({user: user});
-      })
-      .catch(function (err) {
-        console.log('Error', err);
-      });
+function init() {
+  var app = React.renderComponent(<App/>, document.getElementById('app'));
 
   // change layout for different screen sizes
   window.onresize = function () {
@@ -44,4 +11,11 @@ window.onload = function () {
     page.className = (width < 500) ? 'small-screen' : 'normal';
   };
   window.onresize();
-};
+}
+
+if (document.readyState === 'complete') {
+  init();
+}
+else {
+  window.onload = init;
+}

@@ -19,6 +19,7 @@ var SRC_JS = [
   'client/assets/react-radiogroup/react-radiogroup.jsx',
 
   'client/util/queryparams.js',
+  'client/util/hash.js',
   'client/util/ajax.js',
   'client/util/util.js',
 
@@ -49,15 +50,15 @@ function isNonMinified (file) {
 gulp.task('bundle-js', function () {
   return gulp.src(SRC_JS)
       .pipe(gulpif(isJSX, react()))
-      .pipe(gulpif(isNonMinified, uglify()))
       .pipe(concat('app.min.js'))
+      .pipe(uglify())
       .pipe(gulp.dest(DEST));
 });
 
 gulp.task('bundle-css', function () {
   return gulp.src(SRC_CSS)
-      .pipe(gulpif(isNonMinified, minifyCSS()))
       .pipe(concat('app.min.css'))
+      .pipe(minifyCSS())
       .pipe(gulp.dest(DEST));
 });
 
