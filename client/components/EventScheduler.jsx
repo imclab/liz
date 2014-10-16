@@ -29,6 +29,7 @@ var EventScheduler = React.createClass({
   },
 
   renderInput: function () {
+    // TODO: add a field for event description
     return (
         <div className="scheduler">
           <form onSubmit={this.calculateTimeslots} >
