@@ -2,6 +2,7 @@
 
 var SettingsPage = React.createClass({
   getInitialState: function () {
+    // load the list with calendars
     ajax.get('/calendar/')
         .then(function (calendars) {
           console.log('calendars', calendars);
@@ -12,20 +13,19 @@ var SettingsPage = React.createClass({
         });
 
     return {
+      selection: this.props.user && this.props.user.calendars || [],
       calendars: []
     };
   },
 
   render: function () {
-    var calendars = this.props.user && this.props.user.calendars || [];
-
     return <div>
       <h1>Settings</h1>
       <h2>Calendars</h2>
       <p>Select the calendars which need to be used for generating a free/busy profile:</p>
       <CalendarList
         calendars={this.state.calendars}
-        selection={calendars}
+        selection={this.state.selection}
         onChange={this.handleChange} />
       <h2>Availability profile</h2>
       <p>Select one of your calendars as availability profile. Fill this calendar with (repeating) events describing your availability. This can for example be your working hours, like Monday to Friday 9:00-18:00.</p>
@@ -38,6 +38,8 @@ var SettingsPage = React.createClass({
 
   handleChange: function (selection) {
     console.log('selected calendars:', selection);
+    this.setState({selection: selection});
+
     ajax.put('/user/', {calendars: selection})
         .then(function (user) {
           console.log('user', user);
