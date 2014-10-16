@@ -113,7 +113,6 @@ app.get('/user/signout', function(req, res, next) {
 });
 
 function auth(req, res, next) {
-  console.log('auth', req.url)
   if(!req.session.accessToken) {
     req.session.redirectTo = req.url;
     return res.redirect('/auth');

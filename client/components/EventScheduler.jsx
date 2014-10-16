@@ -153,6 +153,7 @@ var EventScheduler = React.createClass({
   },
 
   handleChange: function () {
+    // TODO: store the state in the pages url hash too?
     this.setState({
       summary: this.refs.summary.getDOMNode().value,
       duration: this.refs.duration.getDOMNode().value,
