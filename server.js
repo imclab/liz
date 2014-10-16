@@ -66,25 +66,24 @@ passport.use(new GoogleStrategy({
       clientID: GOOGLE_CLIENT_ID,
       clientSecret: GOOGLE_CLIENT_SECRET,
       callbackURL: CALLBACK_URL,
-      scope: ['profile', 'email', 'https://www.googleapis.com/auth/calendar'],
-      accessType: 'offline',
-      approvalPrompt: 'force'
+      scope: ['profile', 'email', 'https://www.googleapis.com/auth/calendar']
     },
     function(accessToken, refreshToken, params, profile, done) {
-      // FIXME: refreshToken is undefined
       profile.auth = {
         accessToken: accessToken,
         refreshToken: refreshToken,
         params: params
       };
-      //console.log('auth', profile.auth);
       return done(null, profile);
     }
 ));
 
 app.get('/auth',
-    passport.authenticate('google', { session: false}));
-// TODO: if auth token was not valid, logout
+    passport.authenticate('google', {
+      session: false,
+      accessType: 'offline',
+      approvalPrompt: 'force'
+    }));
 
 app.get('/auth/callback',
     passport.authenticate('google', { session: false, failureRedirect: '/' }),
