@@ -95,7 +95,7 @@ var EventScheduler = React.createClass({
     else { // loading
       return (
           <div className="scheduler">
-            <p className="loading">Calculating available dates for <b>{this.state.summary} ({this.state.duration} min)</b>... <img src="img/ajax-loader.gif" /></p>
+            <p className="loading">Calculating available dates for <b>{this.state.summary} ({this.state.duration} min)</b> <img src="img/ajax-loader.gif" /></p>
             <p>
               <button onClick={this.back} className="btn btn-normal">Back</button>
             </p>

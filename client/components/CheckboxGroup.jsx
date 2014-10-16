@@ -2,7 +2,7 @@
 
 // https://www.npmjs.org/package/react-checkbox-group
 
-    var CheckboxGroup = React.createClass({
+var CheckboxGroup = React.createClass({
   getInitialState: function() {
     return {defaultValue: this.props.defaultValue || []};
   },

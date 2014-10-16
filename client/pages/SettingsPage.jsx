@@ -13,8 +13,8 @@ var SettingsPage = React.createClass({
         });
 
     return {
-      selection: this.props.user && this.props.user.calendars || [],
-      calendars: []
+      selection: this.props.selection || [],
+      calendars: null
     };
   },
 
@@ -23,10 +23,14 @@ var SettingsPage = React.createClass({
       <h1>Settings</h1>
       <h2>Calendars</h2>
       <p>Select the calendars which need to be used for generating a free/busy profile:</p>
-      <CalendarList
-        calendars={this.state.calendars}
-        selection={this.state.selection}
-        onChange={this.handleChange} />
+      {
+          this.state.calendars ?
+              <CalendarList
+                calendars={this.state.calendars}
+                selection={this.state.selection}
+                onChange={this.handleChange} /> :
+              <div>loading <img className="loading" src="img/ajax-loader.gif" /></div>
+          }
       <h2>Availability profile</h2>
       <p>Select one of your calendars as availability profile. Fill this calendar with (repeating) events describing your availability. This can for example be your working hours, like Monday to Friday 9:00-18:00.</p>
       <p>(not yet implemented...)</p>
@@ -37,18 +41,12 @@ var SettingsPage = React.createClass({
   },
 
   handleChange: function (selection) {
-    console.log('selected calendars:', selection);
     this.setState({selection: selection});
 
-    ajax.put('/user/', {calendars: selection})
-        .then(function (user) {
-          console.log('user', user);
-          // TODO: apply new user via setState? Propagate back to the main app?
-          this.setState({user: user});
-        }.bind(this))
-        .catch(function (err) {
-          console.log('Error', err);
-        });
+    // propagate the selection to the parent component
+    if (typeof this.props.onChange === 'function') {
+      this.props.onChange(selection)
+    }
   },
 
   deleteAccount: function () {

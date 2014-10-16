@@ -2,7 +2,6 @@
 
 var CalendarPage = React.createClass({
   getInitialState: function () {
-    // TODO: not nice having to do tests whether to run loadEvents in two places
     var email = this.props.user && this.props.user.email;
     if (email) {
       this.loadEvents(email);
@@ -15,21 +14,12 @@ var CalendarPage = React.createClass({
     };
   },
 
-  componentWillUpdate: function (nextProps, nextState) {
-    // TODO: not nice having to do tests whether to run loadEvents in two places
-    var email = nextProps.user && nextProps.user.email;
-    if (email && !nextState.events) {
-      nextState.loading = true;
-      this.loadEvents(email);
-    }
-  },
-
   render: function () {
     var events = this.state.events || [];
     var contents;
 
     if (this.state.loading) {
-      contents = <p>Loading calendar events... <img className="loading" src="img/ajax-loader.gif" /></p>;
+      contents = <p>Loading calendar events <img className="loading" src="img/ajax-loader.gif" /></p>;
     }
     else {
       contents = <EventList events={events} />;
