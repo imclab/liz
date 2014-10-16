@@ -102,17 +102,18 @@ app.get('/auth/callback',
     });
 
 app.get('/user/signin', function(req, res, next) {
-  req.session.redirectTo = '/';
+  req.session.redirectTo = req.query.redirectTo || '/';
   return res.redirect('/auth');
 });
 
 app.get('/user/signout', function(req, res, next) {
   req.session.destroy(function(err) {
-    res.redirect('/');
+    res.redirect(req.query.redirectTo || '/');
   })
 });
 
 function auth(req, res, next) {
+  console.log('auth', req.url)
   if(!req.session.accessToken) {
     req.session.redirectTo = req.url;
     return res.redirect('/auth');

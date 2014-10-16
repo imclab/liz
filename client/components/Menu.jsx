@@ -62,7 +62,7 @@ var Menu = React.createClass({
               <ul className="dropdown-menu" role="menu">
                 <li><a href="#" onClick={goSettings}>Settings</a></li>
                 <li className="divider"></li>
-                <li><a href="/user/signout">Sign out</a></li>
+                <li><a href={'/user/signout?redirectTo=' + encodeURIComponent(location.href)}>Sign out</a></li>
               </ul>
             </li>
           </ul>
@@ -71,7 +71,7 @@ var Menu = React.createClass({
     else {
       login = <ul className="nav navbar-nav navbar-right">
         <li>
-          <a href="/user/signin">Sign in</a>
+          <a href={'/user/signin?redirectTo=' + encodeURIComponent(location.href)}>Sign in</a>
         </li>
       </ul>;
     }

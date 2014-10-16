@@ -16,6 +16,7 @@ var App = React.createClass({
 
     var page;
     if (user && user.loggedIn == true) {
+      // logged in
       switch(this.state.page) {
         case 'settings':  page = <SettingsPage ref="page" selection={this.state.user.calendars} onChange={this.handleSelection} />; break;
         case 'calendar':  page = <CalendarPage ref="page" user={this.state.user} />; break;
@@ -23,9 +24,10 @@ var App = React.createClass({
       }
     }
     else if (user && user.loggedIn == false) {
+      // not logged in
       page = <div>
         <h1>Sign in to get started...</h1>
-        <p><a href='/user/signin' className="btn btn-primary">Sign in</a>
+        <p><a href={'/user/signin?redirectTo=' + encodeURIComponent(location.href)} className="btn btn-primary">Sign in</a>
         </p>
       </div>
     }
