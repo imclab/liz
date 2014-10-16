@@ -11,7 +11,7 @@ var mongojs = require('mongojs');
 var MongoStore = require('connect-mongo')(session);
 var GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
 
-var intervals = require('./lib/intervals');
+var intervals = require('./shared/intervals');
 
 
 var PRODUCTION = (process.env.NODE_ENV == 'production');
@@ -57,6 +57,7 @@ var db = mongojs(MONGO_URL + '/' + MONGO_DB, ['users', 'sessions']);
 // serve static content
 app.use('/', express.static(__dirname + '/client'));
 app.use('/node_modules/', express.static(__dirname + '/node_modules'));
+app.use('/shared/', express.static(__dirname + '/shared'));
 
 app.listen(PORT);
 console.log('Server listening at http://localhost:' + PORT);

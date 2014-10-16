@@ -60,3 +60,9 @@ The Heroku app uses the following add-ons:
     heroku addons:add papertrail
     heroku addons:add mongohq
 
+
+# Test
+
+To the the code, run:
+
+    npm test

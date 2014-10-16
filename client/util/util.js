@@ -22,6 +22,7 @@ function formatTime(date) {
  * @param {Array.<Object>} free   A list with free intervals
  * @param {number} duration       Duration in milliseconds
  */
+// TODO: move this to shared/intervals.js
 function generateTimeslots(free, duration) {
   var timeslots = [];
 
