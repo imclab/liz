@@ -35,6 +35,21 @@ var EventScheduler = React.createClass({
     if (summary) {
       summary.getDOMNode().select();
     }
+
+    this.renderSelectBox();
+  },
+
+  componentDidUpdate: function () {
+    this.renderSelectBox();
+  },
+
+  renderSelectBox: function () {
+    var duration = this.refs.duration;
+    if (duration) {
+      $(duration.getDOMNode()).selecter({
+        callback: this.handleChange.bind(this)
+      });
+    }
   },
 
   renderInput: function () {
