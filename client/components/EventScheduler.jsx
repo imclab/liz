@@ -46,8 +46,11 @@ var EventScheduler = React.createClass({
   renderSelectBox: function () {
     var duration = this.refs.duration;
     if (duration) {
+      var me = this;
       $(duration.getDOMNode()).selecter({
-        callback: this.handleChange.bind(this)
+        callback: function () {
+          me.handleChange();
+        }
       });
     }
   },
@@ -103,7 +106,8 @@ var EventScheduler = React.createClass({
                 className="form-control"
                 name="description"
                 ref="description"
-                onChange={this.handleChange}>{this.state.description}</textarea>
+                value={this.state.description}
+                onChange={this.handleChange}></textarea>
                 </td>
               </tr>
             </table>
