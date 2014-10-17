@@ -5,37 +5,12 @@ var bodyParser  = require('body-parser');
 var session = require('express-session');
 var gcal = require('google-calendar');
 var passport = require('passport');
-var argv = require('yargs').argv;
 var mongojs = require('mongojs');
-
 var MongoStore = require('connect-mongo')(session);
 var GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
 
 var intervals = require('./shared/intervals');
-
-
-var PRODUCTION = (process.env.NODE_ENV == 'production');
-var MONGO_URL = argv.MONGO_URL ||
-    process.env.MONGO_URL ||
-    process.env.MONGOHQ_URL ||
-    'mongodb://127.0.0.1:27017';
-var MONGO_DB = 'smartplanner';
-var GOOGLE_CLIENT_ID = argv.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
-var GOOGLE_CLIENT_SECRET = argv.GOOGLE_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET;
-var PORT = argv.PORT || process.env.PORT || 8082;
-var CALLBACK_URL = PRODUCTION ?
-    'https://smartplanner.herokuapp.com/auth/callback' :
-    'http://localhost:' + PORT + '/auth/callback';
-
-if (!GOOGLE_CLIENT_ID) {
-  throw new Error('No GOOGLE_CLIENT_ID configured. Provide a GOOGLE_CLIENT_ID via command line arguments or an environment variable');
-}
-if (!GOOGLE_CLIENT_SECRET) {
-  throw new Error('No GOOGLE_CLIENT_SECRET configured. Provide a GOOGLE_CLIENT_SECRET via command line arguments or an environment variable');
-}
-
-console.log('MONGO_URL (or MONGOHQ_URL):', MONGO_URL);
-console.log('Authentication callback url:', CALLBACK_URL);
+var config = require('./config');
 
 // create an express app
 var app = express();
@@ -44,7 +19,10 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 app.use(session({
   //store: new MongoStore({url: MONGO_URL + '/' + MONGO_DB + '/sessions', ssl: PRODUCTION}), // TODO: use SSL
-  store: new MongoStore({url: MONGO_URL + '/' + MONGO_DB + '/sessions'}),
+  store: new MongoStore({
+    url: config.MONGO_URL + '/' + config.MONGO_DB + '/sessions',
+    stringify: false
+  }),
   secret: 'youre not going to guess this one',
   resave: true,
   saveUninitialized: true
@@ -52,21 +30,21 @@ app.use(session({
 app.use(passport.initialize());
 
 // create a connection to mongodb
-var db = mongojs(MONGO_URL + '/' + MONGO_DB, ['users', 'sessions']);
+var db = mongojs(config.MONGO_URL + '/' + config.MONGO_DB, ['users', 'sessions']);
 
 // serve static content
 app.use('/', express.static(__dirname + '/client'));
 app.use('/node_modules/', express.static(__dirname + '/node_modules'));
 app.use('/shared/', express.static(__dirname + '/shared'));
 
-app.listen(PORT);
-console.log('Server listening at http://localhost:' + PORT);
+app.listen(config.PORT);
+console.log('Server listening at http://localhost:' + config.PORT);
 
 // Setup passportjs server for authentication
 passport.use(new GoogleStrategy({
-      clientID: GOOGLE_CLIENT_ID,
-      clientSecret: GOOGLE_CLIENT_SECRET,
-      callbackURL: CALLBACK_URL,
+      clientID: config.GOOGLE_CLIENT_ID,
+      clientSecret: config.GOOGLE_CLIENT_SECRET,
+      callbackURL: config.CALLBACK_URL,
       scope: ['profile', 'email', 'https://www.googleapis.com/auth/calendar']
     },
     function(accessToken, refreshToken, params, profile, done) {
@@ -89,13 +67,14 @@ app.get('/auth',
 app.get('/auth/callback',
     passport.authenticate('google', { session: false, failureRedirect: '/' }),
     function(req, res) {
-      // copy required fields to the session object
+      // copy needed fields to the session object
       var expires_in = req.user.auth.params.expires_in * 1000; // ms
-      req.session.cookie.expires = new Date(Date.now() + expires_in);
-      req.session.cookie.maxAge = expires_in;
+      req.session.expires = new Date(Date.now() + expires_in).toISOString();
       req.session.email = req.user._json.email;
       req.session.accessToken = req.user.auth.accessToken;
       req.session.refreshToken = req.user.auth.refreshToken;
+      req.session.cookie.expires = req.session.expires;
+      req.session.cookie.maxAge = expires_in;
 
       var redirectTo = req.session.redirectTo || '/';
       res.redirect(redirectTo);
@@ -113,9 +92,23 @@ app.get('/user/signout', function(req, res, next) {
 });
 
 function auth(req, res, next) {
-  if(!req.session.accessToken) {
+  if (!req.session.accessToken) {
     req.session.redirectTo = req.url;
     return res.redirect('/auth');
+  }
+  else if (new Date(req.session.expires) < (Date.now() + 5 * 60 * 1000)) {
+    // access token expires within 5 minutes
+    refreshToken(req.session.refreshToken, function (err, result) {
+      if (err) return sendError(res, err);
+
+      var expires_in = result.expires_in * 1000;
+      req.session.accessToken = result.access_token;
+      req.session.expires = new Date(Date.now() + expires_in).toISOString();
+      req.session.cookie.expires = req.session.expires;
+      req.session.cookie.maxAge = expires_in;
+
+      next();
+    });
   }
   else {
     return next();
@@ -392,5 +385,28 @@ function getUserInfo (accessToken, callback) {
     catch (err) {
       callback(err, null);
     }
+  });
+}
+
+/**
+ * Retrieve a new access token from a given refreshToken
+ * https://developers.google.com/accounts/docs/OAuth2WebServer#refresh
+ * @param {String} refreshToken
+ * @param {function(err, object)} callback   Callback object contains
+ *                                           parameters access_token, token_type, expires_in, and id_token
+ */
+function refreshToken(refreshToken, callback) {
+  var url = 'https://accounts.google.com/o/oauth2/token';
+  var form = {
+    refresh_token: refreshToken,
+    client_id: config.GOOGLE_CLIENT_ID,
+    client_secret: config.GOOGLE_CLIENT_SECRET,
+    grant_type: 'refresh_token'
+  };
+
+  request.post(url, {form: form}, function (error, response, body) {
+    if (error) return callback(error, null);
+
+    callback(null, JSON.parse(body));
   });
 }

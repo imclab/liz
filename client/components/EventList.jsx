@@ -25,7 +25,7 @@ var EventList = React.createClass({
       if (date != prevDate) className += 'first ';
       if (date != nextDate) className += 'last ';
 
-      return (<tr key={event.id}>
+      return <tr key={event.id}>
         <th className={className + 'nowrap'}>
                 {date != prevDate ? date : ''}
         </th>
@@ -35,12 +35,11 @@ var EventList = React.createClass({
         <td className={className}>
           <a href={event.htmlLink}>{event.summary}</a>
         </td>
-      </tr>);
+      </tr>;
     });
 
-    return (
-        <table className="events">
-          {rows}
-        </table>);
+    return <table className="events">
+      {rows}
+    </table>;
   }
 });
