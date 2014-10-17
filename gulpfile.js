@@ -15,11 +15,11 @@ var SRC_JS = [
   'node_modules/bootflat/bootflat/js/jquery.fs.stepper.min.js',
   'node_modules/moment/min/moment.min.js',
   'node_modules/promise-js/promise.js',
-  'node_modules/react/dist/react.js',
+  'node_modules/react/dist/react.min.js',
 
   'client/assets/react-radiogroup/react-radiogroup.jsx',
-  'shared/*.js',
-  'client/util/*.js',
+  'shared/*',
+  'client/util/*',
 
   // app
   'client/components/*.jsx',
@@ -45,10 +45,10 @@ function isNonMinified (file) {
   return path.extname(base) !== '.min';
 }
 
-// replace one line comments to remove references to source maps
-var replaceComments = replace(/^\/\/.*$/mg, '');
-
 gulp.task('bundle-js', function () {
+  // replace one line comments in order to remove references to source maps
+  var replaceComments = replace(/^\/\/.*$/mg, '');
+
   return gulp.src(SRC_JS)
       .pipe(gulpif(isJSX, react()))
       .pipe(gulpif(isNonMinified, uglify(), replaceComments))

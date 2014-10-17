@@ -97,8 +97,8 @@ function auth(req, res, next) {
     return res.redirect('/auth');
   }
   else if (new Date(req.session.expires) < (Date.now() + 5 * 60 * 1000)) {
-    // access token expires within 5 minutes
-    refreshToken(req.session.refreshToken, function (err, result) {
+    // access token expires within 5 minutes, get a new one
+    refreshAccessToken(req.session.refreshToken, function (err, result) {
       if (err) return sendError(res, err);
 
       var expires_in = result.expires_in * 1000;
@@ -392,10 +392,11 @@ function getUserInfo (accessToken, callback) {
  * Retrieve a new access token from a given refreshToken
  * https://developers.google.com/accounts/docs/OAuth2WebServer#refresh
  * @param {String} refreshToken
- * @param {function(err, object)} callback   Callback object contains
- *                                           parameters access_token, token_type, expires_in, and id_token
+ * @param {function(err, object)} callback   On success, the returned `object`
+ *                                           contains parameters access_token,
+ *                                           token_type, expires_in, and id_token
  */
-function refreshToken(refreshToken, callback) {
+function refreshAccessToken(refreshToken, callback) {
   var url = 'https://accounts.google.com/o/oauth2/token';
   var form = {
     refresh_token: refreshToken,
