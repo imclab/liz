@@ -3,6 +3,7 @@ var gulp = require('gulp');
 var concat = require('gulp-concat');
 var react = require('gulp-react');
 var uglify = require('gulp-uglify');
+var replace = require('gulp-replace');
 var minifyCSS = require('gulp-minify-css');
 var gulpif = require('gulp-if');
 
@@ -17,11 +18,8 @@ var SRC_JS = [
   'node_modules/react/dist/react.js',
 
   'client/assets/react-radiogroup/react-radiogroup.jsx',
-
-  'client/util/queryparams.js',
-  'client/util/hash.js',
-  'client/util/ajax.js',
-  'client/util/util.js',
+  'shared/*.js',
+  'client/util/*.js',
 
   // app
   'client/components/*.jsx',
@@ -47,18 +45,21 @@ function isNonMinified (file) {
   return path.extname(base) !== '.min';
 }
 
+// replace one line comments to remove references to source maps
+var replaceComments = replace(/^\/\/.*$/mg, '');
+
 gulp.task('bundle-js', function () {
   return gulp.src(SRC_JS)
       .pipe(gulpif(isJSX, react()))
+      .pipe(gulpif(isNonMinified, uglify(), replaceComments))
       .pipe(concat('app.min.js'))
-      .pipe(uglify())
       .pipe(gulp.dest(DEST));
 });
 
 gulp.task('bundle-css', function () {
   return gulp.src(SRC_CSS)
+      .pipe(gulpif(isNonMinified, minifyCSS()))
       .pipe(concat('app.min.css'))
-      .pipe(minifyCSS())
       .pipe(gulp.dest(DEST));
 });
 
@@ -71,6 +72,7 @@ gulp.task('watch', ['default'], function () {
     'client/app.jsx',
     'client/app.css',
     'client/assets/**/*',
+    'client/shared/**/*',
     'client/components/**/*',
     'client/pages/**/*',
     'client/util/**/*'
