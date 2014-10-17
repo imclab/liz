@@ -135,6 +135,52 @@
 
 
   /**
+   * Generate timeslots
+   * @param {Array.<Object>} free   A list with free intervals
+   * @param {number} duration       Duration in milliseconds
+   */
+  exports.generateTimeslots = function(free, duration) {
+    var timeslots = [];
+
+    if (duration > 0) {
+
+      free.forEach(function (interval) {
+        var iStart = moment(interval.start);
+        var iEnd = moment(interval.end);
+        var start = iStart.clone();
+        if (start.minutes() > 0) { // change to zero minutes
+          start.minutes(0);
+          start.add(1, 'hour');
+        }
+        if (start.hour() % 2 == 0) { // hour is an even number
+          start.add(1, 'hour');
+        }
+        var end = start.clone().add(duration, 'milliseconds');
+
+        var HOUR = 60 * 60 * 1000; // 1 hour in milliseconds
+        var step = 2 * HOUR;
+
+        while (end.valueOf() <= iEnd.valueOf()) {
+          // TODO: replace this with an availability profile
+          if (start.day() == end.day() &&
+              start.day() != 0 && start.day() != 6 &&    // no Sunday and Saturday
+              start.format('HH:mm:ss') >= '09:00:00' && end.format('HH:mm:ss') <= '17:00:00') {
+            timeslots.push({
+              start: start.toISOString(),
+              end: end.toISOString()
+            });
+          }
+
+          start = start.add(step, 'milliseconds');
+          end = start.clone().add(duration, 'milliseconds');
+        }
+      });
+    }
+
+    return timeslots;
+  };
+
+  /**
    * check if interval to be checked overlaps with any any of the intervals
    * in given list
    * @param intervals

@@ -119,7 +119,7 @@ var EventScheduler = React.createClass({
                 <th>Location</th><td>{this.state.location}</td>
               </tr>
               <tr>
-                <th>Time</th><td>{formatDate(this.state.timeslot.start)} {formatTime(this.state.timeslot.start)} &ndash; {formatTime(this.state.timeslot.end)}</td>
+                <th>Time</th><td>{formatHumanDate(this.state.timeslot.start)} {formatTime(this.state.timeslot.start)} &ndash; {formatTime(this.state.timeslot.end)}</td>
               </tr>
             </table>
             <p>
@@ -174,9 +174,9 @@ var EventScheduler = React.createClass({
     return ajax.get('/freeBusy/')
         .then(function (freeBusy) {
           console.log('freeBusy', freeBusy);
-          var free = freeBusy.free;
+          var free = freeBusy.free || [];
           var duration = this.state.duration * (60 * 1000); // from minutes to ms
-          var timeslots = generateTimeslots(free || [], duration);
+          var timeslots = intervals.generateTimeslots(free, duration);
 
           console.log('timeslots', timeslots);
 

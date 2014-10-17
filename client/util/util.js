@@ -1,53 +1,32 @@
 /**
- * Format a moment.js date
+ * Format a date like '2014-10-17'
  * @param {Date | number | string | Moment} date
  * @returns {String}
  */
 function formatDate(date) {
+  if (!date) return null;
+
   return moment(date).format('YYYY-MM-DD');
+}
+/**
+ * Format a date like 'Fri 17 Oct'
+ * @param {Date | number | string | Moment} date
+ * @returns {String}
+ */
+function formatHumanDate(date) {
+  if (!date) return null;
+
+  return moment(date).format('ddd DD MMM');
 }
 
 /**
- * Format a moment.js time
+ * Format a time like '15:30:12' or '15:30'
  * @param {Date | number | string | Moment} date
  * @returns {String}
  */
 function formatTime(date) {
+  if (!date) return null;
+
   return moment(date).format('HH:mm:ss')
       .replace(/(:00$)|(^00:00:00$)/, '');
-}
-
-/**
- * Generate timeslots
- * @param {Array.<Object>} free   A list with free intervals
- * @param {number} duration       Duration in milliseconds
- */
-// TODO: move this to shared/intervals.js
-function generateTimeslots(free, duration) {
-  var timeslots = [];
-
-  if (duration > 0) {
-    free.forEach(function (interval) {
-      var start = moment(interval.start);
-      var end = start.clone().add(duration, 'milliseconds');
-      var maxEnd = moment(interval.end);
-
-      while (end.valueOf() < maxEnd.valueOf()) {
-        // TODO: replace this with an availability profile
-        if (start.day() == end.day() &&
-            start.day() != 0 && start.day() != 6 &&    // no Sunday and Saturday
-            start.format('HH:mm:ss') >= '09:00:00' && end.format('HH:mm:ss') <= '17:00:00') {
-          timeslots.push({
-            start: start.toISOString(),
-            end: end.toISOString()
-          });
-        }
-
-        start = end.clone();
-        end = start.clone().add(duration, 'milliseconds');
-      }
-    });
-  }
-
-  return timeslots;
 }

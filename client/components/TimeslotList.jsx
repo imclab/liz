@@ -14,57 +14,41 @@ var TimeslotList = React.createClass({
     var me = this;
     var timeslots = this.state.timeslots;
 
-    // group the timeslots per day
-    var dates = {};
-    timeslots.forEach(function (timeslot) {
-      var date = formatDate(timeslot.start);
-      if (!dates[date]) {
-        dates[date] = [timeslot];
-      }
-      else {
-        dates[date].push(timeslot);
-      }
-    });
+    function getDate(timeslot) {
+      return timeslot ? formatHumanDate(timeslot.start) : null;
+    }
 
-    var globalIndex = 0;
-    var rows = Object.keys(dates)
-        .sort()
-        .reduce(function (rows, date) {
-          var timeslots = dates[date];
+    var rows = timeslots.slice(0, 10).map(function (timeslot, index) {
+      var prevDate = getDate(timeslots[index - 1]);
+      var date     = getDate(timeslot);
+      var nextDate = getDate(timeslots[index + 1]);
 
-          var items = timeslots.map(function (item, index) {
-            var className = '';
-            if (index == 0) className += 'first ';
-            if (index == timeslots.length - 1) className += 'last ';
+      var className = '';
+      if (date != prevDate) className += 'first ';
+      if (date != nextDate) className += 'last ';
 
-            var itemIndex = globalIndex;
-            var selected = (globalIndex == me.state.value); // TODO: use this.state.value instead
-            globalIndex++;
+      var selected = (index == me.state.value); // TODO: use this.state.value instead, didn't yet work for some reason
 
-            var onClick = function () {
-              me.setValue(itemIndex);
+      var onClick = function () {
+        me.setValue(index);
 
-              if (me.props.onChange) {
-                me.props.onChange(index);
-              }
-            };
+        if (me.props.onChange) {
+          me.props.onChange(index);
+        }
+      };
 
-            // TODO: change buttons into radio boxes
-            return (<tr key={itemIndex}>
-              <th className={className}>
-                {index == 0 ? moment(date).format('ddd DD MMM') : ''}
-              </th>
-              <td className={className}>
-                  <button className={'btn ' + (selected ? ' btn-primary' : ' btn-default')} onClick={onClick}>
-                    {formatTime(item.start)} &ndash; {formatTime(item.end)}
-                  </button>
-              </td>
-            </tr>);
-          });
-
-          return rows.concat(items);
-        }.bind(this), [])
-        .splice(0, 10);
+      // TODO: change buttons into radio boxes
+      return (<tr key={index}>
+        <th className={className}>
+                {date != prevDate ? date : ''}
+        </th>
+        <td className={className}>
+          <button className={'btn ' + (selected ? ' btn-primary' : ' btn-default')} onClick={onClick}>
+                    {formatTime(timeslot.start)} &ndash; {formatTime(timeslot.end)}
+          </button>
+        </td>
+      </tr>);
+    }.bind(this));
 
     return (
         <table className="events">
