@@ -1,7 +1,7 @@
 html, body {
   font: 11pt arial;
   line-height: 1.5em;
-  background: url(img/light_noise_diagonal/light_noise_diagonal.png);
+  background: #efefef url(img/light_noise_diagonal/light_noise_diagonal.png);
 }
 
 h1 {

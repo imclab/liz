@@ -34,7 +34,8 @@ running `gulp`.
 
 # Deploy
 
-First generate the bundled files `app.min.js` and `app.min.css` by running gulp:
+First generate the bundled files `app.min.js` and `app.min.css` for the client 
+side by running gulp:
 
     gulp
     
@@ -55,7 +56,7 @@ Set the following environment variables:
 
 Alternatively, the variables can be set via the Heroku dashboard at the apps settings.
 
-The Heroku app uses the following add-ons:
+The Heroku app requires the following add-ons:
 
     heroku addons:add papertrail
     heroku addons:add mongohq
