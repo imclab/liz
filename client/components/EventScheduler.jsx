@@ -29,6 +29,14 @@ var EventScheduler = React.createClass({
     }
   },
 
+  componentDidMount: function() {
+    // Set initial focus to the title input
+    var summary = this.refs.summary;
+    if (summary) {
+      summary.getDOMNode().select();
+    }
+  },
+
   renderInput: function () {
     // TODO: add a field for event description
     return (
