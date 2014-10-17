@@ -163,8 +163,9 @@
         while (end.valueOf() <= iEnd.valueOf()) {
           // TODO: replace this with an availability profile
           if (start.day() == end.day() &&
-              start.day() != 0 && start.day() != 6 &&    // no Sunday and Saturday
-              start.format('HH:mm:ss') >= '09:00:00' && end.format('HH:mm:ss') <= '17:00:00') {
+              start.day() != 0 && start.day() != 6 &&  // no Sunday or Saturday
+              start.format('HH:mm:ss') >= '09:00:00' &&
+              end.format('HH:mm:ss') <= '17:00:00') {
             timeslots.push({
               start: start.toISOString(),
               end: end.toISOString()

@@ -44,15 +44,6 @@ var EventScheduler = React.createClass({
                 onChange={this.handleChange} /></td>
               </tr>
               <tr>
-                <th>Duration (minutes)</th>
-                <td><input type="text"
-                className="form-control"
-                name="duration"
-                ref="duration"
-                value={this.state.duration}
-                onChange={this.handleChange} /></td>
-              </tr>
-              <tr>
                 <th>Location</th>
                 <td><input type="text"
                 className="form-control"
@@ -60,6 +51,24 @@ var EventScheduler = React.createClass({
                 ref="location"
                 value={this.state.location}
                 onChange={this.handleChange} /></td>
+              </tr>
+              <tr>
+                <th>Duration</th>
+                <td>
+                <select
+                className="form-control"
+                name="duration"
+                ref="duration"
+                value={this.state.duration}
+                onChange={this.handleChange} >
+                    <option value="30">30 min</option>
+                    <option value="60">1 hour</option>
+                    <option value="90">1 hour 30 min</option>
+                    <option value="120">2 hour</option>
+                    <option value="240">4 hour</option>
+                    <option value="480">8 hour</option>
+                    </select>
+                </td>
               </tr>
             </table>
             <p>
