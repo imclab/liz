@@ -95,6 +95,10 @@ img.user-icon {
   height: 24px;
 }
 
+div.scheduler form table {
+  width: 100%;
+}
+
 div.scheduler table th,
 div.scheduler table td {
   padding: 5px 10px;

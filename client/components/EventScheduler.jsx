@@ -7,8 +7,9 @@ var EventScheduler = React.createClass({
     return {
       step: this.STEPS[0],
       summary: 'new event',
-      duration: 60,
       location: '',
+      duration: 60,
+      description: '',
       timeslots: null,
       timeslot: null,
       selected: null
@@ -34,6 +35,9 @@ var EventScheduler = React.createClass({
         <div className="scheduler">
           <form onSubmit={this.calculateTimeslots} >
             <table>
+              <colgroup>
+                <col width="100px" />
+              </colgroup>
               <tr>
                 <th>Title</th>
                 <td><input type="text"
@@ -55,19 +59,28 @@ var EventScheduler = React.createClass({
               <tr>
                 <th>Duration</th>
                 <td>
-                <select
+                  <select
+                        className="form-control"
+                        name="duration"
+                        ref="duration"
+                        value={this.state.duration}
+                        onChange={this.handleChange} >
+                      <option value="30">30 min</option>
+                      <option value="60">1 hour</option>
+                      <option value="90">1 hour 30 min</option>
+                      <option value="120">2 hour</option>
+                      <option value="240">4 hour</option>
+                      <option value="480">8 hour</option>
+                  </select>
+                </td>
+              </tr>
+              <tr>
+                <th>Description</th>
+                <td><textarea
                 className="form-control"
-                name="duration"
-                ref="duration"
-                value={this.state.duration}
-                onChange={this.handleChange} >
-                    <option value="30">30 min</option>
-                    <option value="60">1 hour</option>
-                    <option value="90">1 hour 30 min</option>
-                    <option value="120">2 hour</option>
-                    <option value="240">4 hour</option>
-                    <option value="480">8 hour</option>
-                    </select>
+                name="description"
+                ref="description"
+                onChange={this.handleChange}>{this.state.description}</textarea>
                 </td>
               </tr>
             </table>
@@ -84,7 +97,7 @@ var EventScheduler = React.createClass({
       return (
           <div className="scheduler">
             <p>
-            Select any of the available dates for <b>{this.state.summary} ({this.state.duration} min)</b>:
+            Select any of the available dates for <b>{this.state.summary}</b>:
             </p>
             {
                 (this.state.timeslots.length > 0) ?
@@ -130,6 +143,9 @@ var EventScheduler = React.createClass({
               <tr>
                 <th>Time</th><td>{formatHumanDate(this.state.timeslot.start)} {formatTime(this.state.timeslot.start)} &ndash; {formatTime(this.state.timeslot.end)}</td>
               </tr>
+              <tr>
+                <th>Description</th><td>{this.state.description}</td>
+              </tr>
             </table>
             <p>
               <button onClick={this.done} className="btn btn-primary">Done</button>
@@ -166,7 +182,8 @@ var EventScheduler = React.createClass({
     this.setState({
       summary: this.refs.summary.getDOMNode().value,
       duration: this.refs.duration.getDOMNode().value,
-      location: this.refs.location.getDOMNode().value
+      location: this.refs.location.getDOMNode().value,
+      description: this.refs.description.getDOMNode().value
     })
   },
 
@@ -219,6 +236,7 @@ var EventScheduler = React.createClass({
       ],
       summary: this.state.summary,
       location: this.state.location,
+      description: this.state.description,
       start: {dateTime: timeslot.start},
       end: {dateTime: timeslot.end}
     };
