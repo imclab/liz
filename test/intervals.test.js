@@ -1,7 +1,7 @@
 // test IndexNode
 var assert = require('assert');
 var moment = require('moment');
-var intervals = require('../lib/intervals');
+var intervals = require('../shared/intervals');
 
 describe('intervals', function() {
   var busyString;
