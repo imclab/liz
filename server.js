@@ -73,8 +73,11 @@ app.get('/auth/callback',
       req.session.email = req.user._json.email;
       req.session.accessToken = req.user.auth.accessToken;
       req.session.refreshToken = req.user.auth.refreshToken;
-      req.session.cookie.expires = req.session.expires;
-      req.session.cookie.maxAge = expires_in;
+
+      var DAY = 24 * 60 * 60 * 1000;
+      var maxAge = 14 * DAY; // 14 days
+      req.session.cookie.expires = new Date(Date.now() + maxAge).toISOString();
+      req.session.cookie.maxAge = maxAge;
 
       var redirectTo = req.session.redirectTo || '/';
       res.redirect(redirectTo);
