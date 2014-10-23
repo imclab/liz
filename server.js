@@ -105,11 +105,20 @@ app.get('/auth/callback',
         if (user.name == null) {
           // get user info from google
           console.log('retrieving user info for ' + email+ '...');
-          getUserInfo(user.auth.accessToken, function (err, user) {
+          getUserInfo(user.auth.accessToken, function (err, userData) {
             if(err) return sendError(res, err);
 
+            // initialize some default settings when missing
+            if (!userData.calendars) {
+              userData.calendars = [user.email]; // add field with default calendar
+            }
+            if (!user.share) {
+              // add field with default permissions
+              userData.share = 'calendar'; // 'me', 'calendar', 'contacts'
+            }
+
             // store user in the database
-            updateUser(user, function (err, user) {
+            updateUser(userData, function (err, user) {
               if(err) return sendError(res, err);
               done();
             })
@@ -156,6 +165,7 @@ app.get('/user', function(req, res, next) {
       delete user.auth; // remove authentication data
       delete user.seq;
       delete user.updated;
+      delete user._id;
       return res.json(user);
     });
   }
@@ -217,7 +227,7 @@ app.delete('/user', function(req, res, next) {
 app.all('/calendar*', auth);
 
 app.get('/calendar', function(req, res){
-  getAccessToken(req.session.email, function (err, accessToken, user) {
+  authorize(req.session.email, req.session.email, function (err, accessToken, user) {
     if(err) return sendError(res, err);
 
     gcal(accessToken).calendarList.list(function(err, data) {
@@ -230,7 +240,7 @@ app.get('/calendar', function(req, res){
 app.get('/calendar/:calendarId?', function(req, res){
   var calendarId = req.params.calendarId || req.session.email;
 
-  getAccessToken(calendarId, function (err, accessToken, user) {
+  authorize(req.session.email, calendarId, function (err, accessToken, user) {
     if(err) return sendError(res, err);
 
     var now = new Date();
@@ -257,7 +267,7 @@ app.put('/calendar/:calendarId', function(req, res){
   var calendarId = req.params.calendarId || req.session.email;
   var event = req.body;
 
-  getAccessToken(calendarId, function (err, accessToken, user) {
+  authorize(req.session.email, calendarId, function (err, accessToken, user) {
     if(err) return sendError(res, err);
 
     gcal(accessToken).events.insert(calendarId, event, function(err, createdEvent) {
@@ -271,7 +281,7 @@ app.delete('/calendar/:calendarId/:eventId/remove', function(req, res){
   var calendarId = req.params.calendarId;
   var eventId    = req.params.eventId;
 
-  getAccessToken(calendarId, function (err, accessToken, user) {
+  authorize(req.session.email, calendarId, function (err, accessToken, user) {
     if(err) return sendError(res, err);
 
     gcal(accessToken).events.delete(calendarId, eventId, function(err, data) {
@@ -286,7 +296,7 @@ app.get('/freeBusy/:calendarId?', function(req, res) {
   var email      = req.session.email;
   var calendarId = req.params.calendarId || email;
 
-  getAccessToken(calendarId, function (err, accessToken, user) {
+  authorize(req.session.email, calendarId, function (err, accessToken, user) {
     if(err) return sendError(res, err);
 
     var items;
@@ -312,7 +322,7 @@ app.get('/freeBusy/:calendarId?', function(req, res) {
     };
 
     if (!user.auth || !user.auth.accessToken) {
-      return sendError(res, new Error('Unauthorized or non existing calendar'), 403);
+      return sendError(res, new Error('Unauthorized or non existing calendar'));
     }
 
     gcal(user.auth.accessToken).freebusy.query(query, function(err, data) {
@@ -341,7 +351,7 @@ app.get('/contacts*', auth);
 app.get('/contacts/:email?', function(req, res){
   var email = req.params.email || req.session.email;
 
-  getAccessToken(email, function (err, accessToken, user) {
+  authorize(req.session.email, email, function (err, accessToken, user) {
     if(err) return sendError(res, err);
 
     getContacts(email, accessToken, function (err, contacts) {
@@ -370,7 +380,14 @@ function sendError(res, err, status) {
     body = JSON.stringify(err);
   }
 
-  return res.status(500).send(body);
+  if (!status) {
+    var _body = body.toLowerCase();
+    if (_body.indexOf('authorized') != -1)      {status = 403;}
+    else if (_body.indexOf('not found') != -1)  {status = 404;}
+    else status = 500;
+  }
+
+  return res.status(status).send(body);
 }
 
 function getUser(email, callback) {
@@ -394,7 +411,7 @@ function getUser(email, callback) {
             email: user.email,
             auth: {
               accessToken: result.access_token,
-              refreshToken: result.refresh_token,
+              refreshToken: user.auth.refreshToken,
               expires: new Date(Date.now() + result.expires_in).toISOString()
             }
           }, callback);
@@ -413,11 +430,6 @@ function getUser(email, callback) {
 function updateUser(user, callback) {
   user.updated = new Date().toISOString();
 
-  // add field with default calendar
-  if (!user.calendars) {
-    user.calendars = [user.email];
-  }
-
   db.users.findAndModify({
     query: {email: user.email},
     update: {
@@ -432,21 +444,71 @@ function updateUser(user, callback) {
 }
 
 /**
- * Get access token for an email. token is read from the users profile
- * @param {string} email
+ * Authorize access to a users calendar
+ * @param {string} requester    The one wanting access
+ * @param {string} email        The one to with the requester wants access
+ * // TODO: introduce scope @param {string} scope        Scope of the access. Choose 'busy' or 'full'
  * @param {function (Error, string, Object)} callback
  *            called as `callback(err, accessToken, user)`
  */
-function getAccessToken(email, callback) {
+function authorize (requester, email, callback) {
   getUser(email, function (err, user) {
     if (err) return callback(err, null, null);
 
     var accessToken = user.auth && user.auth.accessToken;
     if (!accessToken) return callback(new Error('No valid access token'), null, null);
 
-    // TODO: authorize this access
+    function ok () {
+      callback(null, accessToken, user);
+    }
+    function sorry ( ) {
+      callback(new Error('Unauthorized'), null, null);
+    }
+    function fail(err) {
+      callback(err, null, null);
+    }
 
-    return callback(null, accessToken, user);
+    if (requester == email) {
+      // you always get access to your own calendar
+      return ok();
+    }
+    else if (user.share == 'calendar') {
+       // see if the requester is in the acl list of the users calendar
+      gcal(accessToken).acl.list(email, function (err, contacts) {
+        if (err) return fail(err);
+
+        var found = (contacts.items || []).some(function (contact) {
+          if (contact.scope && contact.scope.type == 'user') {
+            return contact.scope.value == requester;
+          }
+          else if (contact.scope && contact.scope.type == 'domain') {
+            return contact.scope.value == requester.split('@').pop();
+          }
+          else {
+            return false;
+          }
+        });
+
+        found ? ok() : sorry();
+      });
+    }
+    else if (user.share == 'contacts') {
+      getContacts(email, accessToken, function (err, contacts) {
+        if (err) return callback(err, null, null);
+
+        var found = (contacts.feed.entry || []).some(function (contact) {
+          return contact.gd$email.some(function (email) {
+            return email.address == requester;
+          });
+        });
+
+        found ? ok() : sorry();
+      });
+    }
+    else {
+      // fallback (should not happen)
+      callback(new Error('Unauthorized'), null, null);
+    }
   });
 }
 
@@ -489,15 +551,7 @@ function getContacts (email, accessToken, callback) {
   request(url, function (error, response, body) {
     try {
       if (!error && body.length > 0) {
-        var data = JSON.parse(body);
-        var contacts = {};
-        data.feed.entry && data.feed.entry.forEach(function (entry) {
-          entry.gd$email.forEach(function (email) {
-            contacts[email.address] = entry.title.$t;
-          });
-        });
-
-        callback(null, contacts);
+        callback(null, JSON.parse(body));
       }
     }
     catch (err) {

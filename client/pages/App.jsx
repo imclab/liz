@@ -18,7 +18,7 @@ var App = React.createClass({
     if (user && user.loggedIn == true) {
       // logged in
       switch(this.state.page) {
-        case 'settings':  page = <SettingsPage ref="page" selection={this.state.user.calendars} onChange={this.handleSelection} />; break;
+        case 'settings':  page = <SettingsPage ref="page" user={this.state.user} onChange={this.handleUserChange} />; break;
         case 'calendar':  page = <CalendarPage ref="page" user={this.state.user} />; break;
         default:          page = <HomePage ref="page" user={this.state.user} />; break;
       }
@@ -47,15 +47,12 @@ var App = React.createClass({
     this.setState({page: page});
   },
 
-  handleSelection: function (selection) {
-    console.log('selected calendars:', selection);
-
-    var user = this.state.user;
-    user.calendars = selection;
+  handleUserChange: function (user) {
+    console.log('Changed user:', user);
 
     this.setState({user: user});
 
-    ajax.put('/user/', {calendars: selection})
+    ajax.put('/user/', user)
         .then(function (user) {
           console.log('user', user);
           // TODO: apply new user via setState? Propagate back to the main app?

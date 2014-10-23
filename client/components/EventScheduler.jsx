@@ -87,7 +87,6 @@ var EventScheduler = React.createClass({
                 <th>Duration</th>
                 <td>
                   <select
-                        className="form-control"
                         name="duration"
                         ref="duration"
                         value={this.state.duration}

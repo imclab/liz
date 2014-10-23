@@ -13,22 +13,31 @@ var SettingsPage = React.createClass({
         });
 
     return {
-      selection: this.props.selection || [],
+      user: this.props.user,
       calendars: null
     };
   },
 
   render: function () {
+    var selection = this.state.user && this.state.user.calendars || [];
+
     return <div>
       <h1>Settings</h1>
+      <h2>Sharing</h2>
+      <p>Who is allowed to view your free/busy profile and plan events in your calendar via Liz&#63;</p>
+      <select value={this.state.user.share} onChange={this.handleShareSelection}>
+        <option value="self">Just me</option>
+        <option value="calendar">Everyone with access to my calendar</option>
+        <option value="contacts">All my contacts</option>
+      </select>
       <h2>Calendars</h2>
-      <p>Select the calendars which need to be used for generating a free/busy profile:</p>
+      <p>Select the calendars which need to be used for generating your free/busy profile:</p>
       {
           this.state.calendars ?
               <CalendarList
                 calendars={this.state.calendars}
-                selection={this.state.selection}
-                onChange={this.handleChange} /> :
+                selection={selection}
+                onChange={this.handleCalendarSelection} /> :
               <div>loading <img className="loading" src="img/ajax-loader.gif" /></div>
           }
       <h2>Availability profile</h2>
@@ -40,12 +49,27 @@ var SettingsPage = React.createClass({
     </div>;
   },
 
-  handleChange: function (selection) {
-    this.setState({selection: selection});
+  handleCalendarSelection: function (selection) {
+    var user = this.state.user;
+    user.calendars = selection;
+
+    this.updateUser(user);
+  },
+
+  handleShareSelection: function (event) {
+    var user = this.state.user;
+    user.share = event.target.value;
+console.log('selected', event.target.value, event)
+
+    this.updateUser(user);
+  },
+
+  updateUser: function (user) {
+    this.setState({user: user});
 
     // propagate the selection to the parent component
     if (typeof this.props.onChange === 'function') {
-      this.props.onChange(selection)
+      this.props.onChange(user)
     }
   },
 

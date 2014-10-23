@@ -6,11 +6,12 @@ html, body {
 
 h1 {
   font-size: 1.5em;
-  margin: 32px 0;
+  margin: 46px 0;
 }
 
 h2 {
   font-size: 1.2em;
+  margin: 46px 0 16px 0;
 }
 
 h3 {
