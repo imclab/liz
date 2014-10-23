@@ -130,8 +130,10 @@ app.get('/user', function(req, res, next) {
     var email = req.session.email;
     db.users.findOne({email: email}, function (err, user) {
       if(err) return res.status(500).send(err.toString());
-      if (user == null) {
+
+      if (user.name == null) {
         // get user info from google
+        console.log('retrieving user info for ' + email);
         getUserInfo(user.auth.accessToken, function (err, user) {
           if(err) return res.status(500).send(err.toString());
 
@@ -390,7 +392,7 @@ function getUser(email, callback) {
 
         refreshAccessToken(user.auth.refreshToken, function (err, result) {
           if (err) return callback(err, null);
-console.log('refreshed access token', result)
+
           // store the new accessToken and refreshToken in the user's profile
           updateUser({
             email: user.email,
