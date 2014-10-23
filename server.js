@@ -424,7 +424,7 @@ function getUser(email, callback) {
             auth: {
               accessToken: result.access_token,
               refreshToken: user.auth.refreshToken,
-              expires: new Date(Date.now() + result.expires_in).toISOString()
+              expires: new Date(Date.now() + result.expires_in * 1000).toISOString()
             }
           }, callback);
         });
