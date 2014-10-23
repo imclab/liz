@@ -61,16 +61,18 @@ app.get('/auth',
     passport.authenticate('google', {
       session: false,
       accessType: 'offline',
-      approvalPrompt: 'force'
+      approvalPrompt: 'force' // 'auto' (default) or 'force'
+      // TODO: smarter auth, only force approval prompt when we don't have a refreshToken
     }));
 
 app.get('/auth/callback',
     passport.authenticate('google', { session: false, failureRedirect: '/' }),
     function(req, res) {
       // copy needed fields to the session object
+      var email = req.user._json.email;
       var expires_in = req.user.auth.params.expires_in * 1000; // ms
       req.session.expires = new Date(Date.now() + expires_in).toISOString();
-      req.session.email = req.user._json.email;
+      req.session.email = email;
       req.session.accessToken = req.user.auth.accessToken;
       req.session.refreshToken = req.user.auth.refreshToken;
 
@@ -79,8 +81,19 @@ app.get('/auth/callback',
       req.session.cookie.expires = new Date(Date.now() + maxAge).toISOString();
       req.session.cookie.maxAge = maxAge;
 
-      var redirectTo = req.session.redirectTo || '/';
-      res.redirect(redirectTo);
+      // store the accessToken and refreshToken in the user's profile
+      updateUser({
+        email: email,
+        auth: {
+          accessToken: req.user.auth.accessToken,
+          refreshToken: req.user.auth.refreshToken
+        }
+      }, function (err) {
+        if (err) console.log('Error', err);
+
+        var redirectTo = req.session.redirectTo || '/';
+        res.redirect(redirectTo);
+      });
     });
 
 app.get('/user/signin', function(req, res, next) {
