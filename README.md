@@ -13,7 +13,7 @@ Note that CLIENT_ID and CLIENT_SECRET must be retrieved from the
 [Google Developers Console](https://console.developers.google.com/). You will have to:
 
 - Create a project there.
-- Enable the Calendar API on the page "APIs".
+- Enable the *Calendar API* and *Contacts API* on the page "APIs".
 - Create a CLIENT ID for web application on the page "Credentials".
   Click button "Create new Client ID", select "Web application", 
   leave authorized JavaScript origins empty, Fill out an Authorized Redirect URI,
