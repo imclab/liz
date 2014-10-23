@@ -240,6 +240,12 @@ app.get('/calendar', function(req, res){
 app.get('/calendar/:calendarId?', function(req, res){
   var calendarId = req.params.calendarId || req.session.email;
 
+  // only user itself has access here
+  // TODO: this is a hacky solution
+  if (calendarId != req.session.email) {
+    return sendError(res, 'Unauthorized');
+  }
+
   authorize(req.session.email, calendarId, function (err, accessToken, user) {
     if(err) return sendError(res, err);
 
@@ -350,6 +356,12 @@ app.get('/freeBusy/:calendarId?', function(req, res) {
 app.get('/contacts*', auth);
 app.get('/contacts/:email?', function(req, res){
   var email = req.params.email || req.session.email;
+
+  // only user itself has access here
+  // TODO: this is a hacky solution
+  if (calendarId != req.session.email) {
+    return sendError(res, 'Unauthorized');
+  }
 
   authorize(req.session.email, email, function (err, accessToken, user) {
     if(err) return sendError(res, err);
