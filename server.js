@@ -93,11 +93,31 @@ app.get('/auth/callback',
           refreshToken: req.user.auth.refreshToken,
           expires: new Date(Date.now() + expires_in).toISOString()
         }
-      }, function (err) {
+      }, function (err, user) {
         if (err) sendError(res, err);
 
-        var redirectTo = req.session.redirectTo || '/';
-        res.redirect(redirectTo);
+        function done() {
+          var redirectTo = req.session.redirectTo || '/';
+          res.redirect(redirectTo);
+        }
+
+        // add user information like name and picture to the user object
+        if (user.name == null) {
+          // get user info from google
+          console.log('retrieving user info for ' + email+ '...');
+          getUserInfo(user.auth.accessToken, function (err, user) {
+            if(err) return sendError(res, err);
+
+            // store user in the database
+            updateUser(user, function (err, user) {
+              if(err) return sendError(res, err);
+              done();
+            })
+          });
+        }
+        else {
+          done();
+        }
       });
     });
 
@@ -129,25 +149,14 @@ app.get('/user', function(req, res, next) {
   if (loggedIn) {
     var email = req.session.email;
     db.users.findOne({email: email}, function (err, user) {
-      if(err) return res.status(500).send(err.toString());
+      if(err) return sendError(res, err);
 
-      if (user.name == null) {
-        // get user info from google
-        console.log('retrieving user info for ' + email);
-        getUserInfo(user.auth.accessToken, function (err, user) {
-          if(err) return res.status(500).send(err.toString());
-
-          // store user in the database
-          updateUser(user, function (err, user) {
-            if(err) return res.status(500).send(err.toString());
-            return res.json(sanitizeUser(user));
-          })
-        });
-      }
-      else {
-        user.loggedIn = true;
-        return res.json(sanitizeUser(user));
-      }
+      // sanitize the user object before sending it to the client
+      user.loggedIn = true;
+      delete user.auth; // remove authentication data
+      delete user.seq;
+      delete user.updated;
+      return res.json(user);
     });
   }
   else {
@@ -166,7 +175,7 @@ app.put('/user', function(req, res, next) {
     user.email = email;
 
     updateUser(user, function (err, user) {
-      if(err) return res.status(500).send(err.toString());
+      if(err) return sendError(res, err);
       return res.json(user);
     });
   }
@@ -362,19 +371,6 @@ function sendError(res, err, status) {
   }
 
   return res.status(500).send(body);
-}
-
-/**
- * Remove internal data from a user object
- * @param {Object} user
- * @returns {Object} Returns the sanitized user
- */
-function sanitizeUser(user) {
-  delete user.auth; // remove authentication data
-  delete user.seq;
-  delete user.updated;
-  delete user._id;
-  return user;
 }
 
 function getUser(email, callback) {
