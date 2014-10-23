@@ -38,8 +38,8 @@ var EventList = React.createClass({
       </tr>;
     });
 
-    return <table className="events">
-      {rows}
-    </table>;
+    return rows.length > 0  ?
+        <table className="events">{rows}</table> :
+        <p>(no events)</p>;
   }
 });
