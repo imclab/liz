@@ -44,16 +44,16 @@ var EventScheduler = React.createClass({
   },
 
   renderSelectBox: function () {
-    // TODO: nice select box. This one doesn't work on mobile
-    var duration = this.refs.duration;
-    if (duration) {
-      var me = this;
-      $(duration.getDOMNode()).selecter({
-        callback: function () {
-          me.handleChange();
-        }
-      });
-    }
+    // TODO: get selecter select box working on mobile
+    //var duration = this.refs.duration;
+    //if (duration) {
+    //  var me = this;
+    //  $(duration.getDOMNode()).selecter({
+    //    callback: function () {
+    //      me.handleChange();
+    //    }
+    //  });
+    //}
   },
 
   renderInput: function () {
@@ -89,7 +89,8 @@ var EventScheduler = React.createClass({
                   <select
                         name="duration"
                         ref="duration"
-                        value={this.state.duration}>
+                        value={this.state.duration}
+                        onChange={this.handleChange}>
                       <option value="30">30 min</option>
                       <option value="60">1 hour</option>
                       <option value="90">1 hour 30 min</option>
