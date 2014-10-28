@@ -59,7 +59,7 @@ var App = React.createClass({
           this.setState({user: user});
         }.bind(this))
         .catch(function (err) {
-          console.log('Error', err);
+          console.log(err);
           displayError(err);
         });
   },
@@ -71,7 +71,7 @@ var App = React.createClass({
           this.setState({user: user});
         }.bind(this))
         .catch(function (err) {
-          console.log('Error', err);
+          console.log(err);
           displayError(err);
         });
   }

@@ -120,7 +120,17 @@ var EventScheduler = React.createClass({
   },
 
   renderSelect: function () {
-    if (this.state.timeslots != null) {
+    if (this.state.error) {
+      return (
+          <div className="scheduler">
+            <p className="error">{this.state.error.toString()}</p>
+            <p>
+              <button onClick={this.back} className="btn btn-normal">Back</button>
+            </p>
+          </div>
+      )
+    }
+    else if (this.state.timeslots != null) {
       return (
           <div className="scheduler">
             <p>
@@ -154,7 +164,17 @@ var EventScheduler = React.createClass({
   },
 
   renderCreate: function () {
-    if (this.state.created == true) {
+    if (this.state.error) {
+      return (
+          <div className="scheduler">
+            <p className="error">{this.state.error.toString()}</p>
+            <p>
+              <button onClick={this.done} className="btn btn-normal">Back</button>
+            </p>
+          </div>
+      )
+    }
+    else if (this.state.created == true) {
       return (
           <div className="scheduler">
             <p>
@@ -220,7 +240,8 @@ var EventScheduler = React.createClass({
     this.setState({
       step: 'select',
       timeslots: null,
-      selected: null
+      selected: null,
+      error: null
     });
 
     // calculate available time slots
@@ -238,8 +259,9 @@ var EventScheduler = React.createClass({
           });
         }.bind(this))
         .catch(function (err) {
-          console.log('Error', err);
-        });
+          this.setState({error: err});
+          console.log(err);
+        }.bind(this));
   },
 
   createEvent: function () {
@@ -253,7 +275,8 @@ var EventScheduler = React.createClass({
     this.setState({
       step: 'create',
       timeslot: timeslot,
-      created: false
+      created: false,
+      error: null
     });
 
     var calendarId = this.props.user.email;
@@ -276,7 +299,8 @@ var EventScheduler = React.createClass({
           });
         }.bind(this))
         .catch(function (err) {
-          console.log('Error', err);
+          console.log(err);
+          this.setState({error: err});
         }.bind(this));
   }
 });

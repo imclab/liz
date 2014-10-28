@@ -87,7 +87,7 @@ console.log('selected', event.target.value, event)
             location.href = '/';
           })
           .catch(function (err) {
-            console.log('Error', err);
+            console.log(err);
             displayError(err);
           })
     }
