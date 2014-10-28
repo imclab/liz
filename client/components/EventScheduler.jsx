@@ -89,8 +89,7 @@ var EventScheduler = React.createClass({
                   <select
                         name="duration"
                         ref="duration"
-                        value={this.state.duration}
-                        onChange={this.handleChange} >
+                        value={this.state.duration}>
                       <option value="30">30 min</option>
                       <option value="60">1 hour</option>
                       <option value="90">1 hour 30 min</option>
