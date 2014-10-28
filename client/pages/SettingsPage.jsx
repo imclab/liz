@@ -9,18 +9,22 @@ var SettingsPage = React.createClass({
           this.setState({calendars: calendars.items || []});
         }.bind(this))
         .catch(function (err) {
-          console.log('Error', err);
-        });
+          this.setState({
+            error: err
+          });
+          console.log(err);
+        }.bind(this));
 
     return {
       user: this.props.user,
-      calendars: null
+      calendars: null,
+      error: null
     };
   },
 
   render: function () {
     var selection = this.state.user && this.state.user.calendars || [];
-
+console.log('settings', this.state)
     return <div>
       <h1>Settings</h1>
       <h2>Sharing</h2>
@@ -33,6 +37,8 @@ var SettingsPage = React.createClass({
       <h2>Calendars</h2>
       <p>Select the calendars which need to be used for generating your free/busy profile:</p>
       {
+          this.state.error ?
+              <p className="error">{this.state.error.toString()}</p> :
           this.state.calendars ?
               <CalendarList
                 calendars={this.state.calendars}
@@ -82,6 +88,7 @@ console.log('selected', event.target.value, event)
           })
           .catch(function (err) {
             console.log('Error', err);
+            displayError(err);
           })
     }
   }

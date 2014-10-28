@@ -10,12 +10,19 @@ var ajax = (function () {
         xhr.onreadystatechange = function() {
           try {
             if (xhr.readyState == 4) {
-              var contentType = xhr.getResponseHeader('content-type');
-              if (contentType && contentType.toLowerCase().indexOf('application/json') == 0) {
-                resolve(JSON.parse(xhr.responseText), xhr.status, xhr);
+              console.log('ready', url, xhr)
+              if (xhr.status == 0) {
+                console.log('reject')
+                reject(new Error('Connection failed'));
               }
               else {
-                resolve(xhr.responseText, xhr.status, xhr);
+                var contentType = xhr.getResponseHeader('content-type');
+                if (contentType && contentType.toLowerCase().indexOf('application/json') == 0) {
+                  resolve(JSON.parse(xhr.responseText), xhr.status, xhr);
+                }
+                else {
+                  resolve(xhr.responseText, xhr.status, xhr);
+                }
               }
             }
           }

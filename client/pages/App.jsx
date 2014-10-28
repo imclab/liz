@@ -60,6 +60,7 @@ var App = React.createClass({
         }.bind(this))
         .catch(function (err) {
           console.log('Error', err);
+          displayError(err);
         });
   },
 
@@ -71,6 +72,7 @@ var App = React.createClass({
         }.bind(this))
         .catch(function (err) {
           console.log('Error', err);
+          displayError(err);
         });
   }
 });

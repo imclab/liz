@@ -10,7 +10,8 @@ var CalendarPage = React.createClass({
     return {
       user: this.props.user || null,
       loading: email != undefined,
-      events: null
+      events: null,
+      error: null
     };
   },
 
@@ -18,7 +19,10 @@ var CalendarPage = React.createClass({
     var events = this.state.events || [];
     var contents;
 
-    if (this.state.loading) {
+    if (this.state.error) {
+      contents = <p className="error">{this.state.error.toString()}</p>
+    }
+    else if (this.state.loading) {
       contents = <p>Loading calendar events <img className="loading" src="img/ajax-loader.gif" /></p>;
     }
     else {
@@ -41,9 +45,11 @@ var CalendarPage = React.createClass({
           });
         }.bind(this))
         .catch(function (err) {
-          // TODO: show error on screen
-          this.setState({loading: false});
-          console.log('Error', err);
+          this.setState({
+            error: err,
+            loading: false
+          });
+          console.log(err);
         }.bind(this));
   }
 });

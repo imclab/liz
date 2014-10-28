@@ -139,3 +139,16 @@ p.error {
 .iradio_flat {
   background: url("/node_modules/bootflat/bootflat/img/check_flat/default.png") no-repeat;
 }
+
+#errors {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+
+#errors .alert {
+  width: 400px;
+  margin: 10px auto;
+  box-shadow: 2px 2px 10px rgba(128, 128, 128, 0.4);
+}
