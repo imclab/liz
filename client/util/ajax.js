@@ -10,9 +10,7 @@ var ajax = (function () {
         xhr.onreadystatechange = function() {
           try {
             if (xhr.readyState == 4) {
-              console.log('ready', url, xhr)
               if (xhr.status == 0) {
-                console.log('reject')
                 reject(new Error('Connection failed'));
               }
               else {

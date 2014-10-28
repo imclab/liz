@@ -359,7 +359,7 @@ app.get('/contacts/:email?', function(req, res){
 
   // only user itself has access here
   // TODO: this is a hacky solution
-  if (calendarId != req.session.email) {
+  if (email != req.session.email) {
     return sendError(res, 'Unauthorized');
   }
 
