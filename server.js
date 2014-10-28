@@ -418,15 +418,21 @@ function getUser(email, callback) {
         refreshAccessToken(user.auth.refreshToken, function (err, result) {
           if (err) return callback(err, null);
 
-          // store the new accessToken and refreshToken in the user's profile
-          updateUser({
-            email: user.email,
-            auth: {
-              accessToken: result.access_token,
-              refreshToken: user.auth.refreshToken,
-              expires: new Date(Date.now() + result.expires_in * 1000).toISOString()
-            }
-          }, callback);
+          if (result.access_token && result.expires_in) {
+            // store the new accessToken and refreshToken in the user's profile
+            updateUser({
+              email: user.email,
+              auth: {
+                accessToken: result.access_token,
+                refreshToken: user.auth.refreshToken,
+                expires: new Date(Date.now() + result.expires_in * 1000).toISOString()
+              }
+            }, callback);
+          }
+          else {
+            console.log('Failed to refresh access token', result); // TODO: cleanup
+            callback(new Error('Failed to refresh access token'), null);
+          }
         });
       }
       else {
