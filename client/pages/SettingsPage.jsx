@@ -1,5 +1,3 @@
-/** @jsx React.DOM */
-
 var SettingsPage = React.createClass({
   getInitialState: function () {
     // load the list with calendars

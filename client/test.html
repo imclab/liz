@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+<head>
+  <title>Liz - easy scheduling</title>
+  <link rel="shortcut icon" href="favicon.ico" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+  <link rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/node_modules/bootflat/bootflat/css/bootflat.min.css">
+  <link rel="stylesheet" href="app.css">
+
+  <script src="/node_modules/jquery/dist/jquery.min.js"></script>
+  <script src="/node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+  <script src="/node_modules/bootflat/bootflat/js/icheck.min.js"></script>
+  <script src="/node_modules/bootflat/bootflat/js/jquery.fs.selecter.min.js"></script>
+  <script src="/node_modules/bootflat/bootflat/js/jquery.fs.stepper.min.js"></script>
+
+  <script src="/node_modules/moment/min/moment.min.js"></script>
+  <script src="/node_modules/promise-js/promise.js"></script>
+  <script src="/node_modules/react/dist/react.js"></script>
+  <script src="/node_modules/react/dist/JSXTransformer.js"></script>
+
+  <!-- needed as bootflat uses an outdated version of selector not working on mobile -->
+  <script src="assets/selecter/jquery.fs.selecter.min.js"></script>
+
+  <script type="text/jsx">
+    var Test = React.createClass({
+
+      componentDidMount: function() {
+        this.renderSelectBox();
+      },
+
+      componentDidUpdate: function () {
+        this.renderSelectBox();
+      },
+
+      renderSelectBox: function () {
+        var select = this.refs.select;
+        if (select) {
+          var me = this;
+          $(select.getDOMNode()).selecter({
+            mobile: true,
+            callback: function () {
+              me.handleSelect();
+            }
+          });
+        }
+      },
+
+      handleSelect: function () {
+        console.log('select', this.refs.select.getDOMNode().value)
+        alert(this.refs.select.getDOMNode().value)
+      },
+
+      render: function () {
+        return <div>
+            <div>
+                <select ref="select" onChange={this.handleSelect}>
+                    <option value="Option A">Option A</option>
+                    <option value="Option B">Option B</option>
+                    <option value="Option C">Option C</option>
+                </select>
+            </div>
+        </div>;
+      }
+    });
+
+    var app = React.render(<Test />, document.getElementById('app'));
+
+  </script>
+</head>
+<body>
+<div id="page">
+  <a id="header" href="/">
+    <img src="img/calendar-icon.png" width="48" height="48" style="vertical-align: middle;"> Liz
+  </a>
+  <div id="app"></div>
+</div>
+</body>
+</html>

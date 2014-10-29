@@ -1,5 +1,3 @@
-/** @jsx React.DOM */
-
 var HomePage = React.createClass({
   getInitialState: function () {
     return {

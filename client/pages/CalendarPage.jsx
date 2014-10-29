@@ -1,5 +1,3 @@
-/** @jsx React.DOM */
-
 var CalendarPage = React.createClass({
   getInitialState: function () {
     var email = this.props.user && this.props.user.email;

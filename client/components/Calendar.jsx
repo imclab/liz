@@ -1,5 +1,3 @@
-/** @jsx React.DOM */
-
 var Calendar = React.createClass({
   render: function() {
     var calendar = this.props.calendar;

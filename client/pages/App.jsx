@@ -1,5 +1,3 @@
-/** @jsx React.DOM */
-
 var App = React.createClass({
   getInitialState: function () {
     this.loadUser();

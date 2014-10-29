@@ -1,5 +1,3 @@
-/** @jsx React.DOM */
-
 // https://www.npmjs.org/package/react-checkbox-group
 
 var CheckboxGroup = React.createClass({

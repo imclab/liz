@@ -1,5 +1,3 @@
-/** @jsx React.DOM */
-
 /**
  * Renders Google Calendar events in a table view
  *

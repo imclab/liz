@@ -1,5 +1,3 @@
-/** @jsx React.DOM */
-
 //var Menu = React.createClass({
 //  render: function() {
 //    var user = this.state && this.state.user;

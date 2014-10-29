@@ -1,5 +1,3 @@
-/** @jsx React.DOM */
-
 var TimeslotList = React.createClass({
   MAX_TIMESLOTS: 10,
 

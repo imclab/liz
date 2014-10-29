@@ -18,6 +18,10 @@ var SRC_JS = [
   'node_modules/react/dist/react.min.js',
 
   'client/assets/react-radiogroup/react-radiogroup.jsx',
+
+  // needed as bootflat uses an outdated version of selector not working on mobile, see https://github.com/bootflat/bootflat.github.io/issues/55
+  'client/assets/selecter/jquery.fs.selecter.min.js',
+
   'shared/*',
   'client/util/*',
 

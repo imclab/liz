@@ -1,5 +1,3 @@
-/** @jsx React.DOM */
-
 var CalendarList = React.createClass({
   getInitialState: function () {
     return {

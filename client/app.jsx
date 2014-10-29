@@ -1,7 +1,5 @@
-/** @jsx React.DOM */
-
 function init() {
-  var app = React.renderComponent(<App/>, document.getElementById('app'));
+  var app = React.render(<App/>, document.getElementById('app'));
 
   // change layout for different screen sizes
   window.onresize = function () {

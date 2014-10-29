@@ -1,5 +1,3 @@
-/** @jsx React.DOM */
-
 var EventScheduler = React.createClass({
   STEPS: ['input', 'select', 'create'],
 
@@ -44,16 +42,15 @@ var EventScheduler = React.createClass({
   },
 
   renderSelectBox: function () {
-    // TODO: get selecter select box working on mobile
-    //var duration = this.refs.duration;
-    //if (duration) {
-    //  var me = this;
-    //  $(duration.getDOMNode()).selecter({
-    //    callback: function () {
-    //      me.handleChange();
-    //    }
-    //  });
-    //}
+    var duration = this.refs.duration;
+    if (duration) {
+      var me = this;
+      $(duration.getDOMNode()).selecter({
+        callback: function () {
+          me.handleChange();
+        }
+      });
+    }
   },
 
   renderInput: function () {
@@ -91,12 +88,12 @@ var EventScheduler = React.createClass({
                         ref="duration"
                         value={this.state.duration}
                         onChange={this.handleChange}>
-                      <option value="30">30 min</option>
-                      <option value="60">1 hour</option>
-                      <option value="90">1 hour 30 min</option>
-                      <option value="120">2 hour</option>
-                      <option value="240">4 hour</option>
-                      <option value="480">8 hour</option>
+                      <option value="30" selected={this.state.duration == '30'}>30 min</option>
+                      <option value="60" selected={this.state.duration == '60'}>1 hour</option>
+                      <option value="90" selected={this.state.duration == '90'}>1 hour 30 min</option>
+                      <option value="120" selected={this.state.duration == '120'}>2 hour</option>
+                      <option value="240" selected={this.state.duration == '240'}>4 hour</option>
+                      <option value="480" selected={this.state.duration == '480'}>8 hour</option>
                   </select>
                 </td>
               </tr>
