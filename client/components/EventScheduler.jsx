@@ -6,7 +6,7 @@ var EventScheduler = React.createClass({
       step: this.STEPS[0],
       summary: 'new event',
       location: '',
-      duration: 60,
+      duration: '1 hour',
       description: '',
       timeslots: null,
       timeslot: null,
@@ -83,19 +83,12 @@ var EventScheduler = React.createClass({
               </tr>
               <tr>
                 <th>Duration</th>
-                <td>
-                  <select
-                        name="duration"
-                        ref="duration"
-                        value={this.state.duration}
-                        onChange={this.handleChange}>
-                      <option value="30">30 min</option>
-                      <option value="60">1 hour</option>
-                      <option value="90">1 hour 30 min</option>
-                      <option value="120">2 hour</option>
-                      <option value="240">4 hour</option>
-                      <option value="480">8 hour</option>
-                  </select>
+                <td><input type="text"
+                    className="form-control"
+                    name="duration"
+                    ref="duration"
+                    value={this.state.duration}
+                    onChange={this.handleChange} />
                 </td>
               </tr>
               <tr>
@@ -132,7 +125,8 @@ var EventScheduler = React.createClass({
       return (
           <div className="scheduler">
             <p>
-            Select any of the available dates for <b>{this.state.summary}</b>:
+            Select any of the available dates for <b>{this.state.summary} (
+            {juration.stringify(juration.parse(this.state.duration))})</b>:
             </p>
             {
                 (this.state.timeslots.length > 0) ?
@@ -152,7 +146,8 @@ var EventScheduler = React.createClass({
     else { // loading
       return (
           <div className="scheduler">
-            <p className="loading">Calculating available dates for <b>{this.state.summary} ({this.state.duration} min)</b> <img src="img/ajax-loader.gif" /></p>
+            <p className="loading">Calculating available dates for <b>{this.state.summary} (
+            {juration.stringify(juration.parse(this.state.duration))})</b> <img src="img/ajax-loader.gif" /></p>
             <p>
               <button onClick={this.back} className="btn btn-normal">Back</button>
             </p>
@@ -247,7 +242,7 @@ var EventScheduler = React.createClass({
         .then(function (freeBusy) {
           console.log('freeBusy', freeBusy);
           var free = freeBusy.free || [];
-          var duration = this.state.duration * (60 * 1000); // from minutes to ms
+          var duration = juration.parse(this.state.duration) * 1000; // from seconds to ms
           var timeslots = intervals.generateTimeslots(free, duration);
 
           console.log('timeslots', timeslots);

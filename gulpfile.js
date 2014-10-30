@@ -16,6 +16,8 @@ var SRC_JS = [
   'node_modules/bootflat/bootflat/js/jquery.fs.stepper.min.js',
   'node_modules/moment/min/moment.min.js',
   'node_modules/promise-js/promise.js',
+  'node_modules/juration/juration.js',
+
   'node_modules/react/dist/react.min.js',
 
   'client/assets/react-radiogroup/react-radiogroup.jsx',
