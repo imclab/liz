@@ -1,6 +1,4 @@
 function init() {
-  var app = React.render(<App/>, document.getElementById('app'));
-
   // change layout for different screen sizes
   window.onresize = function () {
     var width = document.body.clientWidth;
@@ -9,6 +7,8 @@ function init() {
     page.className = (width < 700) ? 'small-screen' : 'normal';
   };
   window.onresize();
+
+  var app = React.render(<App/>, document.getElementById('app'));
 }
 
 if (document.readyState === 'complete') {

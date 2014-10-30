@@ -10,9 +10,19 @@ var EventScheduler = React.createClass({
   ],
 
   getInitialState: function () {
+    var user = this.props.user;
+
     return {
       step: this.STEPS[0],
       summary: 'new event',
+      attendees:  user && user.email && [user.email],
+      initialContacts: [
+        {
+          name: user.name,
+          email: user.email,
+          text: user.name + ' <' + user.email + '>'
+        }
+      ],
       location: '',
       duration: '1 hour',
       description: '',
@@ -37,33 +47,10 @@ var EventScheduler = React.createClass({
 
   componentDidMount: function() {
     // Set initial focus to the title input
-    var summary = this.refs.summary;
-    if (summary) {
-      summary.getDOMNode().select();
-    }
-
-    this.renderSelectBox();
-  },
-
-  componentDidUpdate: function () {
-    this.renderSelectBox();
-  },
-
-  renderSelectBox: function () {
-    // TODO: fix issues with selecter on mobile
-    //var duration = this.refs.duration;
-    //if (duration) {
-    //  var me = this;
-    //  $(duration.getDOMNode()).selecter({
-    //    callback: function () {
-    //      me.handleChange();
-    //    }
-    //  });
-    //}
+    this.refs.summary.getDOMNode().select();
   },
 
   renderInput: function () {
-    // TODO: add a field for event description
     return (
         <div className="scheduler">
           <form onSubmit={this.calculateTimeslots} >
@@ -78,16 +65,29 @@ var EventScheduler = React.createClass({
                     name="summary"
                     ref="summary"
                     value={this.state.summary}
-                    onChange={this.handleChange} /></td>
+                    onChange={this.handleChange}
+                /></td>
               </tr>
               <tr>
-                <th>Location</th>
-                <td><input type="text"
+                <th>Attendees</th>
+                <td><Selectize
+                    ref="attendees"
                     className="form-control"
-                    name="location"
-                    ref="location"
-                    value={this.state.location}
-                    onChange={this.handleChange} /></td>
+                    value={this.state.attendees}
+                    create={true}
+                    multiple={true}
+                    preload={true}
+                    load={this.loadContacts}
+                    options={this.state.initialContacts}
+                    placeholder="Enter one or multiple attendees..."
+                    searchField={['name', 'email']}
+                    sortField="text"
+                    labelField="text"
+                    valueField="email"
+                    hideSelected={true}
+                    handleChange={this.handleAttendeesChange}
+                ></Selectize>
+                </td>
               </tr>
               <tr>
                 <th>Duration</th>
@@ -105,13 +105,24 @@ var EventScheduler = React.createClass({
                 </td>
               </tr>
               <tr>
+                <th>Location</th>
+                <td><input type="text"
+                    className="form-control"
+                    name="location"
+                    ref="location"
+                    value={this.state.location}
+                    onChange={this.handleChange}
+                /></td>
+              </tr>
+              <tr>
                 <th>Description</th>
                 <td><textarea
                     className="form-control"
                     name="description"
                     ref="description"
                     value={this.state.description}
-                    onChange={this.handleChange}></textarea>
+                    onChange={this.handleChange}
+                ></textarea>
                 </td>
               </tr>
             </table>
@@ -141,6 +152,7 @@ var EventScheduler = React.createClass({
             Select any of the available dates for <b>{this.state.summary} (
             {juration.stringify(juration.parse(this.state.duration))})</b>:
             </p>
+              <p style={{color:'red'}}>WARNING: this list does not yet reckon the free/busy profiles of others than the logged in user.</p>
             {
                 (this.state.timeslots.length > 0) ?
                     <TimeslotList
@@ -191,10 +203,13 @@ var EventScheduler = React.createClass({
                 <th>Title</th><td>{this.state.summary}</td>
               </tr>
               <tr>
-                <th>Location</th><td>{this.state.location}</td>
+                <th>Attendees</th><td>{this.renderAttendees()}</td>
               </tr>
               <tr>
                 <th>Time</th><td>{formatHumanDate(this.state.timeslot.start)} {formatTime(this.state.timeslot.start)} &ndash; {formatTime(this.state.timeslot.end)}</td>
+              </tr>
+              <tr>
+                <th>Location</th><td>{this.state.location}</td>
               </tr>
               <tr>
                 <th>Description</th><td>{this.state.description}</td>
@@ -215,6 +230,13 @@ var EventScheduler = React.createClass({
     }
   },
 
+  renderAttendees: function () {
+    return this.state.attendees.map(function (email) {
+      var contact = this.getContact(email);
+      return <div>{contact.name ? (contact.name + ' <' + contact.email + '>') : contact.email}</div>;
+    }.bind(this))
+  },
+
   back: function () {
     var index = this.STEPS.indexOf(this.state.step);
     var prevStep = this.STEPS[index - 1];
@@ -231,19 +253,79 @@ var EventScheduler = React.createClass({
   },
 
   handleDurationChange: function (value) {
+    // TODO: store the state in the pages url hash too
     this.setState({
       duration: value
     })
   },
 
+  handleAttendeesChange: function (value) {
+    // TODO: store the state in the pages url hash too
+    this.setState({
+      attendees: value
+    });
+  },
+
   handleChange: function () {
-    // TODO: store the state in the pages url hash too?
+    // TODO: store the state in the pages url hash too
     this.setState({
       summary: this.refs.summary.getDOMNode().value,
-      //duration: this.refs.duration.getDOMNode().value,
       location: this.refs.location.getDOMNode().value,
       description: this.refs.description.getDOMNode().value
     })
+  },
+
+  getContact: function (email) {
+    if (this.contacts) {
+      var contact = this.contacts.filter(function (contact) {
+        return contact.email == email;
+      })[0];
+      if (contact) {
+        return contact;
+      }
+    }
+
+    return {email: email};
+  },
+
+  loadContacts: function (query, callback) {
+    // TODO: replace loading the whole contact list with a filtered one with every change of input
+
+    var me = this;
+    if (this.contacts) {
+      return callback(this.contacts);
+    }
+
+    ajax.get('/contacts')
+        .then(function (rawContacts) {
+          console.log('contacts', rawContacts);
+
+          var contacts = rawContacts.map(function (contact) {
+            return {
+              name: contact.name,
+              email: contact.email,
+              text: contact.name ? (contact.name + ' <' + contact.email + '>') : contact.email
+            }
+          });
+
+          // append the user itself if missing in the contacts
+          var containsUser = rawContacts.some(function (contact) {
+            return contact.email == me.props.user.email;
+          });
+          if (!containsUser) {
+            contacts = contacts.concat(me.state.initialContacts);
+          }
+
+          // cache the loaded contacts
+          me.contacts = contacts;
+
+          callback(contacts);
+        })
+        .catch(function (err) {
+          callback([]);
+          console.log(err);
+          displayError(err);
+        })
   },
 
   calculateTimeslots: function (event) {
@@ -293,15 +375,16 @@ var EventScheduler = React.createClass({
 
     var calendarId = this.props.user.email;
     var event = {
-      attendees: [
-        {email: calendarId}
-      ],
+      attendees: this.state.attendees.map(function (email) {
+        return {email: email};
+      }),
       summary: this.state.summary,
       location: this.state.location,
       description: this.state.description,
       start: {dateTime: timeslot.start},
       end: {dateTime: timeslot.end}
     };
+    console.log('event', event);
 
     ajax.put('/calendar/' + calendarId, event)
         .then(function (response) {

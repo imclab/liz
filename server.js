@@ -356,6 +356,8 @@ app.get('/freeBusy/:calendarId?', function(req, res) {
 app.get('/contacts*', auth);
 app.get('/contacts/:email?', function(req, res){
   var email = req.params.email || req.session.email;
+  var raw = req.query.raw == '' || req.query.raw == 'true';
+  var query = req.query.query || '';
 
   // only user itself has access here
   // TODO: this is a hacky solution
@@ -366,9 +368,25 @@ app.get('/contacts/:email?', function(req, res){
   authorize(req.session.email, email, function (err, accessToken, user) {
     if(err) return sendError(res, err);
 
-    getContacts(email, accessToken, function (err, contacts) {
+    getContacts(email, accessToken, query, function (err, rawContacts) {
       if(err) return sendError(res, err);
-      return res.json(contacts);
+
+      if (raw) {
+        return res.json(rawContacts);
+      }
+      else {
+        var contacts = [];
+
+        rawContacts.feed.entry && rawContacts.feed.entry.forEach(function (contact) {
+          contact.gd$email && contact.gd$email.forEach(function (email) {
+            contacts.push({
+              name: contact.title.$t || null,
+              email: email.address
+            });
+          });
+        });
+        return res.json(contacts);
+      }
     });
   });
 });
@@ -511,7 +529,8 @@ function authorize (requester, email, callback) {
       });
     }
     else if (user.share == 'contacts') {
-      getContacts(email, accessToken, function (err, contacts) {
+      var query = ''; // TODO: utilize query
+      getContacts(email, accessToken, query, function (err, contacts) {
         if (err) return callback(err, null, null);
 
         var found = (contacts.feed.entry || []).some(function (contact) {
@@ -561,11 +580,13 @@ function getUserInfo (accessToken, callback) {
  * Retrieve a users contacts from google
  * @param {string} email
  * @param {string} accessToken
+ * @param {string} query
  * @param {function} callback   called as `callback(err, contacts)`
  */
-function getContacts (email, accessToken, callback) {
+function getContacts (email, accessToken, query, callback) {
   var url = 'https://www.google.com/m8/feeds/contacts/' + email + '/full' +
-      '?alt=json&max-results=9999&access_token=' + accessToken;
+      '?alt=json&q=' + query + '&max-results=9999&access_token=' + accessToken;
+  // FIXME: query does not do anything
   request(url, function (error, response, body) {
     try {
       if (!error && body.length > 0) {

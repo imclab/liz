@@ -50,13 +50,14 @@ var Selectize = React.createClass({
 
   shouldComponentUpdate: function(nextProps) {
     var self = this;
-    var shouldUpdate = Object.keys(nextProps).some(function(propName) {
-      // If it's handled, we'll deal with it on our own.
-      if (propName in handledProps) return false;
-
-      return nextProps[propName] !== self.props[propName];
-    });
-    if (shouldUpdate) return true;
+    // FIXME: this gives issues when updating the value via props
+    //var shouldUpdate = Object.keys(nextProps).some(function(propName) {
+    //  // If it's handled, we'll deal with it on our own.
+    //  if (propName in handledProps) return false;
+    //
+    //  return nextProps[propName] !== self.props[propName];
+    //});
+    //if (shouldUpdate) return true;
 
     this._updating = true;
 
