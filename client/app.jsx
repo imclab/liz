@@ -6,7 +6,7 @@ function init() {
     var width = document.body.clientWidth;
 
     var page = document.getElementById('page');
-    page.className = (width < 500) ? 'small-screen' : 'normal';
+    page.className = (width < 700) ? 'small-screen' : 'normal';
   };
   window.onresize();
 }
