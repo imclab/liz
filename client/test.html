@@ -7,31 +7,35 @@
 
   <link rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="/node_modules/bootflat/bootflat/css/bootflat.min.css">
+  <link rel="stylesheet" href="/node_modules/selectize/dist/css/selectize.bootstrap3.css">
   <link rel="stylesheet" href="app.css">
 
   <script src="/node_modules/jquery/dist/jquery.min.js"></script>
   <script src="/node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
   <script src="/node_modules/bootflat/bootflat/js/icheck.min.js"></script>
-  <script src="/node_modules/bootflat/bootflat/js/jquery.fs.selecter.min.js"></script>
+  <!--<script src="/node_modules/bootflat/bootflat/js/jquery.fs.selecter.min.js"></script>-->  <!-- this version is outdated -->
   <script src="/node_modules/bootflat/bootflat/js/jquery.fs.stepper.min.js"></script>
+  <script src="/node_modules/selectize/dist/js/standalone/selectize.min.js"></script>
+  <script src="/node_modules/juration/juration.js"></script>
 
   <script src="/node_modules/moment/min/moment.min.js"></script>
   <script src="/node_modules/promise-js/promise.js"></script>
   <script src="/node_modules/react/dist/react.js"></script>
   <script src="/node_modules/react/dist/JSXTransformer.js"></script>
 
-  <!-- needed as bootflat uses an outdated version of selector not working on mobile -->
-  <script src="assets/selecter/jquery.fs.selecter.min.js"></script>
+  <script src="assets/selectize/Selectize.jsx" type="text/jsx"></script>
 
   <script type="text/jsx">
     var Test = React.createClass({
 
       componentDidMount: function() {
         this.renderSelectBox();
+        this.renderEmailSelecter();
       },
 
       componentDidUpdate: function () {
         this.renderSelectBox();
+        this.renderEmailSelecter();
       },
 
       renderSelectBox: function () {
@@ -52,6 +56,90 @@
         alert(this.refs.select.getDOMNode().value)
       },
 
+      renderEmailSelecter: function () {
+        var REGEX_EMAIL = '([a-z0-9!#$%&\'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&\'*+/=?^_`{|}~-]+)*@' +
+            '(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)';
+
+        $(this.refs.email.getDOMNode()).selectize({
+          persist: false,
+          maxItems: null,
+          valueField: 'email',
+          labelField: 'name',
+          searchField: ['name', 'email'],
+          options: [
+            {email: 'brian@thirdroute.com', name: 'Brian Reavis'},
+            {email: 'nikola@tesla.com', name: 'Nikola Tesla'},
+            {email: 'someone@gmail.com'}
+          ],
+          render: {
+            item: function(item, escape) {
+              return '<div>' +
+                  (item.name ? '<span class="name">' + escape(item.name) + '</span>' : '') +
+                  (item.email ? '<span class="email">' + escape(item.email) + '</span>' : '') +
+                  '</div>';
+            },
+            option: function(item, escape) {
+              var label = item.name || item.email;
+              var caption = item.name ? item.email : null;
+              return '<div>' +
+                  '<span class="label">' + escape(label) + '</span>' +
+                  (caption ? '<span class="caption">' + escape(caption) + '</span>' : '') +
+                  '</div>';
+            }
+          },
+          createFilter: function(input) {
+            var match, regex;
+
+            // email@address.com
+            regex = new RegExp('^' + REGEX_EMAIL + '$', 'i');
+            match = input.match(regex);
+            if (match) return !this.options.hasOwnProperty(match[0]);
+
+            // name <email@address.com>
+            regex = new RegExp('^([^<]*)\<' + REGEX_EMAIL + '\>$', 'i');
+            match = input.match(regex);
+            if (match) return !this.options.hasOwnProperty(match[2]);
+
+            return false;
+          },
+          create: function(input) {
+            if ((new RegExp('^' + REGEX_EMAIL + '$', 'i')).test(input)) {
+              return {email: input};
+            }
+            var match = input.match(new RegExp('^([^<]*)\<' + REGEX_EMAIL + '\>$', 'i'));
+            if (match) {
+              return {
+                email : match[2],
+                name  : $.trim(match[1])
+              };
+            }
+            alert('Invalid email address.');
+            return false;
+          }
+        })
+            .on('change', this.handleChange.bind(this));
+      },
+
+
+      handleChange: function () {
+        console.log('change', this.refs.email.getDOMNode().value);
+        alert(this.refs.email.getDOMNode().value);
+      },
+
+      selectizeChange: function (value) {
+        console.log('change', value)
+      },
+
+      options: [
+        {value:'Hello', text: 'Hello label'},
+        {value:'Good bye', text: 'Good bye label'}
+      ],
+
+      options2: [
+        {value:'jos@almende.org', text: 'Jos de Jong (@almende.org)'},
+        {value:'wjosdejong@gmail.com', text: 'Jos de Jong (@gmail.com)'}
+      ],
+
       render: function () {
         return <div>
             <div>
@@ -61,11 +149,22 @@
                     <option value="Option C">Option C</option>
                 </select>
             </div>
+            <div>
+              <label for="select-to">Email:</label>
+              <select id="select-to" ref="email" className="contacts selectized" placeholder="Pick some people..." multiple="multiple" tabindex="-1" style={{display: 'none'}}
+              onchange={this.handleChange}></select>
+            </div>
+            <div>
+                <Selectize value={'Good bye'} create={true} persist={false} options={this.options} handleChange={this.selectizeChange}></Selectize>
+            </div>
+            <div>
+                <Selectize value={'wjosdejong@gmail.com'} options={this.options2} multiple={true} searchField={['text', 'value']} hideSelected={true} handleChange={this.selectizeChange}></Selectize>
+            </div>
         </div>;
       }
     });
 
-    var app = React.render(<Test />, document.getElementById('app'));
+    var app = React.render(<Test/>, document.getElementById('app'));
 
   </script>
 </head>

@@ -10,10 +10,9 @@ var gulpif = require('gulp-if');
 var SRC_JS = [
   'node_modules/jquery/dist/jquery.min.js',
   'node_modules/bootstrap/dist/js/bootstrap.min.js',
-  'node_modules/bootflat/bootflat/js/icheck.min.js',
+  //'node_modules/bootflat/bootflat/js/icheck.min.js',
   //'node_modules/bootflat/bootflat/js/jquery.fs.selecter.min.js', // this one is outdated
-  'client/assets/selecter/jquery.fs.selecter.min.js',
-  'node_modules/bootflat/bootflat/js/jquery.fs.stepper.min.js',
+  //'node_modules/bootflat/bootflat/js/jquery.fs.stepper.min.js',
   'node_modules/moment/min/moment.min.js',
   'node_modules/promise-js/promise.js',
   'node_modules/juration/juration.js',
@@ -21,6 +20,8 @@ var SRC_JS = [
   'node_modules/react/dist/react.min.js',
 
   'client/assets/react-radiogroup/react-radiogroup.jsx',
+  'node_modules/selectize/dist/js/standalone/selectize.min.js',
+  'client/assets/selectize/Selectize.jsx',
 
   'shared/*',
   'client/util/*',
@@ -34,6 +35,7 @@ var SRC_JS = [
 var SRC_CSS = [
   'node_modules/bootstrap/dist/css/bootstrap.min.css',
   'node_modules/bootflat/bootflat/css/bootflat.min.css',
+  'node_modules/selectize/dist/css/selectize.bootstrap3.css',
   'client/app.css'
 ];
 

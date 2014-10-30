@@ -1,5 +1,13 @@
 var EventScheduler = React.createClass({
   STEPS: ['input', 'select', 'create'],
+  DURATIONS: [
+    {value: '30 min'},
+    {value: '1 hour'},
+    {value: '1 hour 30 mins'},
+    {value: '2 hours'},
+    {value: '4 hours'},
+    {value: '8 hours'}
+  ],
 
   getInitialState: function () {
     return {
@@ -66,39 +74,44 @@ var EventScheduler = React.createClass({
               <tr>
                 <th>Title</th>
                 <td><input type="text"
-                className="form-control"
-                name="summary"
-                ref="summary"
-                value={this.state.summary}
-                onChange={this.handleChange} /></td>
+                    className="form-control"
+                    name="summary"
+                    ref="summary"
+                    value={this.state.summary}
+                    onChange={this.handleChange} /></td>
               </tr>
               <tr>
                 <th>Location</th>
                 <td><input type="text"
-                className="form-control"
-                name="location"
-                ref="location"
-                value={this.state.location}
-                onChange={this.handleChange} /></td>
+                    className="form-control"
+                    name="location"
+                    ref="location"
+                    value={this.state.location}
+                    onChange={this.handleChange} /></td>
               </tr>
               <tr>
                 <th>Duration</th>
-                <td><input type="text"
-                    className="form-control"
-                    name="duration"
-                    ref="duration"
-                    value={this.state.duration}
-                    onChange={this.handleChange} />
+                <td>
+                  <Selectize
+                      ref="duration"
+                      className="form-control"
+                      value={this.state.duration}
+                      create={true}
+                      options={this.DURATIONS}
+                      placeholder="Select a duration..."
+                      labelField="value"
+                      handleChange={this.handleDurationChange}
+                  ></Selectize>
                 </td>
               </tr>
               <tr>
                 <th>Description</th>
                 <td><textarea
-                className="form-control"
-                name="description"
-                ref="description"
-                value={this.state.description}
-                onChange={this.handleChange}></textarea>
+                    className="form-control"
+                    name="description"
+                    ref="description"
+                    value={this.state.description}
+                    onChange={this.handleChange}></textarea>
                 </td>
               </tr>
             </table>
@@ -217,11 +230,17 @@ var EventScheduler = React.createClass({
     });
   },
 
+  handleDurationChange: function (value) {
+    this.setState({
+      duration: value
+    })
+  },
+
   handleChange: function () {
     // TODO: store the state in the pages url hash too?
     this.setState({
       summary: this.refs.summary.getDOMNode().value,
-      duration: this.refs.duration.getDOMNode().value,
+      //duration: this.refs.duration.getDOMNode().value,
       location: this.refs.location.getDOMNode().value,
       description: this.refs.description.getDOMNode().value
     })
