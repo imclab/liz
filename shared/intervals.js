@@ -22,8 +22,11 @@
    */
   exports.sort = function (intervals) {
     intervals.sort(function (a, b) {
-      return a.start > b.start;
+      return a.start > b.start ? 1 :
+          a.start < b.start ? -1 :
+          0;
     });
+    return intervals;
   };
 
   /**

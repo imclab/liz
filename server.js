@@ -309,10 +309,10 @@ app.delete('/calendar/:calendarId/:eventId/remove', function(req, res){
 
 app.get('/freeBusy*', auth);
 app.get('/freeBusy/:calendarId?', function(req, res) {
-  var email      = req.session.email;
+  var email = req.session.email;
   var calendarIds = req.params.calendarId ? [req.params.calendarId] :
       req.query.calendars ? splitIt(req.query.calendars) :
-      [email];
+          [email];
 
   var now = new Date();
   var defaultTimeMin = new Date(now.getFullYear(), now.getMonth(), now.getDate(),
@@ -323,45 +323,99 @@ app.get('/freeBusy/:calendarId?', function(req, res) {
     timeMax: req.query.timeMax || defaultTimeMax.toISOString()
   };
 
+  var calendars = {};
+
   // retrieve the free/busy profiles of each of the selected calendars
-  async.map(calendarIds, function (calendarId, callback) {
+  async.forEach(calendarIds, function (calendarId, callback) {
     authorize(email, calendarId, function (err, accessToken, user) {
-      if(err) return callback(null, {error: stringifyError(err), calendar: calendarId});
-
-      getFreeBusy(user, query, function (err, data) {
-        if(err) return callback(null, {error: stringifyError(err), calendar: calendarId});
-
-        return callback(null, {result: data, calendar: calendarId});
-      });
-    });
-  }, function (err, results) {
-    // loop over received results of each of the calendars
-    var calendars = [];
-    var busy = [];
-    var errors = [];
-    results.forEach(function (entry) {
-      if (entry.error) {
-        errors.push(entry);
+      if (err) {
+        calendars[calendarId] = {
+          errors: [stringifyError(err)]
+        };
+        callback();
       }
       else {
-        calendars.push({
-          calendar: entry.calendar
+        getFreeBusy(user, query, function (err, newCalendars) {
+          if (err) {
+            calendars[calendarId] = {
+              errors: [stringifyError(err)]
+            };
+          }
+          else {
+            lodash.extend(calendars, newCalendars);
+          }
+
+          callback();
         });
-        busy = busy.concat(entry.result.busy);
       }
+
+    });
+  }, function (err) {
+    var missing = calendarIds.filter(function (calendarId) {
+      var data = calendars[calendarId];
+      return !data || data.errors && data.errors.length > 0;
     });
 
-    // sort and merge the busy intervals
-    busy = intervals.merge(busy);
+    // try to fetch the errored calendars via the calendar of the logged in user
+    if (missing.length > 0) {
+      getUser(email, function (err, user) {
+        if (user) {
+          var items = missing.map(function (calendarId) {
+            return {id: calendarId};
+          });
+          var missingQuery = lodash.extend({items: items}, query);
+
+          getFreeBusy(user, missingQuery, function (err, newCalendars) {
+            if (newCalendars) {
+              Object.keys(newCalendars).forEach(function (calendarId) {
+                var calendar = newCalendars[calendarId];
+                // only copy the successful retrievals
+                if (!calendar.errors || calendar.errors.length == 0) {
+                  calendars[calendarId] = calendar;
+                }
+              });
+            }
+
+            finish();
+          });
+        }
+        else {
+          finish();
+        }
+      });
+    }
+    else {
+      finish();
+    }
+  });
+
+  // merge the busy intervals and return them
+  function finish() {
+    // merge the free busy intervals
+    var allBusy = Object.keys(calendars).reduce(function (busy, calendarId) {
+      var entry = calendars[calendarId];
+      return busy.concat(entry.busy || []);
+    }, []);
+    var busy = intervals.merge(allBusy);
     var free = intervals.invert(busy, query.timeMin, query.timeMax);
 
+    // create an array with all errors listed
+    var errors = Object.keys(calendars).reduce(function (errors, calendarId) {
+      var entry = calendars[calendarId];
+      if (entry.errors && entry.errors.length > 0) {
+        errors[calendarId] = entry.errors;
+      }
+      return errors;
+    }, {});
+
+    // return a server response
     return res.json({
       calendars: calendars,
       errors: errors,
       free: free,
       busy: busy
     });
-  });
+  }
 });
 
 app.get('/contacts*', auth);
@@ -510,33 +564,27 @@ function updateUser(user, callback) {
 /**
  * Get the free busy profile of a user
  * @param {Object} user
- * @param {{timeMin: string, timeMax: string}} query
- * @param {function} callback     Called as callback(err, intervals)
+ * @param {{timeMin: string, timeMax: string} | {timeMin: string, timeMax: string, items: Array.<{id: string}>}} query
+ * @param {function} callback     Called as callback(err, Object.<string, {busy:Array, errors:Array}>)
  */
 function getFreeBusy(user, query, callback) {
-  var calendars;
-  if (user && user.calendars) {
-    calendars = user.calendars.map(function (calendarId) {
-      return {id: calendarId};
-    })
-  }
-  else {
-    // default: just use the users own calendar
-    calendars = [{id: calendarId}];
+  var _query = lodash.extend({}, query);
+  if (!query.items) {
+    if (user && user.calendars) {
+      _query.items = user.calendars.map(function (calendarId) {
+        return {id: calendarId};
+      })
+    }
+    else {
+      // default: just use the users own calendar
+      _query.items = [{id: calendarId}];
+    }
   }
 
-  var _query = lodash.extend({}, query, {items: calendars});
   gcal(user.auth.accessToken).freebusy.query(_query, function(err, data) {
     try {
-      // merge the free busy intervals
-      if (data && data.calendars) {
-        var busy = Object.keys(data.calendars).reduce(function (busy, key) {
-          return busy.concat(data.calendars[key].busy);
-        }, []);
-        data.busy = intervals.merge(busy);
-        data.free = intervals.invert(data.busy, query.timeMin, query.timeMax);
-      }
-      callback(null, data);
+      var calendars = data && data.calendars || {};
+      callback(null, calendars);
     }
     catch (err) {
       callback(err, null);
