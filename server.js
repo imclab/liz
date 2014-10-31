@@ -160,13 +160,19 @@ app.get('/user', function(req, res, next) {
     db.users.findOne({email: email}, function (err, user) {
       if(err) return sendError(res, err);
 
-      // sanitize the user object before sending it to the client
-      user.loggedIn = true;
-      delete user.auth; // remove authentication data
-      delete user.seq;
-      delete user.updated;
-      delete user._id;
-      return res.json(user);
+      if (user) {
+        // sanitize the user object before sending it to the client
+        user.loggedIn = true;
+        delete user.auth; // remove authentication data
+        delete user.seq;
+        delete user.updated;
+        delete user._id;
+        return res.json(user);
+      }
+      else {
+        // logged in but no user profile
+        return res.json({loggedIn: false});
+      }
     });
   }
   else {
