@@ -9,6 +9,8 @@ var mongojs = require('mongojs');
 var MongoStore = require('connect-mongo')(session);
 var GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
 
+var gutils = require('./lib/google-utils');
+var authorization = require('./lib/authorization');
 var intervals = require('./shared/intervals');
 var config = require('./config');
 
@@ -105,7 +107,7 @@ app.get('/auth/callback',
         if (user.name == null) {
           // get user info from google
           console.log('retrieving user info for ' + email+ '...');
-          getUserInfo(user.auth.accessToken, function (err, userData) {
+          gutils.getUserInfo(user.auth.accessToken, function (err, userData) {
             if(err) return sendError(res, err);
 
             // initialize some default settings when missing
@@ -374,7 +376,7 @@ app.get('/contacts/:email?', function(req, res){
   authorize(req.session.email, email, function (err, accessToken, user) {
     if(err) return sendError(res, err);
 
-    getContacts(email, accessToken, query, function (err, rawContacts) {
+    gutils.getContacts(email, accessToken, query, function (err, rawContacts) {
       if(err) return sendError(res, err);
 
       if (raw) {
@@ -439,7 +441,7 @@ function getUser(email, callback) {
         // access token expires within 5 minutes, get a new one
         console.log('refreshing accessToken of user ' + email + '...'); // TODO: cleanup
 
-        refreshAccessToken(user.auth.refreshToken, function (err, result) {
+        gutils.refreshAccessToken(user.auth.refreshToken, function (err, result) {
           if (err) return callback(err, null);
 
           if (result.access_token && result.expires_in) {
@@ -488,7 +490,7 @@ function updateUser(user, callback) {
 /**
  * Authorize access to a users calendar
  * @param {string} requester    The one wanting access
- * @param {string} email        The one to with the requester wants access
+ * @param {string} email        The one to which the requester wants access
  * // TODO: introduce scope @param {string} scope        Scope of the access. Choose 'busy' or 'full'
  * @param {function (Error, string, Object)} callback
  *            called as `callback(err, accessToken, user)`
@@ -497,134 +499,6 @@ function authorize (requester, email, callback) {
   getUser(email, function (err, user) {
     if (err) return callback(err, null, null);
 
-    var accessToken = user.auth && user.auth.accessToken;
-    if (!accessToken) return callback(new Error('No valid access token'), null, null);
-
-    function ok () {
-      callback(null, accessToken, user);
-    }
-    function sorry ( ) {
-      callback(new Error('Unauthorized'), null, null);
-    }
-    function fail(err) {
-      callback(err, null, null);
-    }
-
-    if (requester == email) {
-      // you always get access to your own calendar
-      return ok();
-    }
-    else if (user.share == 'calendar') {
-       // see if the requester is in the acl list of the users calendar
-      gcal(accessToken).acl.list(email, function (err, contacts) {
-        if (err) return fail(err);
-
-        var found = (contacts.items || []).some(function (contact) {
-          if (contact.scope && contact.scope.type == 'user') {
-            return contact.scope.value == requester;
-          }
-          else if (contact.scope && contact.scope.type == 'domain') {
-            return contact.scope.value == requester.split('@').pop();
-          }
-          else {
-            return false;
-          }
-        });
-
-        found ? ok() : sorry();
-      });
-    }
-    else if (user.share == 'contacts') {
-      var query = ''; // TODO: utilize query
-      getContacts(email, accessToken, query, function (err, contacts) {
-        if (err) return callback(err, null, null);
-
-        var found = (contacts.feed.entry || []).some(function (contact) {
-          return contact.gd$email.some(function (email) {
-            return email.address == requester;
-          });
-        });
-
-        found ? ok() : sorry();
-      });
-    }
-    else {
-      // fallback (should not happen)
-      callback(new Error('Unauthorized'), null, null);
-    }
-  });
-}
-
-/**
- * Retrieve user information from google
- * @param {string} accessToken
- * // TODO: add scope here, with
- * @param {function} callback   called as `callback(err, user)`
- */
-function getUserInfo (accessToken, callback) {
-  var url = 'https://www.googleapis.com/oauth2/v1/userinfo' +
-      '?access_token=' + accessToken;
-  request(url, function (error, response, body) {
-    try {
-      if (!error && body.length > 0) {
-        var data = JSON.parse(body);
-        callback(null, {
-          loggedIn: true,
-          name: data.name || null,
-          email: data.email || null,
-          picture: data.picture || null
-        });
-      }
-    }
-    catch (err) {
-      callback(err, null);
-    }
-  });
-}
-
-/**
- * Retrieve a users contacts from google
- * @param {string} email
- * @param {string} accessToken
- * @param {string} query
- * @param {function} callback   called as `callback(err, contacts)`
- */
-function getContacts (email, accessToken, query, callback) {
-  var url = 'https://www.google.com/m8/feeds/contacts/' + email + '/full' +
-      '?alt=json&q=' + query + '&max-results=9999&access_token=' + accessToken;
-  // FIXME: query does not do anything
-  request(url, function (error, response, body) {
-    try {
-      if (!error && body.length > 0) {
-        callback(null, JSON.parse(body));
-      }
-    }
-    catch (err) {
-      callback(err, null);
-    }
-  });
-}
-
-/**
- * Retrieve a new access token from a given refreshToken
- * https://developers.google.com/accounts/docs/OAuth2WebServer#refresh
- * @param {String} refreshToken
- * @param {function(Error, object)} callback   On success, the returned `object`
- *                                           contains parameters access_token,
- *                                           token_type, expires_in, and id_token
- */
-function refreshAccessToken(refreshToken, callback) {
-  var url = 'https://accounts.google.com/o/oauth2/token';
-  var form = {
-    refresh_token: refreshToken,
-    client_id: config.GOOGLE_CLIENT_ID,
-    client_secret: config.GOOGLE_CLIENT_SECRET,
-    grant_type: 'refresh_token'
-  };
-
-  request.post(url, {form: form}, function (error, response, body) {
-    if (error) return callback(error, null);
-
-    callback(null, JSON.parse(body));
+    authorization.authorize(requester, user, callback);
   });
 }
