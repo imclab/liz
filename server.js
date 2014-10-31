@@ -8,6 +8,8 @@ var passport = require('passport');
 var mongojs = require('mongojs');
 var MongoStore = require('connect-mongo')(session);
 var GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
+var lodash = require('lodash');
+var async = require('async');
 
 var gutils = require('./lib/google-utils');
 var authorization = require('./lib/authorization');
@@ -249,9 +251,9 @@ app.get('/calendar/:calendarId?', function(req, res){
   var calendarId = req.params.calendarId || req.session.email;
 
   // only user itself has access here
-  // TODO: this is a hacky solution
+  // TODO: this is a hacky solution, authorization module with a certain scope for this
   if (calendarId != req.session.email) {
-    return sendError(res, 'Unauthorized');
+    return sendError(res, new Error('Unauthorized'));
   }
 
   authorize(req.session.email, calendarId, function (err, accessToken, user) {
@@ -308,55 +310,56 @@ app.delete('/calendar/:calendarId/:eventId/remove', function(req, res){
 app.get('/freeBusy*', auth);
 app.get('/freeBusy/:calendarId?', function(req, res) {
   var email      = req.session.email;
-  var calendarId = req.params.calendarId || email;
+  var calendarIds = req.params.calendarId ? [req.params.calendarId] :
+      req.query.calendars ? splitIt(req.query.calendars) :
+      [email];
 
-  authorize(req.session.email, calendarId, function (err, accessToken, user) {
-    if(err) return sendError(res, err);
+  var now = new Date();
+  var defaultTimeMin = new Date(now.getFullYear(), now.getMonth(), now.getDate(),
+      now.getHours(), Math.round(now.getMinutes() / 30) * 30, 0);
+  var defaultTimeMax = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7);
+  var query = {
+    timeMin: req.query.timeMin || defaultTimeMin.toISOString(),
+    timeMax: req.query.timeMax || defaultTimeMax.toISOString()
+  };
 
-    var items;
-    if (user && user.calendars) {
-      items = user.calendars.map(function (calendarId) {
-        return {id: calendarId};
-      })
-    }
-    else {
-      // default: just use the users own calendar
-      items = [{id: calendarId}];
-    }
+  // retrieve the free/busy profiles of each of the selected calendars
+  async.map(calendarIds, function (calendarId, callback) {
+    authorize(email, calendarId, function (err, accessToken, user) {
+      if(err) return callback(null, {error: stringifyError(err), calendar: calendarId});
 
-    var now = new Date();
-    var defaultTimeMin = new Date(now.getFullYear(), now.getMonth(), now.getDate(),
-        now.getHours(), Math.round(now.getMinutes() / 30) * 30, 0);
-    var defaultTimeMax = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7);
+      getFreeBusy(user, query, function (err, data) {
+        if(err) return callback(null, {error: stringifyError(err), calendar: calendarId});
 
-    var query = {
-      timeMin: req.query.timeMin || defaultTimeMin.toISOString(),
-      timeMax: req.query.timeMax || defaultTimeMax.toISOString(),
-      items: items
-    };
-
-    if (!user.auth || !user.auth.accessToken) {
-      return sendError(res, new Error('Unauthorized or non existing calendar'));
-    }
-
-    gcal(user.auth.accessToken).freebusy.query(query, function(err, data) {
-      try {
-        // merge the free busy intervals
-        if (data && data.calendars) {
-          var busy = Object.keys(data.calendars).reduce(function (busy, key) {
-            return busy.concat(data.calendars[key].busy);
-          }, []);
-          data.busy = intervals.merge(busy);
-          data.free = intervals.invert(data.busy, query.timeMin, query.timeMax);
-        }
+        return callback(null, {result: data, calendar: calendarId});
+      });
+    });
+  }, function (err, results) {
+    // loop over received results of each of the calendars
+    var calendars = [];
+    var busy = [];
+    var errors = [];
+    results.forEach(function (entry) {
+      if (entry.error) {
+        errors.push(entry);
       }
-      catch (error) {
-        err = error;
+      else {
+        calendars.push({
+          calendar: entry.calendar
+        });
+        busy = busy.concat(entry.result.busy);
       }
+    });
 
-      if(err) return sendError(res, err);
+    // sort and merge the busy intervals
+    busy = intervals.merge(busy);
+    var free = intervals.invert(busy, query.timeMin, query.timeMax);
 
-      return res.json(data);
+    return res.json({
+      calendars: calendars,
+      errors: errors,
+      free: free,
+      busy: busy
     });
   });
 });
@@ -368,9 +371,9 @@ app.get('/contacts/:email?', function(req, res){
   var query = req.query.query || '';
 
   // only user itself has access here
-  // TODO: this is a hacky solution
+  // TODO: this is a hacky solution, authorization module with a certain scope for this
   if (email != req.session.email) {
-    return sendError(res, 'Unauthorized');
+    return sendError(res, new Error('Unauthorized'));
   }
 
   authorize(req.session.email, email, function (err, accessToken, user) {
@@ -406,17 +409,7 @@ app.get('/contacts/:email?', function(req, res){
  * @param {number} [status=500]
  */
 function sendError(res, err, status) {
-  var body;
-
-  if (err instanceof Error) {
-    body = err.toString();
-  }
-  else if (typeof err === 'string') {
-    body = err;
-  }
-  else {
-    body = JSON.stringify(err);
-  }
+  var body = stringifyError(err);
 
   if (!status) {
     var _body = body.toLowerCase();
@@ -428,6 +421,28 @@ function sendError(res, err, status) {
   return res.status(status).send(body);
 }
 
+/**
+ * Stringify an error
+ * @param {Error | string | Object} err
+ * @returns {string} message
+ */
+function stringifyError(err) {
+  if (err instanceof Error) {
+    return err.toString();
+  }
+  else if (typeof err === 'string') {
+    return err;
+  }
+  else {
+    return JSON.stringify(err);
+  }
+}
+
+/**
+ * Get a user by email from the database
+ * @param {String} email
+ * @param {function} callback    Called as callback(err, user)
+ */
 function getUser(email, callback) {
   db.users.findOne({
     query: {email: email}
@@ -471,6 +486,11 @@ function getUser(email, callback) {
   });
 }
 
+/**
+ * Save a changed user object to the database
+ * @param {Object} user
+ * @param {function} callback       Called as callback(err, updatedUser)
+ */
 function updateUser(user, callback) {
   user.updated = new Date().toISOString();
 
@@ -488,6 +508,43 @@ function updateUser(user, callback) {
 }
 
 /**
+ * Get the free busy profile of a user
+ * @param {Object} user
+ * @param {{timeMin: string, timeMax: string}} query
+ * @param {function} callback     Called as callback(err, intervals)
+ */
+function getFreeBusy(user, query, callback) {
+  var calendars;
+  if (user && user.calendars) {
+    calendars = user.calendars.map(function (calendarId) {
+      return {id: calendarId};
+    })
+  }
+  else {
+    // default: just use the users own calendar
+    calendars = [{id: calendarId}];
+  }
+
+  var _query = lodash.extend({}, query, {items: calendars});
+  gcal(user.auth.accessToken).freebusy.query(_query, function(err, data) {
+    try {
+      // merge the free busy intervals
+      if (data && data.calendars) {
+        var busy = Object.keys(data.calendars).reduce(function (busy, key) {
+          return busy.concat(data.calendars[key].busy);
+        }, []);
+        data.busy = intervals.merge(busy);
+        data.free = intervals.invert(data.busy, query.timeMin, query.timeMax);
+      }
+      callback(null, data);
+    }
+    catch (err) {
+      callback(err, null);
+    }
+  });
+}
+
+/**
  * Authorize access to a users calendar
  * @param {string} requester    The one wanting access
  * @param {string} email        The one to which the requester wants access
@@ -500,5 +557,16 @@ function authorize (requester, email, callback) {
     if (err) return callback(err, null, null);
 
     authorization.authorize(requester, user, callback);
+  });
+}
+
+/**
+ * Split a string
+ * @param {string} text
+ * @param {string} [delimiter=',']
+ */
+function splitIt(text, delimiter) {
+  return text.split(delimiter || ',').map(function (calendar) {
+    return calendar.trim();
   });
 }

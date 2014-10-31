@@ -26,6 +26,7 @@ var EventScheduler = React.createClass({
       location: '',
       duration: '1 hour',
       description: '',
+      freeBusy: null,
       timeslots: null,
       timeslot: null,
       selected: null
@@ -146,21 +147,36 @@ var EventScheduler = React.createClass({
       )
     }
     else if (this.state.timeslots != null) {
+      var error = null;
+
+      var freeBusy = this.state.freeBusy;
+      if (freeBusy) {
+        if (freeBusy.errors.length > 0) {
+          var missing = freeBusy.errors.map(function (entry) {
+            return entry.calendar;
+          });
+          var included = freeBusy.calendars.map(function (entry) {
+            return entry.calendar;
+          });
+          error = <p className="error">Error: could not retrieve the availablility of all attendees. The following dates are based on the availability of <b>{included.join(', ')}</b>. Availability of <b>{missing.join(', ')}</b> is missing.</p>
+        }
+      }
+
+      var timeslots = (this.state.timeslots.length > 0) ?
+          <TimeslotList
+              ref="timeslots"
+              timeslots={this.state.timeslots}
+              value={this.state.selected} /> :
+          <p className="error">Sorry, there is no suitable date found to plan this event.</p>;
+
       return (
           <div className="scheduler">
             <p>
             Select any of the available dates for <b>{this.state.summary} (
             {juration.stringify(juration.parse(this.state.duration))})</b>:
             </p>
-              <p style={{color:'red'}}>WARNING: this list does not yet reckon the free/busy profiles of others than the logged in user.</p>
-            {
-                (this.state.timeslots.length > 0) ?
-                    <TimeslotList
-                    ref="timeslots"
-                    timeslots={this.state.timeslots}
-                    value={this.state.selected} /> :
-                    <p className="error">Sorry, there is no suitable date found to plan this event.</p>
-                }
+            {error}
+            {timeslots}
             <p>
               <button onClick={this.back} className="btn btn-normal">Back</button
               > <button onClick={this.createEvent} className="btn btn-primary">Create event</button>
@@ -339,7 +355,8 @@ var EventScheduler = React.createClass({
     });
 
     // calculate available time slots
-    return ajax.get('/freeBusy/')
+    var attendees = this.state.attendees.join(',');
+    return ajax.get('/freeBusy/?calendars=' + encodeURIComponent(attendees))
         .then(function (freeBusy) {
           console.log('freeBusy', freeBusy);
           var free = freeBusy.free || [];
@@ -349,7 +366,8 @@ var EventScheduler = React.createClass({
           console.log('timeslots', timeslots);
 
           this.setState({
-            timeslots: timeslots
+            timeslots: timeslots,
+            freeBusy: freeBusy
           });
         }.bind(this))
         .catch(function (err) {
@@ -376,8 +394,12 @@ var EventScheduler = React.createClass({
     var calendarId = this.props.user.email;
     var event = {
       attendees: this.state.attendees.map(function (email) {
-        return {email: email};
-      }),
+        var contact = this.getContact(email);
+        return {
+          email: contact.email,
+          displayName: contact.name
+        };
+      }.bind(this)),
       summary: this.state.summary,
       location: this.state.location,
       description: this.state.description,

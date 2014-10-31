@@ -2,7 +2,7 @@ var Calendar = React.createClass({
   render: function() {
     var calendar = this.props.calendar;
     var style = {
-      'background-color': calendar.backgroundColor,
+      'backgroundColor': calendar.backgroundColor,
       color: calendar.foregroundColor
     };
     var name = this.props.name || 'calendar[]';
