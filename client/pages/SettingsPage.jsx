@@ -22,7 +22,7 @@ var SettingsPage = React.createClass({
 
   render: function () {
     var selection = this.state.user && this.state.user.calendars || [];
-console.log('settings', this.state)
+
     return <div>
       <h1>Settings</h1>
       <h2>Sharing</h2>

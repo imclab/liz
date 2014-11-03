@@ -20,6 +20,7 @@ var SRC_JS = [
   'node_modules/react/dist/react.min.js',
 
   'client/assets/react-radiogroup/react-radiogroup.jsx',
+  'node_modules/react-checkbox-group/react-checkbox-group.jsx',
   'node_modules/selectize/dist/js/standalone/selectize.min.js',
   'client/assets/selectize/Selectize.jsx',
 
