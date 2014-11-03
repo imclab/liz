@@ -1,35 +1,11 @@
-//var Menu = React.createClass({
-//  render: function() {
-//    var user = this.state && this.state.user;
-//    if (!user) {
-//      return (<div>loading...</div>)
-//    }
-//    else if (user.loggedIn) {
-//      return (<div><img src={user.picture} className="user-icon"></img> {user.name} ({user.email}) <a href="/user/logout">logout</a></div>);
-//    }
-//    else {
-//      return (<div><a href="/user/login">login</a></div>);
-//    }
-//  }
-//});
-
 var Menu = React.createClass({
-  getInitialState: function () {
-    return {
-      user: this.props.user || null,
-      page: this.props.page || 'home'
-    }
-  },
-
   render: function() {
-    var isCalendar = this.state.page == 'calendar' ? 'active' : null;
-    var isSettings = this.state.page == 'settings' ? 'active' : null;
+    var isCalendar = this.props.page == 'calendar' ? 'active' : null;
+    var isSettings = this.props.page == 'settings' ? 'active' : null;
     var isHome = (isCalendar == null && isSettings == null) ? 'active' : null;
     // <img src={user.picture} className="user-icon"></img>
 
     var _setPage = function (page) {
-      this.setState({page: page});
-
       if (typeof this.props.onPage === 'function') {
         this.props.onPage(page);
       }

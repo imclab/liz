@@ -114,13 +114,24 @@ var hash = {
   },
 
   /**
-   * Set an hash parameter
-   * @param {String} key
-   * @param {String} value
+   * Set an hash parameter or set multiple hash parameters at once
+   * @param {String | Object} key   A key or an object with multiple key/values
+   * @param {String} [value]
    */
   'set': function (key, value) {
     var query = this.getAll();
-    query[key] = value;
+
+    if (typeof key === 'string') {
+      query[key] = value;
+    }
+    else {
+      for (var k in key) {
+        if (key.hasOwnProperty(k)) {
+          query[k] = key[k];
+        }
+      }
+    }
+
     this.setAll(query);
   },
 

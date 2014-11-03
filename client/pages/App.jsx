@@ -2,6 +2,13 @@ var App = React.createClass({
   getInitialState: function () {
     this.loadUser();
 
+    // listen for changes in the url hash "page"
+    hash.onChange('page', function (page) {
+      if (page != this.state.page && this.isMounted()) {
+        this.setState({page: page});
+      }
+    }.bind(this));
+
     return {
       user: null,
       page: hash.get('page') || 'home'

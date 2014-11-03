@@ -17,7 +17,7 @@ var EventScheduler = React.createClass({
 
     // listen for changes in the hash value of step
     hash.onChange('step', function (step) {
-      if (step != this.state.step) {
+      if (step != this.state.step && this.isMounted()) {
         this.setState({step: step});
       }
     }.bind(this));
@@ -429,6 +429,17 @@ var EventScheduler = React.createClass({
   },
 
   componentDidMount: function() {
+    this.loadContents();
+  },
+
+  componentDidUpdate: function (prevProps, prevState) {
+    if (prevState.step !== this.state.step) {
+      this.storeState();
+      this.loadContents();
+    }
+  },
+
+  loadContents: function () {
     if (this.state.step == 'form') {
       // set focus to the summary input box
       this.selectSummary();
@@ -437,21 +448,20 @@ var EventScheduler = React.createClass({
     if (this.state.step == 'select') {
       // load available timeslots from the server
       this.calculateTimeslots();
-    }
-  },
 
-  componentDidUpdate: function (prevProps, prevState) {
-    if (prevState.step !== this.state.step) {
-      this.storeState();
-      this.componentDidMount();
+      // TODO: set focus to the first button in the list with TimeSlots
     }
   },
 
   // store the current state in the pages hash
   storeState: function () {
+    var keys = {};
+
     this.PERSISTENT_FIELDS.forEach(function (field) {
-      hash.set(field, this.state[field]);
+      keys[field] = this.state[field];
     }.bind(this));
+
+    hash.set(keys);
   },
 
   // calculate available time slots
