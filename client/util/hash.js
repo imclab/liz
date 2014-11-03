@@ -13,8 +13,8 @@ var hash = {
    * @return {Object} query    object containing key/values
    */
   getAll: function () {
-    var hash = window.location.hash.substring(1); // skip the # character
-    var params = hash.split('&');
+    var str = window.location.hash.substring(1); // skip the # character
+    var params = str.split('&');
     var query = {};
     for (var i = 0, iMax = params.length; i < iMax; i++) {
       var keyvalue = params[i].split('=');
@@ -83,23 +83,23 @@ var hash = {
    * @param {Object} query    object with strings
    */
   setAll: function (query) {
-    var hash = '';
+    var str = '';
 
     for (var key in query) {
       if (query.hasOwnProperty(key)) {
         var value = query[key];
         if (value != undefined) {
-          if (hash.length) {
-            hash += '&';
+          if (str.length) {
+            str += '&';
           }
-          hash += encodeURIComponent(key);
-          hash += '=';
-          hash += encodeURIComponent(query[key]);
+          str += encodeURIComponent(key);
+          str += '=';
+          str += encodeURIComponent(query[key]);
         }
       }
     }
 
-    window.location.hash = (hash.length ? ('#' + hash) : '');
+    window.location.hash = (str.length ? ('#' + str) : '');
   },
 
 

@@ -1,5 +1,5 @@
 var EventScheduler = React.createClass({
-  STEPS: ['input', 'select', 'confirm', 'create'],
+  STEPS: ['form', 'select', 'confirm', 'create'],
   DURATIONS: [
     {value: '30 min'},
     {value: '1 hour'},
@@ -8,14 +8,29 @@ var EventScheduler = React.createClass({
     {value: '4 hours'},
     {value: '8 hours'}
   ],
+  PERSISTENT_FIELDS: ['step', 'summary', 'attendees', 'duration', 'location', 'description'],
+  DEFAULT_SUMMARY: 'New Event',
+  DEFAULT_DURATION: '2 hours',
 
   getInitialState: function () {
     var user = this.props.user;
 
+    // listen for changes in the hash value of step
+    hash.onChange('step', function (step) {
+      if (step != this.state.step) {
+        this.setState({step: step});
+      }
+    }.bind(this));
+
     return {
-      step: this.STEPS[0],
-      summary: 'new event',
-      attendees:  user && user.email && [user.email],
+      step: hash.get('step') || this.STEPS[0],
+      summary: hash.get('summary') || this.DEFAULT_SUMMARY,
+      attendees: hash.get('attendees') ?
+          hash.get('attendees').split(',') :
+          user.email && [user.email],
+      duration: hash.get('duration') || this.DEFAULT_DURATION,
+      location: hash.get('location') || '',
+      description: hash.get('description') || '',
       initialContacts: [
         {
           name: user.name,
@@ -23,9 +38,6 @@ var EventScheduler = React.createClass({
           text: user.name + ' <' + user.email + '>'
         }
       ],
-      location: '',
-      duration: '1 hour',
-      description: '',
       freeBusy: null,
       timeslots: null,
       timeslot: null,
@@ -44,20 +56,15 @@ var EventScheduler = React.createClass({
       case 'create':
         return this.renderCreate();
 
-      default: // step
-        return this.renderInput();
+      default: // 'form'
+        return this.renderForm();
     }
   },
 
-  componentDidMount: function() {
-    // Set initial focus to the title input
-    this.refs.summary.getDOMNode().select();
-  },
-
-  renderInput: function () {
+  renderForm: function () {
     return (
         <div className="scheduler">
-          <form onSubmit={this.calculateTimeslots} >
+          <form onSubmit={this.handleSubmit} >
             <table>
               <colgroup>
                 <col width="100px" />
@@ -69,7 +76,7 @@ var EventScheduler = React.createClass({
                     name="summary"
                     ref="summary"
                     value={this.state.summary}
-                    onChange={this.handleChange}
+                    onChange={this.handleTextChange}
                 /></td>
               </tr>
               <tr>
@@ -115,7 +122,7 @@ var EventScheduler = React.createClass({
                     name="location"
                     ref="location"
                     value={this.state.location}
-                    onChange={this.handleChange}
+                    onChange={this.handleTextChange}
                 /></td>
               </tr>
               <tr>
@@ -125,7 +132,7 @@ var EventScheduler = React.createClass({
                     name="description"
                     ref="description"
                     value={this.state.description}
-                    onChange={this.handleChange}
+                    onChange={this.handleTextChange}
                 ></textarea>
                 </td>
               </tr>
@@ -222,7 +229,7 @@ var EventScheduler = React.createClass({
           <div className="scheduler">
             <p className="error">{this.state.error.toString()}</p>
             <p>
-              <button onClick={this.done} className="btn btn-normal">Back</button>
+              <button onClick={this.back} className="btn btn-normal">Back</button>
             </p>
           </div>
       )
@@ -286,27 +293,35 @@ var EventScheduler = React.createClass({
   },
 
   done: function () {
+    var user = this.props.user;
+
+    // go to the first step (form), and reset the inputs
     this.setState({
-      step: this.STEPS[0]
+      step: this.STEPS[0],
+      summary: this.DEFAULT_SUMMARY,
+      attendees: user.email && [user.email],
+      duration: this.DEFAULT_DURATION,
+      location: '',
+      description: ''
     });
+  },
+
+  handleSubmit: function (event) {
+    // prevent real submission of the HTML form
+    event.preventDefault();
+
+    this.setState({step: 'select'})
   },
 
   handleDurationChange: function (value) {
-    // TODO: store the state in the pages url hash too
-    this.setState({
-      duration: value
-    })
+    this.setState({duration: value})
   },
 
   handleAttendeesChange: function (value) {
-    // TODO: store the state in the pages url hash too
-    this.setState({
-      attendees: value
-    });
+    this.setState({attendees: value});
   },
 
-  handleChange: function () {
-    // TODO: store the state in the pages url hash too
+  handleTextChange: function () {
     this.setState({
       summary: this.refs.summary.getDOMNode().value,
       location: this.refs.location.getDOMNode().value,
@@ -315,12 +330,11 @@ var EventScheduler = React.createClass({
   },
 
   handleTimeslotChange: function (selected) {
-    var timeslot = this.state.timeslots[selected];
-
     this.setState({
       step: 'confirm',
-      timeslot: timeslot
+      timeslot: this.state.timeslots[selected]
     });
+    // TODO: selected timeslot must be persisted!
   },
 
   getContact: function (email) {
@@ -368,44 +382,12 @@ var EventScheduler = React.createClass({
           me.contacts = contacts;
 
           callback(contacts);
-        })
+        }.bind(this))
         .catch(function (err) {
           callback([]);
           console.log(err);
           displayError(err);
-        })
-  },
-
-  calculateTimeslots: function (event) {
-    event.preventDefault(); // prevent form from submitting
-
-    this.setState({
-      step: 'select',
-      timeslots: null,
-      selected: null,
-      error: null
-    });
-
-    // calculate available time slots
-    var attendees = this.state.attendees.join(',');
-    return ajax.get('/freeBusy/?calendars=' + encodeURIComponent(attendees))
-        .then(function (freeBusy) {
-          console.log('freeBusy', freeBusy);
-          var free = freeBusy.free || [];
-          var duration = juration.parse(this.state.duration) * 1000; // from seconds to ms
-          var timeslots = intervals.generateTimeslots(free, duration);
-
-          console.log('timeslots', timeslots);
-
-          this.setState({
-            timeslots: timeslots,
-            freeBusy: freeBusy
-          });
         }.bind(this))
-        .catch(function (err) {
-          this.setState({error: err});
-          console.log(err);
-        }.bind(this));
   },
 
   // the moment supreme: create the event
@@ -444,5 +426,66 @@ var EventScheduler = React.createClass({
           console.log(err);
           this.setState({error: err});
         }.bind(this));
+  },
+
+  componentDidMount: function() {
+    if (this.state.step == 'form') {
+      // set focus to the summary input box
+      this.selectSummary();
+    }
+
+    if (this.state.step == 'select') {
+      // load available timeslots from the server
+      this.calculateTimeslots();
+    }
+  },
+
+  componentDidUpdate: function (prevProps, prevState) {
+    if (prevState.step !== this.state.step) {
+      this.storeState();
+      this.componentDidMount();
+    }
+  },
+
+  // store the current state in the pages hash
+  storeState: function () {
+    this.PERSISTENT_FIELDS.forEach(function (field) {
+      hash.set(field, this.state[field]);
+    }.bind(this));
+  },
+
+  // calculate available time slots
+  calculateTimeslots: function () {
+    this.setState({
+      timeslots: null,
+      selected: null,
+      error: null
+    });
+
+    var attendees = this.state.attendees.join(',');
+    return ajax.get('/freeBusy/?calendars=' + encodeURIComponent(attendees))
+        .then(function (freeBusy) {
+          console.log('freeBusy', freeBusy);
+          var free = freeBusy.free || [];
+          var duration = juration.parse(this.state.duration) * 1000; // from seconds to ms
+          var timeslots = intervals.generateTimeslots(free, duration);
+
+          console.log('timeslots', timeslots);
+
+          this.setState({
+            timeslots: timeslots,
+            freeBusy: freeBusy,
+            error: null
+          });
+        }.bind(this))
+        .catch(function (err) {
+          this.setState({error: err});
+          console.log(err);
+        }.bind(this));
+  },
+
+  // Set focus to the title input
+  selectSummary: function () {
+    this.refs.summary && this.refs.summary.getDOMNode().select();
   }
 });
