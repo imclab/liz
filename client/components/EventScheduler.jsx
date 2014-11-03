@@ -1,5 +1,5 @@
 var EventScheduler = React.createClass({
-  STEPS: ['input', 'select', 'create'],
+  STEPS: ['input', 'select', 'confirm', 'create'],
   DURATIONS: [
     {value: '30 min'},
     {value: '1 hour'},
@@ -37,6 +37,9 @@ var EventScheduler = React.createClass({
     switch(this.state.step) {
       case 'select':
         return this.renderSelect();
+
+      case 'confirm':
+        return this.renderConfirm();
 
       case 'create':
         return this.renderCreate();
@@ -166,7 +169,9 @@ var EventScheduler = React.createClass({
           <TimeslotList
               ref="timeslots"
               timeslots={this.state.timeslots}
-              value={this.state.selected} /> :
+              value={this.state.selected}
+              onChange={this.handleTimeslotChange}
+          /> :
           <p className="error">Sorry, there is no suitable date found to plan this event.</p>;
 
       return (
@@ -178,8 +183,7 @@ var EventScheduler = React.createClass({
             {error}
             {timeslots}
             <p>
-              <button onClick={this.back} className="btn btn-normal">Back</button
-              > <button onClick={this.createEvent} className="btn btn-primary">Create event</button>
+              <button onClick={this.back} className="btn btn-normal">Back</button>
             </p>
           </div>
           );
@@ -197,8 +201,23 @@ var EventScheduler = React.createClass({
     }
   },
 
+  renderConfirm: function () {
+    return (
+        <div className="scheduler">
+          <p>
+          Summary:
+          </p>
+          {this.renderEvent()}
+          <p>
+            <button onClick={this.back} className="btn btn-normal">Back</button
+            > <button onClick={this.create} className="btn btn-primary">Create the event</button>
+          </p>
+        </div>
+        );
+  },
+
   renderCreate: function () {
-    if (this.state.error) {
+    if (this.state.error) { // failed to create event
       return (
           <div className="scheduler">
             <p className="error">{this.state.error.toString()}</p>
@@ -208,29 +227,13 @@ var EventScheduler = React.createClass({
           </div>
       )
     }
-    else if (this.state.created == true) {
+    else if (this.state.created == true) { // created
       return (
           <div className="scheduler">
             <p>
-            Event created
+            The event is created.
             </p>
-            <table className="dates">
-              <tr>
-                <th>Title</th><td>{this.state.summary}</td>
-              </tr>
-              <tr>
-                <th>Attendees</th><td>{this.renderAttendees()}</td>
-              </tr>
-              <tr>
-                <th>Time</th><td>{formatHumanDate(this.state.timeslot.start)} {formatTime(this.state.timeslot.start)} &ndash; {formatTime(this.state.timeslot.end)}</td>
-              </tr>
-              <tr>
-                <th>Location</th><td>{this.state.location}</td>
-              </tr>
-              <tr>
-                <th>Description</th><td>{this.state.description}</td>
-              </tr>
-            </table>
+            {this.renderEvent()}
             <p>
               <button onClick={this.done} className="btn btn-primary">Done</button>
             </p>
@@ -244,6 +247,26 @@ var EventScheduler = React.createClass({
           </div>
           )
     }
+  },
+
+  renderEvent: function () {
+    return <table className="dates">
+      <tr>
+        <th>Title</th><td>{this.state.summary}</td>
+      </tr>
+      <tr>
+        <th>Attendees</th><td>{this.renderAttendees()}</td>
+      </tr>
+      <tr>
+        <th>Time</th><td>{formatHumanDate(this.state.timeslot.start)} {formatTime(this.state.timeslot.start)} &ndash; {formatTime(this.state.timeslot.end)}</td>
+      </tr>
+      <tr>
+        <th>Location</th><td>{this.state.location}</td>
+      </tr>
+      <tr>
+        <th>Description</th><td>{this.state.description}</td>
+      </tr>
+    </table>;
   },
 
   renderAttendees: function () {
@@ -289,6 +312,15 @@ var EventScheduler = React.createClass({
       location: this.refs.location.getDOMNode().value,
       description: this.refs.description.getDOMNode().value
     })
+  },
+
+  handleTimeslotChange: function (selected) {
+    var timeslot = this.state.timeslots[selected];
+
+    this.setState({
+      step: 'confirm',
+      timeslot: timeslot
+    });
   },
 
   getContact: function (email) {
@@ -376,17 +408,10 @@ var EventScheduler = React.createClass({
         }.bind(this));
   },
 
-  createEvent: function () {
-    var selected = this.refs.timeslots.getValue();
-    var timeslot = this.state.timeslots[selected];
-    if (!timeslot) {
-      alert('Select one of the available dates first');
-      return;
-    }
-
+  // the moment supreme: create the event
+  create: function () {
     this.setState({
       step: 'create',
-      timeslot: timeslot,
       created: false,
       error: null
     });
@@ -403,8 +428,8 @@ var EventScheduler = React.createClass({
       summary: this.state.summary,
       location: this.state.location,
       description: this.state.description,
-      start: {dateTime: timeslot.start},
-      end: {dateTime: timeslot.end}
+      start: {dateTime: this.state.timeslot.start},
+      end: {dateTime: this.state.timeslot.end}
     };
     console.log('event', event);
 
