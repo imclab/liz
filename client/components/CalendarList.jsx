@@ -11,7 +11,6 @@ var CalendarList = React.createClass({
       return (<Calendar calendar={calendar} key={calendar.id}/>)
     });
 
-    // TODO: show a loading message while loading
     return (
         <CheckboxGroup
         name="calendars"

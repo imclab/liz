@@ -60,7 +60,6 @@ var App = React.createClass({
     ajax.put('/user/', user)
         .then(function (user) {
           console.log('user', user);
-          // TODO: apply new user via setState? Propagate back to the main app?
           this.setState({user: user});
         }.bind(this))
         .catch(function (err) {

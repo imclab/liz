@@ -27,7 +27,7 @@ var TimeslotList = React.createClass({
       if (date != prevDate) className += 'first ';
       if (date != nextDate) className += 'last ';
 
-      var selected = (index == me.state.value); // TODO: use this.state.value instead, didn't yet work for some reason
+      var selected = (index == this.state.value);
 
       var onClick = function () {
         me.setValue(index);

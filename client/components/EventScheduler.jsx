@@ -23,16 +23,19 @@ var EventScheduler = React.createClass({
     }.bind(this));
 
     return {
+      // TODO: receive the step from the parent component via props?
       step:         hash.get('step') || this.STEPS[0],
-      summary:      hash.get('summary') || this.DEFAULT_SUMMARY,
-      attendees:    hash.get('attendees') ?
-          hash.get('attendees').split(',') :
-          user.email && [user.email],
-      duration:     hash.get('duration') || this.DEFAULT_DURATION,
-      location:     hash.get('location') || '',
-      description:  hash.get('description') || '',
-      start:        hash.get('start') || null,
-      end:          hash.get('end') || null,
+
+      // TODO: use these values directly from localStorage when rendering, no need to have a copy in this.state?
+      summary:      localStorage['summary'] || this.DEFAULT_SUMMARY,
+      attendees:    localStorage['attendees'] ?
+          localStorage['attendees'].split(',') :
+      user.email && [user.email],
+      duration:     localStorage['duration'] || this.DEFAULT_DURATION,
+      location:     localStorage['location'] || '',
+      description:  localStorage['description'] || '',
+      start:        localStorage['start'] || null,
+      end:          localStorage['end'] || null,
       initialContacts: [
         {
           name: user.name,
@@ -73,6 +76,8 @@ var EventScheduler = React.createClass({
   },
 
   renderForm: function () {
+    console.log('this.state.attendees', this.state.attendees)
+
     return (
         <div className="scheduler">
           <form onSubmit={this.handleSubmit} >
@@ -153,7 +158,7 @@ var EventScheduler = React.createClass({
             </p>
           </form>
         </div>
-        );
+    );
   },
 
   renderSelect: function () {
@@ -213,7 +218,7 @@ var EventScheduler = React.createClass({
               <button onClick={this.back} className="btn btn-normal">Back</button>
             </p>
           </div>
-          );
+      );
     }
     else { // loading
       return (
@@ -224,7 +229,7 @@ var EventScheduler = React.createClass({
               <button onClick={this.back} className="btn btn-normal">Back</button>
             </p>
           </div>
-          )
+      )
     }
   },
 
@@ -240,7 +245,7 @@ var EventScheduler = React.createClass({
             > <button onClick={this.create} className="btn btn-primary">Create the event</button>
           </p>
         </div>
-        );
+    );
   },
 
   renderCreate: function () {
@@ -265,14 +270,14 @@ var EventScheduler = React.createClass({
               <button onClick={this.done} className="btn btn-primary">Done</button>
             </p>
           </div>
-          );
+      );
     }
     else { // creating...
       return (
           <div className="scheduler">
             <p className="loading">Creating event <b>{this.state.summary}</b>... <img src="img/ajax-loader.gif" /></p>
           </div>
-          )
+      )
     }
   },
 
@@ -330,11 +335,11 @@ var EventScheduler = React.createClass({
     // prevent real submission of the HTML form
     event.preventDefault();
 
-    this.setState({step: 'select'})
+    this.setState({step: 'select'});
   },
 
   handleDurationChange: function (value) {
-    this.setState({duration: value})
+    this.setState({duration: value});
   },
 
   handleAttendeesChange: function (value) {
@@ -346,7 +351,7 @@ var EventScheduler = React.createClass({
       summary: this.refs.summary.getDOMNode().value,
       location: this.refs.location.getDOMNode().value,
       description: this.refs.description.getDOMNode().value
-    })
+    });
   },
 
   handleTimeslotChange: function (selected) {
@@ -455,7 +460,7 @@ var EventScheduler = React.createClass({
 
   componentDidUpdate: function (prevProps, prevState) {
     if (prevState.step !== this.state.step) {
-      this.storeState();
+      hash.set({step: this.state.step});
       this.loadContents();
     }
   },
@@ -469,20 +474,15 @@ var EventScheduler = React.createClass({
     if (this.state.step == 'select') {
       // load available timeslots from the server
       this.calculateTimeslots();
-
-      // TODO: set focus to the first button in the list with TimeSlots
     }
   },
 
-  // store the current state in the pages hash
+  // store the current state in localStorage
   storeState: function () {
-    var keys = {};
-
     this.PERSISTENT_FIELDS.forEach(function (field) {
-      keys[field] = this.state[field];
+      // Note: the array attendees is implicitly stringified entries separated by comma's
+      localStorage[field] = this.state[field];
     }.bind(this));
-
-    hash.set(keys);
   },
 
   // calculate available time slots
