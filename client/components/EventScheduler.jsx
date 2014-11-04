@@ -14,6 +14,9 @@ var EventScheduler = React.createClass({
 
   getInitialState: function () {
     var user = this.props.user;
+    var attendees = localStorage['attendees'] ?
+        localStorage['attendees'].split(',') :
+        (user.email && [user.email] || []);
 
     // listen for changes in the hash value of step
     hash.onChange('step', function (step) {
@@ -23,26 +26,17 @@ var EventScheduler = React.createClass({
     }.bind(this));
 
     return {
-      // TODO: receive the step from the parent component via props?
       step:         hash.get('step') || this.STEPS[0],
 
-      // TODO: use these values directly from localStorage when rendering, no need to have a copy in this.state?
       summary:      localStorage['summary'] || this.DEFAULT_SUMMARY,
-      attendees:    localStorage['attendees'] ?
-          localStorage['attendees'].split(',') :
-      user.email && [user.email],
+      attendees:    attendees,
       duration:     localStorage['duration'] || this.DEFAULT_DURATION,
       location:     localStorage['location'] || '',
       description:  localStorage['description'] || '',
       start:        localStorage['start'] || null,
       end:          localStorage['end'] || null,
-      initialContacts: [
-        {
-          name: user.name,
-          email: user.email,
-          text: user.name + ' <' + user.email + '>'
-        }
-      ],
+
+      contacts: [this.getOwnContact()],
       freeBusy: null,
       timeslots: null
     };
@@ -76,7 +70,10 @@ var EventScheduler = React.createClass({
   },
 
   renderForm: function () {
-    console.log('this.state.attendees', this.state.attendees)
+    var durations = this.DURATIONS;
+    if (durations.indexOf(this.state.duration) == -1) {
+      durations.push({value: this.state.duration});
+    }
 
     return (
         <div className="scheduler">
@@ -101,11 +98,9 @@ var EventScheduler = React.createClass({
                     ref="attendees"
                     className="form-control"
                     value={this.state.attendees}
+                    options={this.state.contacts}
                     create={true}
                     multiple={true}
-                    preload={true}
-                    load={this.loadContacts}
-                    options={this.state.initialContacts}
                     placeholder="Enter one or multiple attendees..."
                     searchField={['name', 'email']}
                     sortField="text"
@@ -124,7 +119,7 @@ var EventScheduler = React.createClass({
                       className="form-control"
                       value={this.state.duration}
                       create={true}
-                      options={this.DURATIONS}
+                      options={durations}
                       placeholder="Select a duration..."
                       labelField="value"
                       handleChange={this.handleDurationChange}
@@ -324,7 +319,7 @@ var EventScheduler = React.createClass({
     this.setState({
       step: this.STEPS[0],
       summary: this.DEFAULT_SUMMARY,
-      attendees: user.email && [user.email],
+      attendees: user.email && [user.email] || [],
       duration: this.DEFAULT_DURATION,
       location: '',
       description: ''
@@ -376,14 +371,7 @@ var EventScheduler = React.createClass({
     return {email: email};
   },
 
-  loadContacts: function (query, callback) {
-    // TODO: replace loading the whole contact list with a filtered one with every change of input
-
-    var me = this;
-    if (this.contacts) {
-      return callback(this.contacts);
-    }
-
+  loadContacts: function () {
     ajax.get('/contacts')
         .then(function (rawContacts) {
           console.log('contacts', rawContacts);
@@ -398,16 +386,13 @@ var EventScheduler = React.createClass({
 
           // append the user itself if missing in the contacts
           var containsUser = rawContacts.some(function (contact) {
-            return contact.email == me.props.user.email;
-          });
+            return contact.email == this.props.user.email;
+          }.bind(this));
           if (!containsUser) {
-            contacts = contacts.concat(me.state.initialContacts);
+            contacts = contacts.push(this.getOwnContact());
           }
 
-          // cache the loaded contacts
-          me.contacts = contacts;
-
-          callback(contacts);
+          this.setState({contacts: contacts});
         }.bind(this))
         .catch(function (err) {
           callback([]);
@@ -463,17 +448,29 @@ var EventScheduler = React.createClass({
       hash.set({step: this.state.step});
       this.loadContents();
     }
+    this.storeState();
   },
 
   loadContents: function () {
     if (this.state.step == 'form') {
       // set focus to the summary input box
       this.selectSummary();
+      this.loadContacts();
     }
 
     if (this.state.step == 'select') {
       // load available timeslots from the server
       this.calculateTimeslots();
+    }
+  },
+
+  // get contact object of the user itself
+  getOwnContact: function () {
+    var user = this.props.user;
+    return {
+      name: user.name,
+      email: user.email,
+      text: user.name + ' <' + user.email + '>'
     }
   },
 

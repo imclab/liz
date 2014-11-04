@@ -44,20 +44,20 @@ var Selectize = React.createClass({
 
     this.selectize.on('change', this.handleChange);
   },
+
   destroy: function() {
     this.selectize.destroy();
   },
 
   shouldComponentUpdate: function(nextProps) {
     var self = this;
-    // FIXME: this gives issues when updating the value via props
-    //var shouldUpdate = Object.keys(nextProps).some(function(propName) {
-    //  // If it's handled, we'll deal with it on our own.
-    //  if (propName in handledProps) return false;
-    //
-    //  return nextProps[propName] !== self.props[propName];
-    //});
-    //if (shouldUpdate) return true;
+    var shouldUpdate = Object.keys(nextProps).some(function(propName) {
+      // If it's handled, we'll deal with it on our own.
+      if (propName in handledProps) return false;
+
+      return nextProps[propName] !== self.props[propName];
+    });
+    if (shouldUpdate) return true;
 
     this._updating = true;
 
@@ -114,9 +114,11 @@ var Selectize = React.createClass({
     // make sure that we're not currently updating from
     // within another state change (otherwise react
     // will throw an InvariantError).
-    if (!this._updating) {
-      this.props.handleChange(value);
-    }
+      setTimeout(function () {
+        if (!this._updating) {
+          this.props.handleChange(value);
+        }
+      }.bind(this), 0);
   },
   componentDidMount: function() {
     this.create();
