@@ -31,6 +31,7 @@ var SettingsPage = React.createClass({
         <option value="self">Just me</option>
         <option value="calendar">Everyone with access to my calendar</option>
         <option value="contacts">All my contacts</option>
+        <option value="everybody">Everybody</option>
       </select>
       <h2>Calendars</h2>
       <p>Select the calendars which need to be used for generating your free/busy profile:</p>
