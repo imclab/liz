@@ -27,12 +27,12 @@ var hash = {
     return query;
   },
 
-/**
- * Register a callback function which will be called when the hash of the web
- * page changes.
- * @param {String} key
- * @param {function} callback   Will be called with the new value as parameter
- */
+  /**
+   * Register a callback function which will be called when the hash of the web
+   * page changes.
+   * @param {String} key
+   * @param {function} callback   Will be called with the new value as parameter
+   */
   onChange: function (key, callback) {
     // TODO: make key optional
 

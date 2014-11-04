@@ -8,7 +8,7 @@ var EventScheduler = React.createClass({
     {value: '4 hours'},
     {value: '8 hours'}
   ],
-  PERSISTENT_FIELDS: ['step', 'summary', 'attendees', 'duration', 'location', 'description'],
+  PERSISTENT_FIELDS: ['step', 'summary', 'attendees', 'duration', 'location', 'description', 'start', 'end'],
   DEFAULT_SUMMARY: 'New Event',
   DEFAULT_DURATION: '2 hours',
 
@@ -23,14 +23,16 @@ var EventScheduler = React.createClass({
     }.bind(this));
 
     return {
-      step: hash.get('step') || this.STEPS[0],
-      summary: hash.get('summary') || this.DEFAULT_SUMMARY,
-      attendees: hash.get('attendees') ?
+      step:         hash.get('step') || this.STEPS[0],
+      summary:      hash.get('summary') || this.DEFAULT_SUMMARY,
+      attendees:    hash.get('attendees') ?
           hash.get('attendees').split(',') :
           user.email && [user.email],
-      duration: hash.get('duration') || this.DEFAULT_DURATION,
-      location: hash.get('location') || '',
-      description: hash.get('description') || '',
+      duration:     hash.get('duration') || this.DEFAULT_DURATION,
+      location:     hash.get('location') || '',
+      description:  hash.get('description') || '',
+      start:        hash.get('start') || null,
+      end:          hash.get('end') || null,
       initialContacts: [
         {
           name: user.name,
@@ -39,9 +41,7 @@ var EventScheduler = React.createClass({
         }
       ],
       freeBusy: null,
-      timeslots: null,
-      timeslot: null,
-      selected: null
+      timeslots: null
     };
   },
 
@@ -59,6 +59,17 @@ var EventScheduler = React.createClass({
       default: // 'form'
         return this.renderForm();
     }
+  },
+
+  renderBreadcrumb: function () {
+    // TODO: breadcrumb
+    return <div>
+      <ol className="breadcrumb breadcrumb-arrow">
+        <li><a href="#">Input</a></li>
+        <li><a href="#">Date selection</a></li>
+        <li className="active">Confirmation</li>
+      </ol>
+    </div>;
   },
 
   renderForm: function () {
@@ -159,6 +170,7 @@ var EventScheduler = React.createClass({
     else if (this.state.timeslots != null) {
       var error = null;
 
+      // render errors
       var freeBusy = this.state.freeBusy;
       if (freeBusy) {
         var missing = Object.keys(freeBusy.errors);
@@ -172,11 +184,19 @@ var EventScheduler = React.createClass({
         }
       }
 
+      // find the selected timeslot based on start and end in the state
+      var start = this.state.start;
+      var end = this.state.end;
+      var index = this.state.timeslots.findIndex(function (timeslot) {
+        return timeslot.start == start && timeslot.end == end;
+      });
+      var selected = (index != -1) ? index : null;
+
       var timeslots = (this.state.timeslots.length > 0) ?
           <TimeslotList
               ref="timeslots"
               timeslots={this.state.timeslots}
-              value={this.state.selected}
+              value={selected}
               onChange={this.handleTimeslotChange}
           /> :
           <p className="error">Sorry, there is no suitable date found to plan this event.</p>;
@@ -265,7 +285,7 @@ var EventScheduler = React.createClass({
         <th>Attendees</th><td>{this.renderAttendees()}</td>
       </tr>
       <tr>
-        <th>Time</th><td>{formatHumanDate(this.state.timeslot.start)} {formatTime(this.state.timeslot.start)} &ndash; {formatTime(this.state.timeslot.end)}</td>
+        <th>Time</th><td>{formatHumanDate(this.state.start)} {formatTime(this.state.start)} &ndash; {formatTime(this.state.end)}</td>
       </tr>
       <tr>
         <th>Location</th><td>{this.state.location}</td>
@@ -330,11 +350,12 @@ var EventScheduler = React.createClass({
   },
 
   handleTimeslotChange: function (selected) {
+    var timeslot = this.state.timeslots[selected];
     this.setState({
       step: 'confirm',
-      timeslot: this.state.timeslots[selected]
+      start: timeslot.start,
+      end: timeslot.end
     });
-    // TODO: selected timeslot must be persisted!
   },
 
   getContact: function (email) {
@@ -410,8 +431,8 @@ var EventScheduler = React.createClass({
       summary: this.state.summary,
       location: this.state.location,
       description: this.state.description,
-      start: {dateTime: this.state.timeslot.start},
-      end: {dateTime: this.state.timeslot.end}
+      start: {dateTime: this.state.start},
+      end: {dateTime: this.state.end}
     };
     console.log('event', event);
 
@@ -468,7 +489,6 @@ var EventScheduler = React.createClass({
   calculateTimeslots: function () {
     this.setState({
       timeslots: null,
-      selected: null,
       error: null
     });
 

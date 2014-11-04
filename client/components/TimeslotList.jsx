@@ -1,16 +1,18 @@
+/**
+ * Renders a list with timeslots
+ */
 var TimeslotList = React.createClass({
   MAX_TIMESLOTS: 10,
 
   getInitialState: function () {
     return {
-      timeslots: this.props.timeslots || [],
-      value: this.props.value || null
+      value: this.props.value || 0
     }
   },
 
   render: function() {
     var me = this;
-    var timeslots = this.state.timeslots;
+    var timeslots = this.props.timeslots || [];
 
     function getDate(timeslot) {
       return timeslot ? formatHumanDate(timeslot.start) : null;
@@ -41,7 +43,7 @@ var TimeslotList = React.createClass({
                 {date != prevDate ? date : ''}
         </th>
         <td className={className}>
-          <button className={'btn ' + (selected ? ' btn-primary' : ' btn-default')} onClick={onClick}>
+          <button ref={'value' + index} className={'btn ' + (selected ? ' btn-primary' : ' btn-default')} onClick={onClick}>
                     {formatTime(timeslot.start)} &ndash; {formatTime(timeslot.end)}
           </button>
         </td>
@@ -70,6 +72,20 @@ var TimeslotList = React.createClass({
     this.setState({
       value: value
     });
+  },
+
+  componentDidMount: function() {
+    this.focusSelected();
+  },
+
+  componentDidUpdate: function (prevProps, prevState) {
+    this.focusSelected()
+  },
+
+  focusSelected: function () {
+    var value = this.state.value;
+    var elem = this.refs['value' + value];
+    elem && elem.getDOMNode().focus();
   }
 });
 
