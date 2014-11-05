@@ -1,3 +1,18 @@
+/**
+ * Usage:
+ *
+ *   <EventScheduler user={Object} />
+ *
+ * Where:
+ *
+ * - `user` is an object with the following structure:
+ *
+ *       {
+ *         name: string,
+ *         email: string
+ *       }
+ *
+ */
 var EventScheduler = React.createClass({
   STEPS: ['form', 'select', 'confirm', 'create'],
   DURATIONS: [

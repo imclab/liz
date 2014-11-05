@@ -1,5 +1,26 @@
 /**
  * Renders a list with timeslots
+ *
+ * Usage:
+ *
+ *   <TimeslotList
+ *       timeslots={Array.<{start: string, end: string}>}
+ *       value={Number}
+ *       onChange={function}
+ *       />
+ *
+ * Where:
+ * - `timeslots` is an array with available timeslots. Every timeslot is an
+ *   object with properties `start` and `end`, both being ISO date strings.
+ * - `value` is a number with the index of the selected timeslot
+ * - `onChange` is a callback function, called with the index of the newly
+ *   selected timeslot as argument when the selection has changed.
+ *
+ * Methods:
+ *
+ * - `getValue()`         Returns the index of the currently selected timeslot
+ * - `setValue(value)`    Apply a new selection, value is the index of the
+ *                        timeslot to be selected.
  */
 var TimeslotList = React.createClass({
   MAX_TIMESLOTS: 10,

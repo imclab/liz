@@ -5,6 +5,27 @@
  *
  *     <EventList events={events} />
  *
+ * Where:
+ *
+ * - `events` is an Array with event objects. The events are Google Calendar
+ *   events with the following structure:
+ *
+ *       {
+ *         id: string,
+ *         summary: string,
+ *         start: {
+ *           dateTime: string
+ *         },
+ *         end: {
+ *           dateTime: string
+ *         },
+ *         htmlLink: string,
+ *         ...
+ *       }
+ *
+ *   The full structure is described in the Google Calendar API:
+ *   https://developers.google.com/google-apps/calendar/v3/reference/events
+ *
  */
 var EventList = React.createClass({
   render: function() {

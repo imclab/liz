@@ -1,3 +1,19 @@
+/**
+ * Usage:
+ *
+ * <Menu
+ *    user={{name: string, email: string, loggedIn: boolean}}
+ *    page={string}
+ *    onPage={function}
+ *    />
+ *
+ * Where:
+ * - `user` is a user object with name, email, and loggedIn properties
+ * - `page` is the name of the active page. Available values: 'home',
+ *   'calendar', 'settings'.
+ * - `onPage` is a callback function called when the user clicks a page in
+ *   the menu. The function is called with the clicked page as argument.
+ */
 var Menu = React.createClass({
   render: function() {
     var isCalendar = this.props.page == 'calendar' ? 'active' : null;

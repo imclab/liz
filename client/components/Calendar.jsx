@@ -1,3 +1,14 @@
+/**
+ * A calendar entry for a CalendarList
+ *
+ * Usage:
+ *
+ *   <Calendar calendar={{id: string, foregroundColor: string, backgroundColor: string}} />
+ *
+ * Where:
+ * - `calendar` an object with the calendar id as property, and additional
+ *   properties foregroundColor and backgroundColor.
+ */
 var Calendar = React.createClass({
   render: function() {
     var calendar = this.props.calendar;
