@@ -460,7 +460,7 @@ app.get('/contacts/:email?', function(req, res){
 app.get('/groups*', auth);
 
 // get all groups
-app.get('/groups/', function(req, res){
+app.get('/groups/list', function(req, res){
   var options = req.query;
   db.groups.list(options, function (err, groups) {
     if (err) return sendError(res, err);
@@ -469,7 +469,7 @@ app.get('/groups/', function(req, res){
 });
 
 // get all groups of given user
-app.get('/groups/user', function(req, res){
+app.get('/groups', function(req, res){
   var email = req.session.email;
 
   db.groups.get(email, function (err, groups) {
@@ -479,13 +479,24 @@ app.get('/groups/user', function(req, res){
 });
 
 // update all groups of given user
-app.put('/groups/user', function(req, res){
+app.put('/groups', function(req, res){
   var email = req.session.email;
   var groups = req.body;
 
   db.groups.replace(email, groups, function (err, groups) {
     if (err) return sendError(res, err);
     return res.json(groups);
+  });
+});
+
+// TODO: remove
+app.get('/groups/remove/:group', function(req, res){
+  var email = req.session.email;
+  var group = req.params.group;
+
+  db.groups.remove(email, group, function (err, response) {
+    if (err) return sendError(res, err);
+    return res.json(response);
   });
 });
 

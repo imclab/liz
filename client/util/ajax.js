@@ -13,7 +13,7 @@ var ajax = (function () {
               if (xhr.status == 0) {
                 reject(new Error('Connection failed'));
               }
-              else {
+              else if (xhr.status < 400) { // 100, 200 and 300 range
                 var contentType = xhr.getResponseHeader('content-type');
                 if (contentType && contentType.toLowerCase().indexOf('application/json') == 0) {
                   resolve(JSON.parse(xhr.responseText), xhr.status, xhr);
@@ -21,6 +21,9 @@ var ajax = (function () {
                 else {
                   resolve(xhr.responseText, xhr.status, xhr);
                 }
+              }
+              else {
+                reject(new Error(xhr.responseText));
               }
             }
           }
