@@ -5,16 +5,18 @@ var bodyParser  = require('body-parser');
 var session = require('express-session');
 var gcal = require('google-calendar');
 var passport = require('passport');
-var mongojs = require('mongojs');
 var MongoStore = require('connect-mongo')(session);
 var GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
-var lodash = require('lodash');
+var _ = require('lodash');
 var async = require('async');
 
+var config = require('./config');
 var gutils = require('./lib/google-utils');
 var authorization = require('./lib/authorization');
 var intervals = require('./shared/intervals');
-var config = require('./config');
+
+// create a connection to mongodb
+var db = require('./lib/db')(config.MONGO_URL + '/' + config.MONGO_DB);
 
 // create an express app
 var app = express();
@@ -32,9 +34,6 @@ app.use(session({
   saveUninitialized: true
 }));
 app.use(passport.initialize());
-
-// create a connection to mongodb
-var db = mongojs(config.MONGO_URL + '/' + config.MONGO_DB, ['users', 'sessions']);
 
 // serve static content
 app.use('/', express.static(__dirname + '/client'));
@@ -90,7 +89,7 @@ app.get('/auth/callback',
 
       // store the auth in the users profile, so it can be used by others
       // to access your freeBusy profile
-      updateUser({
+      db.users.update({
         email: email,
         auth: {
           accessToken: req.user.auth.accessToken,
@@ -105,6 +104,7 @@ app.get('/auth/callback',
           res.redirect(redirectTo);
         }
 
+        // TODO: move this code to db?
         // add user information like name and picture to the user object
         if (user.name == null) {
           // get user info from google
@@ -122,7 +122,7 @@ app.get('/auth/callback',
             }
 
             // store user in the database
-            updateUser(userData, function (err, user) {
+            db.users.update(userData, function (err, user) {
               if(err) return sendError(res, err);
               done();
             })
@@ -161,7 +161,7 @@ app.get('/user', function(req, res, next) {
   var loggedIn = req.session.email != null;
   if (loggedIn) {
     var email = req.session.email;
-    db.users.findOne({email: email}, function (err, user) {
+    db.users.get(email, function (err, user) {
       if(err) return sendError(res, err);
 
       if (user) {
@@ -194,7 +194,7 @@ app.put('/user', function(req, res, next) {
   if (email && (user.email == email || user.email == null)) { // only allow saving the users own profile
     user.email = email;
 
-    updateUser(user, function (err, user) {
+    db.users.update(user, function (err, user) {
       if(err) return sendError(res, err);
       return res.json(user);
     });
@@ -215,11 +215,11 @@ app.delete('/user', function(req, res, next) {
     });
   }
 
-  getUser(email, function (err, user) {
+  db.users.getAuthenticated(email, function (err, user) {
     if (err) return res.status(404).send('User not found');
 
     // remove the user from our database
-    db.users.remove({email: email}, function (err, result) {
+    db.users.remove(email, function (err, result) {
       var accessToken = user.auth && user.auth.accessToken;
       if (accessToken) {
         //revoke granted permissions at google
@@ -342,7 +342,7 @@ app.get('/freeBusy/:calendarId?', function(req, res) {
             };
           }
           else {
-            lodash.extend(calendars, newCalendars);
+            _.extend(calendars, newCalendars);
           }
 
           callback();
@@ -358,12 +358,12 @@ app.get('/freeBusy/:calendarId?', function(req, res) {
 
     // try to fetch the errored calendars via the calendar of the logged in user
     if (missing.length > 0) {
-      getUser(email, function (err, user) {
+      db.users.getAuthenticated(email, function (err, user) {
         if (user) {
           var items = missing.map(function (calendarId) {
             return {id: calendarId};
           });
-          var missingQuery = lodash.extend({items: items}, query);
+          var missingQuery = _.extend({items: items}, query);
 
           getFreeBusy(user, missingQuery, function (err, newCalendars) {
             if (newCalendars) {
@@ -456,6 +456,24 @@ app.get('/contacts/:email?', function(req, res){
   });
 });
 
+
+app.get('/groups*', auth);
+
+// get all groups
+app.get('/groups/', function(req, res){
+  // TODO
+});
+
+// get all groups of given user
+app.get('/groups/:user', function(req, res){
+  // TODO
+});
+
+// update all groups of given user
+app.put('/groups/:team', function(req, res){
+  // TODO
+});
+
 /**
  * Send an error
  * @param {Object} res
@@ -493,82 +511,13 @@ function stringifyError(err) {
 }
 
 /**
- * Get a user by email from the database
- * @param {String} email
- * @param {function} callback    Called as callback(err, user)
- */
-function getUser(email, callback) {
-  db.users.findOne({
-    query: {email: email}
-  }, function (err, user) {
-    if (err) return callback(err, null);
-
-    // check whether the accessToken is expired. If so, get a new one
-    if (user) {
-      if (user.auth && user.auth.expires &&
-          new Date(user.auth.expires) < (Date.now() + 5 * 60 * 1000)) {
-        // access token expires within 5 minutes, get a new one
-        console.log('refreshing accessToken of user ' + email + '...'); // TODO: cleanup
-
-        gutils.refreshAccessToken(user.auth.refreshToken, function (err, result) {
-          if (err) return callback(err, null);
-
-          if (result.access_token && result.expires_in) {
-            // store the new accessToken and refreshToken in the user's profile
-            updateUser({
-              email: user.email,
-              auth: {
-                accessToken: result.access_token,
-                refreshToken: user.auth.refreshToken,
-                expires: new Date(Date.now() + result.expires_in * 1000).toISOString()
-              }
-            }, callback);
-          }
-          else {
-            console.log('Failed to refresh access token', result); // TODO: cleanup
-            callback(new Error('Failed to refresh access token'), null);
-          }
-        });
-      }
-      else {
-        callback(null, user);
-      }
-    }
-    else {
-      callback(new Error('User not found'), null);
-    }
-  });
-}
-
-/**
- * Save a changed user object to the database
- * @param {Object} user
- * @param {function} callback       Called as callback(err, updatedUser)
- */
-function updateUser(user, callback) {
-  user.updated = new Date().toISOString();
-
-  db.users.findAndModify({
-    query: {email: user.email},
-    update: {
-      $set: user,
-      $inc: {seq: 1}
-    },
-    upsert: true,   // create a new document when not existing
-    new: true       // return the newly created or the updated document
-  }, function (err, updatedUser, lastErrorObject) {
-    callback(err, updatedUser);
-  });
-}
-
-/**
  * Get the free busy profile of a user
  * @param {Object} user
  * @param {{timeMin: string, timeMax: string} | {timeMin: string, timeMax: string, items: Array.<{id: string}>}} query
  * @param {function} callback     Called as callback(err, Object.<string, {busy:Array, errors:Array}>)
  */
 function getFreeBusy(user, query, callback) {
-  var _query = lodash.extend({}, query);
+  var _query = _.extend({}, query);
   if (!query.items) {
     if (user && user.calendars) {
       _query.items = user.calendars.map(function (calendarId) {
@@ -601,7 +550,7 @@ function getFreeBusy(user, query, callback) {
  *            called as `callback(err, accessToken, user)`
  */
 function authorize (requester, email, callback) {
-  getUser(email, function (err, user) {
+  db.users.getAuthenticated(email, function (err, user) {
     if (err) return callback(err, null, null);
 
     authorization.authorize(requester, user, callback);
