@@ -461,17 +461,32 @@ app.get('/groups*', auth);
 
 // get all groups
 app.get('/groups/', function(req, res){
-  // TODO
+  var options = req.query;
+  db.groups.list(options, function (err, groups) {
+    if (err) return sendError(res, err);
+    return res.json(groups);
+  });
 });
 
 // get all groups of given user
-app.get('/groups/:user', function(req, res){
-  // TODO
+app.get('/groups/user', function(req, res){
+  var email = req.session.email;
+
+  db.groups.get(email, function (err, groups) {
+    if (err) return sendError(res, err);
+    return res.json(groups);
+  });
 });
 
 // update all groups of given user
-app.put('/groups/:team', function(req, res){
-  // TODO
+app.put('/groups/user', function(req, res){
+  var email = req.session.email;
+  var groups = req.body;
+
+  db.groups.replace(email, groups, function (err, groups) {
+    if (err) return sendError(res, err);
+    return res.json(groups);
+  });
 });
 
 /**

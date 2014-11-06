@@ -8,6 +8,7 @@ var minifyCSS = require('gulp-minify-css');
 var gulpif = require('gulp-if');
 
 var SRC_JS = [
+  'node_modules/lodash/dist/lodash.min.js',
   'node_modules/jquery/dist/jquery.min.js',
   'node_modules/bootstrap/dist/js/bootstrap.min.js',
   //'node_modules/bootflat/bootflat/js/icheck.min.js',
