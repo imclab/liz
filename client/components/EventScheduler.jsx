@@ -197,12 +197,8 @@ var EventScheduler = React.createClass({
       if (freeBusy) {
         var missing = Object.keys(freeBusy.errors);
         if (missing.length > 0) {
-          var included = Object.keys(freeBusy.calendars).filter(function (calendarId) {
-            return !freeBusy.calendars[calendarId].errors;
-          });
-          error = <p className="error">Error: Could not retrieve the availablility of all attendees.
-            <br/><br/>
-          The following dates are based on the availability of <b>{included.join(', ') || 'none'}</b>. Availability of <b>{missing.join(', ')}</b> is missing.</p>
+          error = <p className="error">Error: Could not retrieve the availablility of all attendees
+            . The following dates are calculated without the availability of <b>{missing.join(', ')}</b>.</p>
         }
       }
 

@@ -323,6 +323,7 @@ app.get('/freeBusy/:calendarId?', function(req, res) {
 
   // retrieve the free/busy profiles of each of the selected calendars
   async.map(calendarIds, function (calendarId, callback) {
+    // TODO: check whether calendarId is an email or a group, use getGroupFreeBusy in the latter case
     getAuthFreeBusy(email, calendarId, query, callback);
   }, function (err, calendarsArray) {
     // merge the array with calendars objects
@@ -331,7 +332,7 @@ app.get('/freeBusy/:calendarId?', function(req, res) {
     }, {});
 
     // merge the busy intervals and return them
-    return res.json(gutils.mergeFreeBusy(allCalendars, query));
+    return res.json(gutils.mergeBusy(allCalendars, query));
   });
 });
 
@@ -467,6 +468,35 @@ function getAuthFreeBusy(email, calendarId, query, callback) {
     else {
       getFreeBusy(user, query, callback);
     }
+  });
+}
+
+/**
+ * Get the freeBusy profile of a Group. The freeBusy profiles of all
+ * group members will be retrieved and merged.
+ * @param {string} email                              User name of the logged in user
+ * @param {string} groupId                            Id of the group
+ * @param {{timeMin: string, timeMax: string}} query  Object with start and end time
+ * @param {function} callback                         Called as callback(err, calendars)
+ *                                                    `err` is always null
+ */
+function getGroupFreeBusy(email, groupId, query, callback) {
+  // get the members of this group
+  db.groups.group(groupId, function (err, group) {
+    if (err) return callback(err, null);
+
+    // get the freeBusy profiles of each of the group members
+    async.map(group.members, function (member, callback) {
+      getAuthFreeBusy(email, member, query, callback);
+    }, function (err, calendarsArray) {
+      // merge the array with calendars objects
+      var allCalendars = calendarsArray.reduce(function (all, calendars) {
+        return _.extend(all, calendars);
+      }, {});
+
+      // merge the free intervals and return them
+      return res.json(gutils.mergeFree(allCalendars, query));
+    });
   });
 }
 
