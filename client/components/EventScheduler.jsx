@@ -359,7 +359,7 @@ var EventScheduler = React.createClass({
 
   handleAttendeesChange: function (value) {
     // FIXME: attendees is not stored in this.state to prevent the select box from losing focus on change
-    this.setStore('attendees', value.join(','));
+    this.setStore('attendees', value ? value.join(',') : '');
   },
 
   handleTextChange: function () {
@@ -551,7 +551,6 @@ var EventScheduler = React.createClass({
   // load persisted value
   getStore: function (key) {
     var value = localStorage[key];
-    console.log('getStore', key, value, this.DEFAULT[key])
     return (value !== undefined) ? value : this.DEFAULT[key];
   },
 

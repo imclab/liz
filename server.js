@@ -309,10 +309,10 @@ app.delete('/calendar/:calendarId/:eventId/remove', function(req, res){
 
 app.get('/freeBusy*', auth);
 app.get('/freeBusy/:calendarId?', function(req, res) {
+  // TODO: this function is too large, split it up
   var email = req.session.email;
   var calendarIds = req.params.calendarId ? [req.params.calendarId] :
-      req.query.calendars ? splitIt(req.query.calendars) :
-          [email];
+      req.query.calendars ? splitIt(req.query.calendars) : [email];
 
   var now = new Date();
   var defaultTimeMin = new Date(now.getFullYear(), now.getMonth(), now.getDate(),
@@ -327,28 +327,9 @@ app.get('/freeBusy/:calendarId?', function(req, res) {
 
   // retrieve the free/busy profiles of each of the selected calendars
   async.forEach(calendarIds, function (calendarId, callback) {
-    authorize(email, calendarId, function (err, accessToken, user) {
-      if (err) {
-        calendars[calendarId] = {
-          errors: [stringifyError(err)]
-        };
-        callback();
-      }
-      else {
-        getFreeBusy(user, query, function (err, newCalendars) {
-          if (err) {
-            calendars[calendarId] = {
-              errors: [stringifyError(err)]
-            };
-          }
-          else {
-            _.extend(calendars, newCalendars);
-          }
-
-          callback();
-        });
-      }
-
+    getAuthFreeBusy(email, calendarId, query, function (newCalendars) {
+      _.extend(calendars, newCalendars);
+      callback();
     });
   }, function (err) {
     var missing = calendarIds.filter(function (calendarId) {
@@ -365,7 +346,7 @@ app.get('/freeBusy/:calendarId?', function(req, res) {
           });
           var missingQuery = _.extend({items: items}, query);
 
-          getFreeBusy(user, missingQuery, function (err, newCalendars) {
+          getFreeBusy(user, missingQuery, function (newCalendars) {
             if (newCalendars) {
               Object.keys(newCalendars).forEach(function (calendarId) {
                 var calendar = newCalendars[calendarId];
@@ -454,7 +435,7 @@ app.get('/groups/list', function(req, res){
   });
 });
 
-// get all groups of given user
+// get all groups of current user
 app.get('/groups', function(req, res){
   var email = req.session.email;
 
@@ -464,7 +445,7 @@ app.get('/groups', function(req, res){
   });
 });
 
-// update all groups of given user
+// replace all groups of current user
 app.put('/groups', function(req, res){
   var email = req.session.email;
   var groups = req.body;
@@ -472,17 +453,6 @@ app.put('/groups', function(req, res){
   db.groups.replace(email, groups, function (err, groups) {
     if (err) return sendError(res, err);
     return res.json(groups);
-  });
-});
-
-// TODO: remove
-app.get('/groups/remove/:group', function(req, res){
-  var email = req.session.email;
-  var group = req.params.group;
-
-  db.groups.remove(email, group, function (err, response) {
-    if (err) return sendError(res, err);
-    return res.json(response);
   });
 });
 
@@ -523,34 +493,54 @@ function stringifyError(err) {
 }
 
 /**
+ * Get the free busy profile of a user by it's email (will authorize)
+ * @param {string} email          The email of the logged in user
+ * @param {string} calendarId     A calendar id
+ * @param {{timeMin: string, timeMax: string} | {timeMin: string, timeMax: string, items: Array.<{id: string}>}} query
+ * @param {function} callback     Called as callback(Object.<string, {busy:Array, errors:Array}>)
+ */
+function getAuthFreeBusy(email, calendarId, query, callback) {
+  authorize(email, calendarId, function (err, accessToken, user) {
+    if (err) return callback(createCalendarError(calendarId, err));
+
+    getFreeBusy(user, query, function (calendars) {
+      // TODO: in case of error, try again via the calendar of the logged in user
+
+      callback(calendars);
+    });
+  });
+}
+
+/**
  * Get the free busy profile of a user
  * @param {Object} user
  * @param {{timeMin: string, timeMax: string} | {timeMin: string, timeMax: string, items: Array.<{id: string}>}} query
- * @param {function} callback     Called as callback(err, Object.<string, {busy:Array, errors:Array}>)
+ * @param {function} callback     Called as callback(Object.<string, {busy:Array, errors:Array}>)
  */
 function getFreeBusy(user, query, callback) {
   var _query = _.extend({}, query);
   if (!query.items) {
-    if (user && user.calendars) {
-      _query.items = user.calendars.map(function (calendarId) {
-        return {id: calendarId};
-      })
-    }
-    else {
-      // default: just use the users own calendar
-      _query.items = [{id: calendarId}];
-    }
+    _query.items = (user.calendars || []).map(function (calendarId) {
+      return {id: calendarId};
+    })
   }
 
   gcal(user.auth.accessToken).freebusy.query(_query, function(err, data) {
-    try {
-      var calendars = data && data.calendars || {};
-      callback(null, calendars);
-    }
-    catch (err) {
-      callback(err, null);
-    }
+    if (err) return callback(createCalendarError(user.email, err));
+
+    // TODO: merge this users (private) calendars here, do not expose them
+    var calendars = data && data.calendars || {};
+    callback(calendars);
   });
+}
+
+function createCalendarError(calendarId, err) {
+  var calendars = {};
+  calendars[calendarId] = {
+    busy: [],
+    errors: [stringifyError(err)]
+  };
+  return calendars;
 }
 
 /**
