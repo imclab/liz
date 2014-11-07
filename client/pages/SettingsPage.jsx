@@ -142,6 +142,7 @@ var SettingsPage = React.createClass({
       return callback(this.options);
     }
 
+    console.log('load all groups...');
     ajax.get('/groups/list')
         .then(function (groups) {
           console.log('all groups', groups);
@@ -157,7 +158,8 @@ var SettingsPage = React.createClass({
           callback(this.options);
         }.bind(this))
         .catch(function (err) {
-          callback([]);
+          this.options = [];
+          callback(this.options);
 
           console.log(err);
           displayError(err);
