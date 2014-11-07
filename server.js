@@ -13,7 +13,6 @@ var async = require('async');
 var config = require('./config');
 var gutils = require('./lib/google-utils');
 var authorization = require('./lib/authorization');
-var intervals = require('./shared/intervals');
 
 // create a connection to mongodb
 var db = require('./lib/db')(config.MONGO_URL + '/' + config.MONGO_DB);
@@ -309,7 +308,6 @@ app.delete('/calendar/:calendarId/:eventId/remove', function(req, res){
 
 app.get('/freeBusy*', auth);
 app.get('/freeBusy/:calendarId?', function(req, res) {
-  // TODO: this function is too large, split it up
   var email = req.session.email;
   var calendarIds = req.params.calendarId ? [req.params.calendarId] :
       req.query.calendars ? splitIt(req.query.calendars) : [email];
@@ -325,9 +323,7 @@ app.get('/freeBusy/:calendarId?', function(req, res) {
 
   // retrieve the free/busy profiles of each of the selected calendars
   async.map(calendarIds, function (calendarId, callback) {
-    getAuthFreeBusy(email, calendarId, query, function (err, calendars) {
-      callback(null, calendars);
-    });
+    getAuthFreeBusy(email, calendarId, query, callback);
   }, function (err, calendarsArray) {
     // merge the array with calendars objects
     var allCalendars = calendarsArray.reduce(function (all, calendars) {
@@ -335,7 +331,7 @@ app.get('/freeBusy/:calendarId?', function(req, res) {
     }, {});
 
     // merge the busy intervals and return them
-    return res.json(mergeFreeBusy(allCalendars, query));
+    return res.json(gutils.mergeFreeBusy(allCalendars, query));
   });
 });
 
@@ -496,44 +492,6 @@ function getFreeBusy(user, query, callback) {
     var calendars = data && data.calendars || {};
     callback(null, calendars);
   });
-}
-
-/**
- * Merge an object with freeBusy profiles of calendars
- * @param {Object.<string, {busy: Array.<{start: string, end: string}>, error: Array.<string>}>} calendars
- * @param {{timeMin: string, timeMax: string}} query
- * @returns {Object} Returns an object with merged free and busy profiles:
- *                   {
- *                     calendars: THE_ORIGINAL_CALENDARS,
- *                     errors: Array.<string>,
- *                     free: {start: string, end: string},
- *                     busy: {start: string, end: string}
- *                   }
- */
-function mergeFreeBusy(calendars, query) {
-  // merge the free busy intervals
-  var allBusy = Object.keys(calendars).reduce(function (busy, calendarId) {
-    var entry = calendars[calendarId];
-    return busy.concat(entry.busy || []);
-  }, []);
-  var busy = intervals.merge(allBusy);
-  var free = intervals.invert(busy, query.timeMin, query.timeMax);
-
-  // create an array with all errors listed
-  var errors = Object.keys(calendars).reduce(function (errors, calendarId) {
-    var entry = calendars[calendarId];
-    if (entry.errors && entry.errors.length > 0) {
-      errors[calendarId] = entry.errors;
-    }
-    return errors;
-  }, {});
-
-  return {
-    calendars: calendars,
-    errors: errors,
-    free: free,
-    busy: busy
-  };
 }
 
 /**
