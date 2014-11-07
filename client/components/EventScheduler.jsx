@@ -379,6 +379,10 @@ var EventScheduler = React.createClass({
       start: timeslot.start,
       end: timeslot.end
     });
+    this.setStore({
+      start: timeslot.start,
+      end: timeslot.end
+    });
   },
 
   getContact: function (email) {
