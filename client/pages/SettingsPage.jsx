@@ -80,6 +80,7 @@ var SettingsPage = React.createClass({
           options={options}
           value={this.state.groups}
           create={true}
+          createOnBlur={true}
           multiple={true}
           placeholder="Select one or multiple teams..."
           searchField={['group']}

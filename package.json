@@ -4,6 +4,7 @@
   "description": "Dynamic planning tool",
   "main": "server.js",
   "scripts": {
+    "build": "gulp",
     "test": "mocha test --recursive --reporter spec"
   },
   "repository": {

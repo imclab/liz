@@ -160,6 +160,9 @@
             <div>
                 <Selectize value={'wjosdejong@gmail.com'} options={this.options2} multiple={true} searchField={['text', 'value']} hideSelected={true} handleChange={this.selectizeChange}></Selectize>
             </div>
+            <div>
+                <input type="text" ref="test" value={localStorage['test']} onChange={function() {localStorage['test'] = this.value}} />
+            </div>
         </div>;
       }
     });

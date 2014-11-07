@@ -433,25 +433,11 @@ app.get('/contacts/:email?', function(req, res){
   authorize(req.session.email, email, function (err, accessToken, user) {
     if(err) return sendError(res, err);
 
-    gutils.getContacts(email, accessToken, query, function (err, rawContacts) {
+    gutils.getContacts(email, accessToken, query, function (err, googleContacts) {
       if(err) return sendError(res, err);
 
-      if (raw) {
-        return res.json(rawContacts);
-      }
-      else {
-        var contacts = [];
-
-        rawContacts.feed.entry && rawContacts.feed.entry.forEach(function (contact) {
-          contact.gd$email && contact.gd$email.forEach(function (email) {
-            contacts.push({
-              name: contact.title.$t || null,
-              email: email.address
-            });
-          });
-        });
-        return res.json(contacts);
-      }
+      var contacts = raw ? googleContacts : gutils.contactsToArray(googleContacts);
+      return res.json(contacts);
     });
   });
 });

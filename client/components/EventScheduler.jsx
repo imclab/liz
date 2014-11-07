@@ -23,15 +23,20 @@ var EventScheduler = React.createClass({
     {value: '4 hours'},
     {value: '8 hours'}
   ],
-  PERSISTENT_FIELDS: ['step', 'summary', 'attendees', 'duration', 'location', 'description', 'start', 'end'],
-  DEFAULT_SUMMARY: 'New Event',
-  DEFAULT_DURATION: '2 hours',
+  FIELDS: ['summary', 'location', 'description', 'start', 'end'],
 
   getInitialState: function () {
     var user = this.props.user;
-    var attendees = localStorage['attendees'] ?
-        localStorage['attendees'].split(',') :
-        (user.email && [user.email] || []);
+
+    this.DEFAULT = {
+      summary: 'New Event',
+      attendees: user.email || '',
+      duration: '2 hours',
+      location: '',
+      description: '',
+      start: '',
+      end: ''
+    };
 
     // listen for changes in the hash value of step
     hash.onChange('step', function (step) {
@@ -40,21 +45,20 @@ var EventScheduler = React.createClass({
       }
     }.bind(this));
 
-    return {
+    var initialState = {
       step:         hash.get('step') || this.STEPS[0],
-
-      summary:      localStorage['summary'] || this.DEFAULT_SUMMARY,
-      attendees:    attendees,
-      duration:     localStorage['duration'] || this.DEFAULT_DURATION,
-      location:     localStorage['location'] || '',
-      description:  localStorage['description'] || '',
-      start:        localStorage['start'] || null,
-      end:          localStorage['end'] || null,
-
       contacts: [this.getOwnContact()],
       freeBusy: null,
-      timeslots: null
+      timeslots: null,
+      error: null
     };
+
+    // load stored values (or default values)
+    this.FIELDS.forEach(function (key) {
+      initialState[key] = this.getStore(key);
+    }.bind(this));
+
+    return initialState;
   },
 
   render: function () {
@@ -85,9 +89,10 @@ var EventScheduler = React.createClass({
   },
 
   renderForm: function () {
+    var duration = this.getStore('duration');
     var durations = this.DURATIONS;
-    if (durations.indexOf(this.state.duration) == -1) {
-      durations.push({value: this.state.duration});
+    if (durations.indexOf(duration) == -1) {
+      durations.push({value: duration});
     }
 
     return (
@@ -112,9 +117,10 @@ var EventScheduler = React.createClass({
                 <td><Selectize
                     ref="attendees"
                     className="form-control"
-                    value={this.state.attendees}
+                    value={this.getStore('attendees').split(',')}
                     options={this.state.contacts}
                     create={true}
+                    createOnBlur={true}
                     multiple={true}
                     placeholder="Select one or multiple attendees..."
                     searchField={['name', 'email']}
@@ -132,8 +138,9 @@ var EventScheduler = React.createClass({
                   <Selectize
                       ref="duration"
                       className="form-control"
-                      value={this.state.duration}
+                      value={duration}
                       create={true}
+                      createOnBlur={true}
                       options={durations}
                       placeholder="Select a duration..."
                       labelField="value"
@@ -220,7 +227,7 @@ var EventScheduler = React.createClass({
           <div className="scheduler">
             <p>
             Select any of the available dates for <b>{this.state.summary} (
-            {juration.stringify(juration.parse(this.state.duration))})</b>:
+            {juration.stringify(juration.parse(this.getStore('duration')))})</b>:
             </p>
             {error}
             {timeslots}
@@ -234,7 +241,7 @@ var EventScheduler = React.createClass({
       return (
           <div className="scheduler">
             <p className="loading">Calculating available dates for <b>{this.state.summary} (
-            {juration.stringify(juration.parse(this.state.duration))})</b> <img src="img/ajax-loader.gif" /></p>
+            {juration.stringify(juration.parse(this.getStore('duration')))})</b> <img src="img/ajax-loader.gif" /></p>
             <p>
               <button onClick={this.back} className="btn btn-normal">Back</button>
             </p>
@@ -312,10 +319,12 @@ var EventScheduler = React.createClass({
   },
 
   renderAttendees: function () {
-    return this.state.attendees.map(function (email) {
-      var contact = this.getContact(email);
-      return <div>{contact.name ? (contact.name + ' <' + contact.email + '>') : contact.email}</div>;
-    }.bind(this))
+    return this.getStore('attendees')
+        .split(',')
+        .map(function (email) {
+          var contact = this.getContact(email);
+          return <div>{contact.name ? (contact.name + ' <' + contact.email + '>') : contact.email}</div>;
+        }.bind(this))
   },
 
   back: function () {
@@ -328,17 +337,12 @@ var EventScheduler = React.createClass({
   },
 
   done: function () {
-    var user = this.props.user;
+    // reset all form input values
+    this.setStore(this.DEFAULT);
+    this.setState(this.DEFAULT);
 
     // go to the first step (form), and reset the inputs
-    this.setState({
-      step: this.STEPS[0],
-      summary: this.DEFAULT_SUMMARY,
-      attendees: user.email && [user.email] || [],
-      duration: this.DEFAULT_DURATION,
-      location: '',
-      description: ''
-    });
+    this.setState({step: this.STEPS[0]});
   },
 
   handleSubmit: function (event) {
@@ -349,19 +353,23 @@ var EventScheduler = React.createClass({
   },
 
   handleDurationChange: function (value) {
-    this.setState({duration: value});
+    // FIXME: duration is not stored in this.state to prevent the select box from losing focus on change
+    this.setStore('duration', value);
   },
 
   handleAttendeesChange: function (value) {
-    this.setState({attendees: value});
+    // FIXME: attendees is not stored in this.state to prevent the select box from losing focus on change
+    this.setStore('attendees', value.join(','));
   },
 
   handleTextChange: function () {
-    this.setState({
+    var fields = {
       summary: this.refs.summary.getDOMNode().value,
       location: this.refs.location.getDOMNode().value,
       description: this.refs.description.getDOMNode().value
-    });
+    };
+    this.setStore(fields); // persist state
+    this.setState(fields);
   },
 
   handleTimeslotChange: function (selected) {
@@ -387,11 +395,19 @@ var EventScheduler = React.createClass({
   },
 
   loadContacts: function () {
-    ajax.get('/contacts')
-        .then(function (rawContacts) {
-          console.log('contacts', rawContacts);
+    Promise.all([
+          ajax.get('/contacts'),
+          ajax.get('/groups/list')
+        ])
+        .then(function (results) {
+          var googleContacts = results[0];
+          var groups = results[1];
 
-          var contacts = rawContacts.map(function (contact) {
+          console.log('contacts', googleContacts);
+          console.log('groups', groups);
+
+          // format the google contacts
+          var contacts = googleContacts.map(function (contact) {
             return {
               name: contact.name,
               email: contact.email,
@@ -399,8 +415,17 @@ var EventScheduler = React.createClass({
             }
           });
 
+          // format and merge the groups
+          contacts = contacts.concat(groups.map(function (group) {
+            return {
+              name: group.group,
+              email: 'group:' + group.group,
+              text: group.group + ' (' + group.count + ')'
+            }
+          }));
+
           // append the user itself if missing in the contacts
-          var containsUser = rawContacts.some(function (contact) {
+          var containsUser = contacts.some(function (contact) {
             return contact.email == this.props.user.email;
           }.bind(this));
           if (!containsUser) {
@@ -410,10 +435,9 @@ var EventScheduler = React.createClass({
           this.setState({contacts: contacts});
         }.bind(this))
         .catch(function (err) {
-          callback([]);
           console.log(err);
           displayError(err);
-        }.bind(this))
+        }.bind(this));
   },
 
   // the moment supreme: create the event
@@ -426,7 +450,7 @@ var EventScheduler = React.createClass({
 
     var calendarId = this.props.user.email;
     var event = {
-      attendees: this.state.attendees.map(function (email) {
+      attendees: this.getStore('attendees').split(',').map(function (email) {
         var contact = this.getContact(email);
         return {
           email: contact.email,
@@ -444,9 +468,7 @@ var EventScheduler = React.createClass({
     ajax.put('/calendar/' + calendarId, event)
         .then(function (response) {
           console.log('event created', response);
-          this.setState({
-            created: true
-          });
+          this.setState({created: true});
         }.bind(this))
         .catch(function (err) {
           console.log(err);
@@ -463,7 +485,6 @@ var EventScheduler = React.createClass({
       hash.set({step: this.state.step});
       this.loadContents();
     }
-    this.storeState();
   },
 
   loadContents: function () {
@@ -489,14 +510,6 @@ var EventScheduler = React.createClass({
     }
   },
 
-  // store the current state in localStorage
-  storeState: function () {
-    this.PERSISTENT_FIELDS.forEach(function (field) {
-      // Note: the array attendees is implicitly stringified entries separated by comma's
-      localStorage[field] = this.state[field];
-    }.bind(this));
-  },
-
   // calculate available time slots
   calculateTimeslots: function () {
     this.setState({
@@ -504,12 +517,12 @@ var EventScheduler = React.createClass({
       error: null
     });
 
-    var attendees = this.state.attendees.join(',');
+    var attendees = this.getStore('attendees');
     return ajax.get('/freeBusy/?calendars=' + encodeURIComponent(attendees))
         .then(function (freeBusy) {
           console.log('freeBusy', freeBusy);
           var free = freeBusy.free || [];
-          var duration = juration.parse(this.state.duration) * 1000; // from seconds to ms
+          var duration = juration.parse(this.getStore('duration')) * 1000; // from seconds to ms
           var timeslots = intervals.generateTimeslots(free, duration);
 
           console.log('timeslots', timeslots);
@@ -529,5 +542,24 @@ var EventScheduler = React.createClass({
   // Set focus to the title input
   selectSummary: function () {
     this.refs.summary && this.refs.summary.getDOMNode().select();
+  },
+
+  // load persisted value
+  getStore: function (key) {
+    var value = localStorage[key];
+    console.log('getStore', key, value, this.DEFAULT[key])
+    return (value !== undefined) ? value : this.DEFAULT[key];
+  },
+
+  // persist values
+  setStore: function (key, value) {
+    if (typeof key === 'string') {
+      localStorage[key] = value.toString();
+    }
+    else {
+      Object.keys(key).forEach(function (k) {
+        localStorage[k] = key[k].toString();
+      })
+    }
   }
 });

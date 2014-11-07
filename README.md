@@ -35,10 +35,10 @@ running `gulp`.
 # Deploy
 
 First generate the bundled files `app.min.js` and `app.min.css` for the client 
-side by running gulp:
+side by executing the following command in the root of the project:
 
-    gulp
-    
+    npm run build
+
 It is also possible to let gulp continuously watch for changes and automatically
 rebuild when a file is changed by running `gulp watch`.
 
