@@ -144,6 +144,7 @@
    */
   exports.generateTimeslots = function(free, duration) {
     var timeslots = [];
+    var now = moment();
 
     if (duration > 0) {
 
@@ -165,7 +166,8 @@
 
         while (end.valueOf() <= iEnd.valueOf()) {
           // TODO: replace this with an availability profile
-          if (start.day() == end.day() &&
+          if (start > now &&
+              start.day() == end.day() &&
               start.day() != 0 && start.day() != 6 &&  // no Sunday or Saturday
               start.format('HH:mm:ss') >= '09:00:00' &&
               end.format('HH:mm:ss') <= '17:00:00') {

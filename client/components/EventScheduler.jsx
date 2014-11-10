@@ -14,7 +14,7 @@
  *
  */
 var EventScheduler = React.createClass({
-  STEPS: ['form', 'select', 'confirm', 'create'],
+  STEPS: ['form', 'select', 'confirm', 'done'],
   DURATIONS: [
     {value: '30 min'},
     {value: '1 hour'},
@@ -69,8 +69,8 @@ var EventScheduler = React.createClass({
       case 'confirm':
         return this.renderConfirm();
 
-      case 'create':
-        return this.renderCreate();
+      case 'done':
+        return this.renderDone();
 
       default: // 'form'
         return this.renderForm();
@@ -247,51 +247,37 @@ var EventScheduler = React.createClass({
   },
 
   renderConfirm: function () {
-    return (
-        <div className="scheduler">
-          <p>
-          Summary:
-          </p>
-          {this.renderEvent()}
-          <p>
-            <button onClick={this.back} className="btn btn-normal">Back</button
-            > <button onClick={this.create} className="btn btn-primary">Create the event</button>
-          </p>
-        </div>
-    );
+    var creating = this.state.creating ?
+      <span className="loading">Creating event... <img src="img/ajax-loader.gif" /></span> :
+      <span></span>;
+
+    // TODO: be able to cancel while creating
+    return <div className="scheduler">
+        <p>
+        Summary:
+        </p>
+        {this.renderEvent()}
+        <p>
+          {this.state.error != null ? this.state.error.toString() : ''}
+        </p>
+        <p>
+          <button onClick={this.back} className="btn btn-normal">Back</button
+          > <button onClick={this.create} className="btn btn-primary" disabled={this.state.creating}>Create the event</button>
+        {creating}
+        </p>
+    </div>;
   },
 
-  renderCreate: function () {
-    if (this.state.error) { // failed to create event
-      return (
-          <div className="scheduler">
-            <p className="error">{this.state.error.toString()}</p>
-            <p>
-              <button onClick={this.back} className="btn btn-normal">Back</button>
-            </p>
-          </div>
-      )
-    }
-    else if (this.state.created == true) { // created
-      return (
-          <div className="scheduler">
-            <p>
-            The event is created.
-            </p>
-            {this.renderEvent()}
-            <p>
-              <button onClick={this.done} className="btn btn-primary">Done</button>
-            </p>
-          </div>
-      );
-    }
-    else { // creating...
-      return (
-          <div className="scheduler">
-            <p className="loading">Creating event <b>{this.state.summary}</b>... <img src="img/ajax-loader.gif" /></p>
-          </div>
-      )
-    }
+  renderDone: function () {
+    return <div className="scheduler">
+        <p>
+        The event is created.
+        </p>
+        {this.renderEvent()}
+        <p>
+          <button onClick={this.done} className="btn btn-primary">Done</button>
+        </p>
+    </div>;
   },
 
   renderEvent: function () {
@@ -445,8 +431,7 @@ var EventScheduler = React.createClass({
   // the moment supreme: create the event
   create: function () {
     this.setState({
-      step: 'create',
-      created: false,
+      creating: true,
       error: null
     });
 
@@ -470,11 +455,18 @@ var EventScheduler = React.createClass({
     ajax.put('/calendar/' + calendarId, event)
         .then(function (response) {
           console.log('event created', response);
-          this.setState({created: true});
+
+          this.setState({
+            creating: false,
+            step: 'done'
+          });
         }.bind(this))
         .catch(function (err) {
           console.log(err);
-          this.setState({error: err});
+          this.setState({
+            error: err,
+            creating: false
+          });
         }.bind(this));
   },
 
