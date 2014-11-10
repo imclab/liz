@@ -332,27 +332,10 @@ var EventScheduler = React.createClass({
     // prevent real submission of the HTML form
     event.preventDefault();
 
-    // form validation
-    // TODO: nicer form validation, this is sooo primitive...
-    if (!this.state.summary || this.state.summary.trim() == '') {
-      alert('Error: Title is empty');
-      return;
-    }
-    var attendees = this.getStore('attendees');
-    if (!attendees || attendees.trim() == '') {
-      alert('Error: Attendees is empty');
-      return;
-    }
-    var duration = this.getStore('duration');
-    var validDuration = false;
-    try {
-      // see if parsing fails
-      juration.parse(duration);
-      validDuration = true;
-    }
-    catch (err) {}
-    if (!duration || duration.trim() == '' || !validDuration) {
-      alert('Error: No valid duration');
+    // apply form validation
+    var err = this.prehistoricFormValidation();
+    if (err) {
+      alert(err);
       return;
     }
 
@@ -390,6 +373,34 @@ var EventScheduler = React.createClass({
       start: timeslot.start,
       end: timeslot.end
     });
+  },
+
+  /**
+   * Validate form inputs.
+   * @returns {Error | null}  Returns an error if not ok,
+   *                          returns null when ok
+   */
+  prehistoricFormValidation: function () {
+    // TODO: nicer form validation, this is sooo primitive...
+    if (!this.state.summary || this.state.summary.trim() == '') {
+      return Error('Title is empty');
+    }
+    var attendees = this.getStore('attendees');
+    if (!attendees || attendees.trim() == '') {
+      return new Error('Attendees is empty');
+    }
+    var duration = this.getStore('duration');
+    var validDuration = false;
+    try {
+      // see if parsing fails
+      juration.parse(duration);
+      validDuration = true;
+    }
+    catch (err) {
+    }
+    if (!duration || duration.trim() == '' || !validDuration) {
+      return new Error('No valid duration');
+    }
   },
 
   getContact: function (email) {
