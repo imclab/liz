@@ -332,6 +332,30 @@ var EventScheduler = React.createClass({
     // prevent real submission of the HTML form
     event.preventDefault();
 
+    // form validation
+    // TODO: nicer form validation, this is sooo primitive...
+    if (!this.state.summary || this.state.summary.trim() == '') {
+      alert('Error: Title is empty');
+      return;
+    }
+    var attendees = this.getStore('attendees');
+    if (!attendees || attendees.trim() == '') {
+      alert('Error: Attendees is empty');
+      return;
+    }
+    var duration = this.getStore('duration');
+    var validDuration = false;
+    try {
+      // see if parsing fails
+      juration.parse(duration);
+      validDuration = true;
+    }
+    catch (err) {}
+    if (!duration || duration.trim() == '' || !validDuration) {
+      alert('Error: No valid duration');
+      return;
+    }
+
     this.setState({step: 'select'});
   },
 
