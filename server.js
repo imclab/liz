@@ -285,9 +285,14 @@ app.put('/calendar/:calendarId', function(req, res){
   authorize(req.session.email, calendarId, function (err, accessToken, user) {
     if(err) return sendError(res, err);
 
-    gcal(accessToken).events.insert(calendarId, event, function(err, createdEvent) {
+    // replace group attendees with free group members
+    chooseGroupMembers(event, function (err, event) {
       if(err) return sendError(res, err);
-      return res.json(createdEvent);
+
+      gcal(accessToken).events.insert(calendarId, event, function(err, createdEvent) {
+        if(err) return sendError(res, err);
+        return res.json(createdEvent);
+      });
     });
   });
 });
@@ -396,6 +401,14 @@ app.get('/groups/list', function(req, res){
   db.groups.list(options, function (err, groups) {
     if (err) return sendError(res, err);
     return res.json(groups);
+  });
+});
+
+// get list groups
+app.get('/groups/freeBusy', function(req, res){
+  getFreeGroupMembers(req.query.group, req.query, function (err, members) {
+    if (err) return sendError(res, err);
+    return res.json(members);
   });
 });
 
@@ -563,6 +576,74 @@ function getFreeBusy(user, query, callback) {
     mergedProfile.errors = gutils.mergeErrors(profiles);
 
     return callback(null, mergedProfile);
+  });
+}
+
+/**
+ * Get a free group member
+ * @param {string} groupId
+ * @param {{timeMin: string, timeMax: string}} query   Time interval
+ * @param {function} callback   Called as callback(err, memberIds: string[])
+ */
+function getFreeGroupMembers(groupId, query, callback) {
+  db.groups.group(groupId, function (err, group) {
+    if (err) return callback(err, null);
+
+    async.filter(group.members, function (member, callback) {
+      db.users.getAuthenticated(member, function (err, user) {
+        // ignore failed members
+        // TODO: return group member errors as non-critical errors or warnings?
+        if (err) console.log('Error getting group member', member , err);
+
+        if (!user) return callback(false);
+
+        getFreeBusy(user, query, function (err, profile) {
+          return callback(profile.free.some(function (free) {
+            return (free.start <= query.timeMin && free.end >= query.timeMax);
+          }));
+        });
+      });
+    }, function (freeMembers) {
+      callback(null, freeMembers);
+    });
+  });
+}
+
+/**
+ * Replace groups in the attendees of an event with a group member which is
+ * available. Replacements are done in the original event.
+ * @param {Object} event          A google calendar event, must contain property
+ *                                `attendees: [{id: string}]`
+ * @param {function} callback     Called as callback(err, event), where
+ *                                the attendees containing a group are replaced
+ *                                with a free group member
+ */
+function chooseGroupMembers(event, callback) {
+  var query = {
+    timeMin: event.start.dateTime,
+    timeMax: event.end.dateTime
+  };
+
+  async.each(event.attendees, function (attendee, callback) {
+    if (attendee.email.substr(0, 6) == 'group:') {
+      var groupId = attendee.email.substr(6);
+      getFreeGroupMembers(groupId, query, function (err, members) {
+        if (err) return callback(err);
+
+        if (members.length == 0) {
+          return callback(new Error('No free group member found'));
+        }
+
+        // TODO: be able to use various strategies for choosing one the available members
+        attendee.email = members[0];
+        return callback();
+      });
+    }
+    else {
+      callback();
+    }
+  }, function (err) {
+    err ? callback(err, null) : callback(null, event);
   });
 }
 
