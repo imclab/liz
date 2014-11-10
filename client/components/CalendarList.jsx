@@ -27,15 +27,13 @@ var CalendarList = React.createClass({
       return (<Calendar calendar={calendar} key={calendar.id}/>)
     });
 
-    return (
-        <CheckboxGroup
+    return (<CheckboxGroup
         name="calendars"
         className="calendars"
         value={this.props.selection}
         ref="calendars"
         onChange={this.handleChange}
-        >{calendars}</CheckboxGroup>
-        )
+    >{calendars}</CheckboxGroup>);
   },
 
   handleChange: function () {

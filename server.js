@@ -321,18 +321,45 @@ app.get('/freeBusy/:calendarId?', function(req, res) {
     timeMax: req.query.timeMax || defaultTimeMax.toISOString()
   };
 
-  // retrieve the free/busy profiles of each of the selected calendars
+  // retrieve the free/busy profiles of each of the selected calendars and groups
   async.map(calendarIds, function (calendarId, callback) {
-    // TODO: check whether calendarId is an email or a group, use getGroupFreeBusy in the latter case
-    getAuthFreeBusy(email, calendarId, query, callback);
+    if (calendarId.substr(0, 6) == 'group:') {
+      var groupId = calendarId.substr(6);
+      getGroupFreeBusy(groupId, query, function (err, profile) {
+        if (profile) profile.id = groupId;
+        callback(err, profile);
+      });
+    }
+    else { // email
+      getAuthFreeBusy(email, calendarId, query, function (err, profile) {
+        if (profile) profile.id = calendarId;
+        callback(err, profile);
+      });
+    }
   }, function (err, calendarsArray) {
     // merge the array with calendars objects
-    var allCalendars = calendarsArray.reduce(function (all, calendars) {
-      return _.extend(all, calendars);
+    var all = calendarsArray.reduce(function (all, value) {
+      all[value.id] = value;
+      return all;
     }, {});
 
     // merge the busy intervals and return them
-    return res.json(gutils.mergeBusy(allCalendars, query));
+    var merged = gutils.mergeBusy(all, query);
+
+    merged.errors = Object.keys(all).reduce(function (errors, calendarId) {
+      var profile = all[calendarId];
+      if (profile.errors && profile.errors.length > 0) {
+        profile.errors.forEach(function (err) {
+          errors.push({
+            id: calendarId,
+            message: err
+          });
+        });
+      }
+      return errors;
+    }, []);
+
+    return res.json(merged);
   });
 });
 
@@ -434,13 +461,13 @@ function stringifyError(err) {
  * @param {string} email          The email of the logged in user
  * @param {string} calendarId     A calendar id
  * @param {{timeMin: string, timeMax: string} | {timeMin: string, timeMax: string, items: Array.<{id: string}>}} query
- * @param {function} callback     Called as callback(err, Object.<string, {busy:Array, errors:Array}>)
+ * @param {function} callback     Called as callback(err, {free: Array, busy:Array, errors:Array})
  *                                `err` is null
  */
 function getAuthFreeBusy(email, calendarId, query, callback) {
   authorize(email, calendarId, function (err, accessToken, user) {
     if (err) {
-      var calendarsError = createCalendarsError(calendarId, err);
+      var calendarsError = createProfileError(err);
 
       db.users.getAuthenticated(email, function (err2, loggedInUser) {
         if (loggedInUser) {
@@ -450,19 +477,19 @@ function getAuthFreeBusy(email, calendarId, query, callback) {
             ]
           }, query);
 
-          return getFreeBusy(loggedInUser, loggedInQuery, function (err, calendars) {
-            var calendar = calendars[calendarId];
-            if (calendar && calendar.errors && calendar.errors.length > 0) {
+          return getFreeBusy(loggedInUser, loggedInQuery, function (err, profile) {
+            if (profile && profile.errors && profile.errors.length > 0) {
               // return the original error
               return callback(null, calendarsError);
             }
 
-            return callback(null, calendars)
+            return callback(null, profile)
           });
         }
-
-        // return the original error
-        return callback(null, calendarsError);
+        else {
+          // return the original error
+          return callback(null, calendarsError);
+        }
       });
     }
     else {
@@ -474,28 +501,39 @@ function getAuthFreeBusy(email, calendarId, query, callback) {
 /**
  * Get the freeBusy profile of a Group. The freeBusy profiles of all
  * group members will be retrieved and merged.
- * @param {string} email                              User name of the logged in user
  * @param {string} groupId                            Id of the group
  * @param {{timeMin: string, timeMax: string}} query  Object with start and end time
- * @param {function} callback                         Called as callback(err, calendars)
- *                                                    `err` is always null
+ * @param {function} callback     Called as callback(err, {busy:Array, errors:Array})
+ *                                `err` is null
  */
-function getGroupFreeBusy(email, groupId, query, callback) {
+function getGroupFreeBusy(groupId, query, callback) {
   // get the members of this group
   db.groups.group(groupId, function (err, group) {
-    if (err) return callback(err, null);
+    if (err) return callback(null, createProfileError(err));
 
     // get the freeBusy profiles of each of the group members
     async.map(group.members, function (member, callback) {
-      getAuthFreeBusy(email, member, query, callback);
+      // Note: we do NOT authorize individual members, here...
+      db.users.getAuthenticated(member, function (err, user) {
+        // ignore failed members
+        // TODO: return group member errors as non-critical errors or warnings?
+        if (err) console.log('Error getting group member', member , err);
+        if (err) return callback(null, {free: [], busy: []});
+
+        getFreeBusy(user, query, callback);
+      });
     }, function (err, calendarsArray) {
       // merge the array with calendars objects
-      var allCalendars = calendarsArray.reduce(function (all, calendars) {
-        return _.extend(all, calendars);
+      var all = calendarsArray.reduce(function (all, value, key) {
+        all[key] = value;
+        return all;
       }, {});
 
-      // merge the free intervals and return them
-      return res.json(gutils.mergeFree(allCalendars, query));
+      // merge the free intervals
+      var merged = gutils.mergeFree(all, query);
+      merged.errors = gutils.mergeErrors(all);
+
+      return callback(null, merged);
     });
   });
 }
@@ -504,7 +542,7 @@ function getGroupFreeBusy(email, groupId, query, callback) {
  * Get the free busy profile of a user
  * @param {Object} user
  * @param {{timeMin: string, timeMax: string} | {timeMin: string, timeMax: string, items: Array.<{id: string}>}} query
- * @param {function} callback     Called as callback(err, Object.<string, {busy:Array, errors:Array}>)
+ * @param {function} callback     Called as callback(err, {free: Array, busy:Array, errors:Array})
  *                                `err` is null
  */
 function getFreeBusy(user, query, callback) {
@@ -516,35 +554,36 @@ function getFreeBusy(user, query, callback) {
   }
 
   gcal(user.auth.accessToken).freebusy.query(_query, function(err, data) {
-    if (err) return callback(null, createCalendarsError(user.email, err));
+    if (err) return callback(null, createProfileError(err));
 
-    // TODO: merge this users (private) calendars here, do not expose them
     var calendars = data && data.calendars || {};
-    callback(null, calendars);
+
+    // merge this users (private) calendars, do not expose them
+    var merged = gutils.mergeBusy(calendars, query);
+    merged.errors = gutils.mergeErrors(calendars);
+
+    return callback(null, merged);
   });
 }
 
 /**
- * Build an error object for given calendar id. Returned object has the structure:
+ * Build an error object. Returned object has the structure:
  *
  *     {
- *       calendarId: {
- *         busy: [],
- *         errors: [message]
- *       }
+ *       free: [],
+ *       busy: [],
+ *       errors: [message]
  *     }
  *
- * @param {string} calendarId
  * @param {Error} err
  * @returns {Object}
  */
-function createCalendarsError(calendarId, err) {
-  var calendars = {};
-  calendars[calendarId] = {
+function createProfileError(err) {
+  return {
+    free: [],
     busy: [],
     errors: [stringifyError(err)]
   };
-  return calendars;
 }
 
 /**
@@ -567,6 +606,7 @@ function authorize (requester, email, callback) {
  * Split a string
  * @param {string} text
  * @param {string} [delimiter=',']
+ * @return {Array.string} Returns splitted and trimmed entries
  */
 function splitIt(text, delimiter) {
   return text.split(delimiter || ',').map(function (calendar) {

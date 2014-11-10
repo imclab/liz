@@ -193,13 +193,13 @@ var EventScheduler = React.createClass({
       var error = null;
 
       // render errors
-      var freeBusy = this.state.freeBusy;
-      if (freeBusy) {
-        var missing = Object.keys(freeBusy.errors);
-        if (missing.length > 0) {
-          error = <p className="error">Error: Could not retrieve the availablility of all attendees
-            . The following dates are calculated without the availability of <b>{missing.join(', ')}</b>.</p>
-        }
+      var errors = this.state.freeBusy && this.state.freeBusy.errors;
+      if (errors && errors.length > 0) {
+        var missing = errors.map(function (error) {
+          return error.id;
+        });
+        error = <p className="error">Error: Could not retrieve the availablility of all attendees
+          . The following dates are calculated without the availability of <b>{missing.join(', ')}</b>.</p>
       }
 
       // find the selected timeslot based on start and end in the state
@@ -319,6 +319,7 @@ var EventScheduler = React.createClass({
         .split(',')
         .map(function (email) {
           var contact = this.getContact(email);
+          console.log('contact', email, contact)
           return <div>{contact.name ? (contact.name + ' <' + contact.email + '>') : contact.email}</div>;
         }.bind(this))
   },
@@ -382,8 +383,8 @@ var EventScheduler = React.createClass({
   },
 
   getContact: function (email) {
-    if (this.contacts) {
-      var contact = this.contacts.filter(function (contact) {
+    if (this.state.contacts) {
+      var contact = this.state.contacts.filter(function (contact) {
         return contact.email == email;
       })[0];
       if (contact) {
@@ -418,9 +419,10 @@ var EventScheduler = React.createClass({
           // format and merge the groups
           contacts = contacts.concat(groups.map(function (group) {
             return {
-              name: group.group,
-              email: 'group:' + group.group,
-              text: group.group + ' (' + group.count + ')'
+              name: group.name,
+              email: group.id,
+              //text: group.name + ' (' + group.count + ')' // TODO: how to format groups?
+              text: group.name
             }
           }));
 

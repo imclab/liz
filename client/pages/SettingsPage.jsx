@@ -19,7 +19,6 @@ var SettingsPage = React.createClass({
       <h2>Sharing</h2>
       <p>Who is allowed to view your free/busy profile and plan events in your calendar via Liz&#63;</p>
       <select value={this.state.user.share} onChange={this.handleShareSelection}>
-        <option value="self">Just me</option>
         <option value="calendar">Everyone with access to my calendar</option>
         <option value="contacts">All my contacts</option>
         <option value="everybody">Everybody</option>
