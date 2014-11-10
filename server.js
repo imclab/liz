@@ -336,18 +336,18 @@ app.get('/freeBusy/:calendarId?', function(req, res) {
         callback(err, profile);
       });
     }
-  }, function (err, calendarsArray) {
-    // merge the array with calendars objects
-    var all = calendarsArray.reduce(function (all, value) {
-      all[value.id] = value;
-      return all;
+  }, function (err, profilesArray) {
+    // merge the array with free/busy profiles objects
+    var profiles = profilesArray.reduce(function (profiles, value) {
+      profiles[value.id] = value;
+      return profiles;
     }, {});
 
     // merge the busy intervals and return them
-    var merged = gutils.mergeBusy(all, query);
+    var merged = gutils.mergeBusy(profiles, query);
 
-    merged.errors = Object.keys(all).reduce(function (errors, calendarId) {
-      var profile = all[calendarId];
+    merged.errors = Object.keys(profiles).reduce(function (errors, calendarId) {
+      var profile = profiles[calendarId];
       if (profile.errors && profile.errors.length > 0) {
         profile.errors.forEach(function (err) {
           errors.push({
@@ -467,7 +467,7 @@ function stringifyError(err) {
 function getAuthFreeBusy(email, calendarId, query, callback) {
   authorize(email, calendarId, function (err, accessToken, user) {
     if (err) {
-      var calendarsError = createProfileError(err);
+      var profilesError = createProfileError(err);
 
       db.users.getAuthenticated(email, function (err2, loggedInUser) {
         if (loggedInUser) {
@@ -480,7 +480,7 @@ function getAuthFreeBusy(email, calendarId, query, callback) {
           return getFreeBusy(loggedInUser, loggedInQuery, function (err, profile) {
             if (profile && profile.errors && profile.errors.length > 0) {
               // return the original error
-              return callback(null, calendarsError);
+              return callback(null, profilesError);
             }
 
             return callback(null, profile)
@@ -488,7 +488,7 @@ function getAuthFreeBusy(email, calendarId, query, callback) {
         }
         else {
           // return the original error
-          return callback(null, calendarsError);
+          return callback(null, profilesError);
         }
       });
     }
@@ -522,9 +522,9 @@ function getGroupFreeBusy(groupId, query, callback) {
 
         getFreeBusy(user, query, callback);
       });
-    }, function (err, calendarsArray) {
-      // merge the array with calendars objects
-      var all = calendarsArray.reduce(function (all, value, key) {
+    }, function (err, profilesArray) {
+      // merge the array with profile objects
+      var all = profilesArray.reduce(function (all, value, key) {
         all[key] = value;
         return all;
       }, {});
@@ -556,13 +556,13 @@ function getFreeBusy(user, query, callback) {
   gcal(user.auth.accessToken).freebusy.query(_query, function(err, data) {
     if (err) return callback(null, createProfileError(err));
 
-    var calendars = data && data.calendars || {};
+    var profiles = data && data.calendars || {};
 
     // merge this users (private) calendars, do not expose them
-    var merged = gutils.mergeBusy(calendars, query);
-    merged.errors = gutils.mergeErrors(calendars);
+    var mergedProfile = gutils.mergeBusy(profiles, query);
+    mergedProfile.errors = gutils.mergeErrors(profiles);
 
-    return callback(null, merged);
+    return callback(null, mergedProfile);
   });
 }
 
