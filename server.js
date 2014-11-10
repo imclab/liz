@@ -214,20 +214,24 @@ app.delete('/user', function(req, res, next) {
     });
   }
 
-  db.users.getAuthenticated(email, function (err, user) {
+  db.users.get(email, function (err, user) {
     if (err) return res.status(404).send('User not found');
 
-    // remove the user from our database
+    // remove the user
     db.users.remove(email, function (err, result) {
-      var accessToken = user.auth && user.auth.accessToken;
-      if (accessToken) {
+      // remove the users groups
+      db.groups.replace(email, [], function (err, result) {
+
         //revoke granted permissions at google
-        var url = 'https://accounts.google.com/o/oauth2/revoke?token=' + accessToken;
-        request(url, destroySession);
-      }
-      else {
-        destroySession();
-      }
+        var accessToken = user.auth && user.auth.accessToken;
+        if (accessToken) {
+          var url = 'https://accounts.google.com/o/oauth2/revoke?token=' + accessToken;
+          request(url, destroySession);
+        }
+        else {
+          destroySession();
+        }
+      });
     });
   });
 
