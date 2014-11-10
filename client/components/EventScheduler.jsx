@@ -417,7 +417,7 @@ var EventScheduler = React.createClass({
             return contact.email == this.props.user.email;
           }.bind(this));
           if (!containsUser) {
-            contacts = contacts.push(this.getOwnContact());
+            contacts.push(this.getOwnContact());
           }
 
           this.setState({contacts: contacts});
@@ -471,17 +471,17 @@ var EventScheduler = React.createClass({
   },
 
   componentDidMount: function() {
-    this.loadContents();
+    this.initStep();
   },
 
   componentDidUpdate: function (prevProps, prevState) {
     if (prevState.step !== this.state.step) {
       hash.set({step: this.state.step});
-      this.loadContents();
+      this.initStep();
     }
   },
 
-  loadContents: function () {
+  initStep: function () {
     if (this.state.step == 'form') {
       // set focus to the summary input box
       this.selectSummary();
