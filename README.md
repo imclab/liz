@@ -75,14 +75,17 @@ To the the code, run:
 ## Authentication
 
 - `GET /auth`
+
   Authenticate the user. Will redirect to the OAuth 2 website of Google.
   After authentication, the page is redirected to `/auth/callback`.
 
 - `GET /auth/callback`
+
   Redirect page after a user has authenticated itself. This page will
   redirect to the original page the user was at before logging in.
 
 - `GET /auth/signin`
+
   Sign in, authenticate the user, redirects to `/auth`.
 
   Query parameters:
@@ -90,6 +93,7 @@ To the the code, run:
     after authentication was successful. Default value is `/`.
 
 - `GET /auth/signout`
+
   Sign out and destroy the users session.
 
   Query parameters:
@@ -100,6 +104,7 @@ To the the code, run:
 ## User
 
 - `GET /user`
+
   Get the profile of the current user. When logged in, an object with the
   following structure is returned:
 
@@ -125,6 +130,7 @@ To the the code, run:
   ```
 
 - `PUT /user`
+
   Update a users profile. The request body must contain a JSON Object like:
 
   ```json
@@ -142,6 +148,7 @@ To the the code, run:
   are left unchanged. One can add new properties if needed.
 
 - `DELETE /user`
+
   Delete the logged in user. This will completely remove the users account
   and revoke granted permissions.
 
@@ -149,11 +156,13 @@ To the the code, run:
 ## Calendar
 
 - `GET /calendar`
+
   Returns an object with all the users Google Calendars. Returns the response
   of the Google Calendar `/calendarList` API:
   https://developers.google.com/google-apps/calendar/v3/reference/calendarList/list
 
 - `GET /calendar/:calendarId`
+
   Retrieve calendar items. Returns an Object with calendar events as returned
   by the Google Calendar `/events` API:
   https://developers.google.com/google-apps/calendar/v3/reference/events/list
@@ -165,17 +174,20 @@ To the the code, run:
   - `timeMax` ISO date string with the end of a time interval.
 
 - `PUT /calendar/:calendarId`
+
   Insert a new calendar event. The event must be a valid [Event resource](https://developers.google.com/google-apps/calendar/v3/reference/events#resource),
   as described here:
   https://developers.google.com/google-apps/calendar/v3/reference/events/insert
 
 - `DELETE /calendar/:calendarId/:eventId`
+
   Delete a calendar event.
 
 
 ## FreeBusy
 
 - `GET /freeBusy/:calendarId?`
+
   Get the free busy interval of a specific calendarId. If no `calendarId` is
   provided, the email of the logged in user is used as calendar id.
 
@@ -214,6 +226,7 @@ To the the code, run:
 ## Contacts
 
 - `GET /contacts/:email?`
+
   Get all contacts of a user. If parameter `email` is not provided, the contacts
   of the logged in user are returned.
 
@@ -241,6 +254,7 @@ To the the code, run:
 ## Groups
 
 - `GET /groups/list`
+
   Get a list with all groups. Returns an Array structured like:
 
   ```json
@@ -258,6 +272,7 @@ To the the code, run:
   ```
 
 - `GET /groups`
+
   Get all groups of the current users. Returns an Array with group names like:
 
   ```json
@@ -267,6 +282,7 @@ To the the code, run:
   ```
 
 - `PUT /groups`
+
   Replace all groups of current user. Request body must contain an Array with
   group names:
 
