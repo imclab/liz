@@ -205,7 +205,7 @@ To the the code, run:
       {
         "start": ISO_DATE_STRING,
         "end": ISO_DATE_STRING
-      }...
+      }
     ],
     "busy": [
       {
@@ -240,10 +240,9 @@ To the the code, run:
   ```json
   [
     {
-      "name": CONTACT_NAME,
-      "email": CONTACT_EMAIL
-    },
-    ...
+      "name": "User Name",
+      "email": "foo@company.com"
+    }
   ]
   ```
 
