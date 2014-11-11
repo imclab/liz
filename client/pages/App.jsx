@@ -32,7 +32,7 @@ var App = React.createClass({
       // not logged in
       page = <div>
         <h1>Sign in to get started...</h1>
-        <p><a href={'/user/signin?redirectTo=' + encodeURIComponent(location.href)} className="btn btn-primary">Sign in</a>
+        <p><a href={'/auth/signin?redirectTo=' + encodeURIComponent(location.href)} className="btn btn-primary">Sign in</a>
         </p>
       </div>
     }

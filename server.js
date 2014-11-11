@@ -133,12 +133,12 @@ app.get('/auth/callback',
       });
     });
 
-app.get('/user/signin', function(req, res, next) {
+app.get('/auth/signin', function(req, res, next) {
   req.session.redirectTo = req.query.redirectTo || '/';
   return res.redirect('/auth');
 });
 
-app.get('/user/signout', function(req, res, next) {
+app.get('/auth/signout', function(req, res, next) {
   req.session.destroy(function(err) {
     res.redirect(req.query.redirectTo || '/');
   })
@@ -250,7 +250,7 @@ app.get('/calendar', function(req, res){
   });
 });
 
-app.get('/calendar/:calendarId?', function(req, res){
+app.get('/calendar/:calendarId', function(req, res){
   var calendarId = req.params.calendarId || req.session.email;
 
   // only user itself has access here
@@ -301,7 +301,7 @@ app.put('/calendar/:calendarId', function(req, res){
   });
 });
 
-app.delete('/calendar/:calendarId/:eventId/remove', function(req, res){
+app.delete('/calendar/:calendarId/:eventId', function(req, res){
   var calendarId = req.params.calendarId;
   var eventId    = req.params.eventId;
 
@@ -405,14 +405,6 @@ app.get('/groups/list', function(req, res){
   db.groups.list(options, function (err, groups) {
     if (err) return sendError(res, err);
     return res.json(groups);
-  });
-});
-
-// get list groups
-app.get('/groups/freeBusy', function(req, res){
-  getFreeGroupMembers(req.query.group, req.query, function (err, members) {
-    if (err) return sendError(res, err);
-    return res.json(members);
   });
 });
 
