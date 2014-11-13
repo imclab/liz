@@ -117,7 +117,7 @@ var EventScheduler = React.createClass({
                 <td><Selectize
                     ref="attendees"
                     className="form-control"
-                    value={this.getStore('attendees').split(',')}
+                    value={this.getStore('attendees')}
                     options={this.state.contacts}
                     create={true}
                     createOnBlur={true}
@@ -128,7 +128,7 @@ var EventScheduler = React.createClass({
                     labelField="text"
                     valueField="email"
                     hideSelected={true}
-                    handleChange={this.handleAttendeesChange}
+                    onChange={this.handleAttendeesChange}
                 ></Selectize>
                 </td>
               </tr>
@@ -139,12 +139,13 @@ var EventScheduler = React.createClass({
                       ref="duration"
                       className="form-control"
                       value={duration}
+                      multipe={false}
                       create={true}
                       createOnBlur={true}
                       options={durations}
                       placeholder="Select a duration..."
                       labelField="value"
-                      handleChange={this.handleDurationChange}
+                      onChange={this.handleDurationChange}
                   ></Selectize>
                 </td>
               </tr>
@@ -349,7 +350,8 @@ var EventScheduler = React.createClass({
 
   handleAttendeesChange: function (value) {
     // FIXME: attendees is not stored in this.state to prevent the select box from losing focus on change
-    this.setStore('attendees', value ? value.join(',') : '');
+    console.log('value', value)
+    this.setStore('attendees', value || '');
   },
 
   handleTextChange: function () {

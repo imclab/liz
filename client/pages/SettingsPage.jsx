@@ -4,17 +4,53 @@ var SettingsPage = React.createClass({
     this.loadGroups();
 
     return {
+      loading: true,
       user: this.props.user,
       calendars: null,
       calendarsError: null,
       groups: null,
-      groupsError: null
+      groupsError: null,
+
+      // TODO: load from server
+      availability: [
+        {calendar: 'jos@almende.org', title: 'Available', group: null},
+        {calendar: 'almende.org_6aihngh5upbj1i7vusgir7qll4@group.calendar.google.com', title: 'Available', group: 'Developer'}
+      ],
+
+      calendarOptions: [
+        {value: 'jos@almende.org', text: 'Jos de Jong'},
+        {value: 'blabal', text: 'Availability'}
+      ],
+
+      // TODO: load from server
+      groupOptions: [
+        {value: 'Developer', text: 'Developer'},
+        {value: 'Consultant', text: 'Consultant'}
+      ]
     };
   },
 
   render: function () {
+    console.log('loading', this.state.loading)
+    var availability;
+    if (this.state.loading) {
+      availability = <div>
+        <h1>Settings</h1>
+        <div>loading <img className="loading" src="img/ajax-loader.gif" /></div>
+      </div>;
+    }
+    else {
+      availability = this.renderAvailabilityTable()
+    }
+
     return <div>
       <h1>Settings</h1>
+
+      <h2>Availability profile</h2>
+      <p>
+        Specify when you are available an in what role. To mark youself available, create (recurring) events in your calendar having the specified tag as event title.
+      </p>
+      {availability}
 
       <h2>Sharing</h2>
       <p>Who is allowed to view your free/busy profile and plan events in your calendar via Liz&#63;</p>
@@ -24,23 +60,81 @@ var SettingsPage = React.createClass({
         <option value="everybody">Everybody</option>
       </select>
 
-      <h2>Calendars</h2>
-      <p>Select which of your calendars will be used to generate your free/busy profile:</p>
-      {this.renderCalendarList()}
-
-      <h2>Teams</h2>
-      <p>Add yourself to relevant teams. You can create new teams.</p>
-      {this.renderGroups()}
-
-      <h2>Availability profile</h2>
-      <p>Select one of your calendars as availability profile. Fill this calendar with (repeating) events describing your availability. This can for example be your working hours, like Monday to Friday 9:00-18:00.</p>
-      <p>(not yet implemented...)</p>
-
       <h2>Account</h2>
       <p><button onClick={this.deleteAccount} className="btn btn-danger">Delete account</button></p>
     </div>;
   },
 
+  renderAvailabilityTable: function () {
+    console.log('availability', JSON.stringify(this.state.availability, null, 2))
+
+    var availability = this.state.availability;
+    var calendarOptions = this.state.calendars.map(function (calendar) {
+      return {
+        value: calendar.id,
+        text: calendar.summary || calendar.id
+      }
+    });
+    //var calendarOptions = this.state.calendarOptions;
+
+    console.log('calenarOptions', JSON.stringify(calendarOptions, null, 2))
+
+    var header = <tr key="header">
+      <th>Calendar</th>
+      <th>Tag</th>
+      <th>Role (optional)</th>
+    </tr>;
+
+    var rows = availability.map(function (entry, index) {
+      return <tr key={entry._id}>
+            <td>
+              <Selectize
+                  options={calendarOptions}
+                  value={entry.calendar}
+                  placeholder="Select a calendar..."
+                  onChange={function (value) {
+                    this.handleAvailabilityChange(index, 'calendar', value);
+                  }.bind(this)}
+              />
+            </td>
+            <td>
+              <input
+                  type="text"
+                  className="form-control"
+                  value={entry.title}
+                  placeholder="Event title..."
+                  onChange={function (event) {
+                    this.handleAvailabilityChange(index, 'title', event.target.value);
+                  }.bind(this)}
+              />
+            </td>
+            <td>
+              <Selectize
+                  options={this.state.groupOptions}
+                  create={true}
+                  createOnBlur={true}
+                  value={entry.group}
+                  placeholder="Select a role..."
+                  onChange={function (event) {
+                    this.handleAvailabilityChange(index, 'group', event.target.value);
+                  }.bind(this)}
+              />
+            </td>
+          </tr>;
+      }.bind(this));
+
+      return <table className="table">
+          <colgroup>
+            <col width="35%" />
+            <col width="30%" />
+            <col width="35%" />
+          </colgroup>
+          {header}
+          {rows}
+        </table>;
+  },
+
+  // TODO: cleanup
   renderCalendarList: function () {
     var selection = this.state.user && this.state.user.calendars || [];
 
@@ -58,6 +152,7 @@ var SettingsPage = React.createClass({
     }
   },
 
+  // TODO: cleanup
   renderGroups: function () {
     if (this.state.groupsError != null) {
       return <p className="error">{this.state.groupsError.toString()}</p>
@@ -87,11 +182,24 @@ var SettingsPage = React.createClass({
           labelField="text"
           valueField="group"
           hideSelected={true}
-          handleChange={this.handleGroupChange}
+          onChange={this.handleGroupChange}
       />;
     }
     else {
       return <div>loading <img className="loading" src="img/ajax-loader.gif" /></div>;
+    }
+  },
+
+  handleAvailabilityChange: function (index, field, value) {
+    var clone = this.state.availability.slice();
+    var obj = _.extend({}, clone[index]);
+    obj[field] = value;
+    clone[index] = obj;
+
+    this.count = this.count ? this.count + 1 : 1;
+    if (this.count < 100) {
+
+      this.setState({availability: clone});
     }
   },
 
@@ -114,10 +222,16 @@ var SettingsPage = React.createClass({
     ajax.get('/calendar/')
         .then(function (calendars) {
           console.log('calendars', calendars);
-          this.setState({calendars: calendars.items || []});
+          this.setState({
+            loading: false,
+            calendars: calendars.items || []
+          });
         }.bind(this))
         .catch(function (err) {
-          this.setState({calendarsError: err});
+          this.setState({
+            loading: false,
+            calendarsError: err
+          });
           console.log(err);
         }.bind(this));
   },
