@@ -1,37 +1,26 @@
 var SettingsPage = React.createClass({
   getInitialState: function () {
     this.loadCalendarList();
+    this.loadGroupsList();
     this.loadGroups();
 
     return {
       loading: true,
       user: this.props.user,
-      calendars: null,
-      calendarsError: null,
+      calendars: [],
+      groupsList: [],
       groups: null,
       groupsError: null,
 
-      // TODO: load from server
+      // TODO: load availability from server
       availability: [
         {calendar: 'jos@almende.org', title: 'Available', group: null},
         {calendar: 'almende.org_6aihngh5upbj1i7vusgir7qll4@group.calendar.google.com', title: 'Available', group: 'Developer'}
-      ],
-
-      calendarOptions: [
-        {value: 'jos@almende.org', text: 'Jos de Jong'},
-        {value: 'blabal', text: 'Availability'}
-      ],
-
-      // TODO: load from server
-      groupOptions: [
-        {value: 'Developer', text: 'Developer'},
-        {value: 'Consultant', text: 'Consultant'}
       ]
     };
   },
 
   render: function () {
-    console.log('loading', this.state.loading)
     var availability;
     if (this.state.loading) {
       availability = <div>
@@ -39,8 +28,16 @@ var SettingsPage = React.createClass({
         <div>loading <img className="loading" src="img/ajax-loader.gif" /></div>
       </div>;
     }
+    else if (this.state.groupsError) {
+      return <p className="error">{this.state.groupsError.toString()}</p>
+    }
     else {
-      availability = this.renderAvailabilityTable()
+      try {
+        availability = this.renderAvailabilityTable()
+      }
+      catch (err) {
+        console.log(err)
+      }
     }
 
     return <div>
@@ -66,18 +63,11 @@ var SettingsPage = React.createClass({
   },
 
   renderAvailabilityTable: function () {
-    console.log('availability', JSON.stringify(this.state.availability, null, 2))
+    var calendars = this.state.calendars;
+    var calendarOptions = this.getCalendarOptions();
+    var groupOptions = this.getGroupOptions();
 
-    var availability = this.state.availability;
-    var calendarOptions = this.state.calendars.map(function (calendar) {
-      return {
-        value: calendar.id,
-        text: calendar.summary || calendar.id
-      }
-    });
-    //var calendarOptions = this.state.calendarOptions;
-
-    console.log('calenarOptions', JSON.stringify(calendarOptions, null, 2))
+    console.log('render availability', this.state.availability, calendarOptions, groupOptions)
 
     var header = <tr key="header">
       <th>Calendar</th>
@@ -85,7 +75,9 @@ var SettingsPage = React.createClass({
       <th>Role (optional)</th>
     </tr>;
 
-    var rows = availability.map(function (entry, index) {
+    var rows = this.state.availability.map(function (entry, index) {
+      // TODO: for both selectize controls, utilize dynamic loading via query,
+      //       retrieve filtered groups from the server
       return <tr key={entry._id}>
             <td>
               <Selectize
@@ -110,13 +102,13 @@ var SettingsPage = React.createClass({
             </td>
             <td>
               <Selectize
-                  options={this.state.groupOptions}
+                  value={entry.group}
+                  options={groupOptions}
                   create={true}
                   createOnBlur={true}
-                  value={entry.group}
                   placeholder="Select a role..."
-                  onChange={function (event) {
-                    this.handleAvailabilityChange(index, 'group', event.target.value);
+                  onChange={function (value) {
+                    this.handleAvailabilityChange(index, 'group', value);
                   }.bind(this)}
               />
             </td>
@@ -135,60 +127,60 @@ var SettingsPage = React.createClass({
   },
 
   // TODO: cleanup
-  renderCalendarList: function () {
-    var selection = this.state.user && this.state.user.calendars || [];
-
-    if (this.state.calendarsError != null) {
-      return <p className="error">{this.state.calendarsError.toString()}</p>
-    }
-    else if (this.state.calendars != null) {
-      return <CalendarList
-          calendars={this.state.calendars}
-          selection={selection}
-          onChange={this.handleCalendarSelection} />;
-    }
-    else {
-      return <div>loading <img className="loading" src="img/ajax-loader.gif" /></div>;
-    }
-  },
+  //renderCalendarList: function () {
+  //  var selection = this.state.user && this.state.user.calendars || [];
+  //
+  //  if (this.state.calendarsError != null) {
+  //    return <p className="error">{this.state.calendarsError.toString()}</p>
+  //  }
+  //  else if (this.state.calendars != null) {
+  //    return <CalendarList
+  //        calendars={this.state.calendars}
+  //        selection={selection}
+  //        onChange={this.handleCalendarSelection} />;
+  //  }
+  //  else {
+  //    return <div>loading <img className="loading" src="img/ajax-loader.gif" /></div>;
+  //  }
+  //},
 
   // TODO: cleanup
-  renderGroups: function () {
-    if (this.state.groupsError != null) {
-      return <p className="error">{this.state.groupsError.toString()}</p>
-    }
-    else if (this.state.groups != null) {
-      var options = this.state.groups.map(function (name) {
-        var group = {
-          group: name,
-          count: 1,
-          members: [this.state.user.email]
-        };
-        group.text = this.groupLabel(group);
-        return group;
-      }.bind(this));
-
-      return <Selectize
-          ref="teams"
-          load={this.loadGroupList}
-          options={options}
-          value={this.state.groups}
-          create={true}
-          createOnBlur={true}
-          multiple={true}
-          placeholder="Select one or multiple teams..."
-          searchField={['group']}
-          sortField="text"
-          labelField="text"
-          valueField="group"
-          hideSelected={true}
-          onChange={this.handleGroupChange}
-      />;
-    }
-    else {
-      return <div>loading <img className="loading" src="img/ajax-loader.gif" /></div>;
-    }
-  },
+  //renderGroups: function () {
+  //  if (this.state.groupsError != null) {
+  //    return <p className="error">{this.state.groupsError.toString()}</p>
+  //  }
+  //  else if (this.state.groups != null) {
+  //    var options = this.state.groups.map(function (name) {
+  //      var group = {
+  //        group: name,
+  //        count: 1,
+  //        members: [this.state.user.email]
+  //      };
+  //      group.text = this.groupLabel(group);
+  //      return group;
+  //    }.bind(this));
+  //
+  //    return <Selectize
+  //        ref="teams"
+  //        load={this.loadGroupsList}
+  //        options={options}
+  //        value={this.state.groups}
+  //        create={true}
+  //        createOnBlur={true}
+  //        multiple={true}
+  //        placeholder="Select one or multiple teams..."
+  //        searchField={['group']}
+  //        sortField="text"
+  //        labelField="text"
+  //        valueField="group"
+  //        hideSelected={true}
+  //        onChange={this.handleGroupChange}
+  //    />;
+  //  }
+  //  else {
+  //    return <div>loading <img className="loading" src="img/ajax-loader.gif" /></div>;
+  //  }
+  //},
 
   handleAvailabilityChange: function (index, field, value) {
     var clone = this.state.availability.slice();
@@ -217,89 +209,127 @@ var SettingsPage = React.createClass({
     this.updateUser(user);
   },
 
-  // load the list with calendars
-  loadCalendarList: function () {
-    ajax.get('/calendar/')
-        .then(function (calendars) {
-          console.log('calendars', calendars);
-          this.setState({
-            loading: false,
-            calendars: calendars.items || []
-          });
-        }.bind(this))
-        .catch(function (err) {
-          this.setState({
-            loading: false,
-            calendarsError: err
-          });
-          console.log(err);
-        }.bind(this));
-  },
-
   // load the groups of the user
   loadGroups: function () {
     ajax.get('/groups')
         .then(function (groups) {
           console.log('groups', groups);
-          this.setState({groups: groups});
+          this.setState({
+            loading: false,
+            groups: groups
+          });
         }.bind(this))
         .catch(function (err) {
-          this.setState({groupsError: err});
+          this.setState({
+            loading: false,
+            groupsError: err
+          });
           console.log(err);
+        }.bind(this));
+  },
+
+  // load the list with calendars
+  loadCalendarList: function () {
+    ajax.get('/calendar/')
+        .then(function (calendars) {
+          console.log('calendars', calendars);
+          this.setState({calendars: calendars.items || []});
+        }.bind(this))
+        .catch(function (err) {
+          console.log(err);
+          displayError(err);
         }.bind(this));
   },
 
   // load all existing, aggregated groups
-  loadGroupList: function (query, callback) {
-    // TODO: utilize query, retrieve filtered groups from the server
-    if (this.options) {
-      return callback(this.options);
-    }
-
-    console.log('load all groups...');
+  loadGroupsList: function () {
     ajax.get('/groups/list')
-        .then(function (groups) {
-          console.log('all groups', groups);
-
-          // cache the retrieved groups
-          this.options = groups.map(function (group) {
-            return {
-              group: group.group,
-              text: this.groupLabel(group)
-            }
-          }.bind(this));
-
-          callback(this.options);
+        .then(function (groupsList) {
+          console.log('groupsList', groupsList);
+          this.setState({groupsList: groupsList});
         }.bind(this))
         .catch(function (err) {
-          this.options = [];
-          callback(this.options);
-
           console.log(err);
           displayError(err);
         }.bind(this));
   },
 
-  handleGroupChange: function (groups) {
-    ajax.put('/groups', groups || [])
-        .then(function (groups) {
-        }.bind(this))
-        .catch(function (err) {
-          console.log(err);
-          displayError(err);
-        }.bind(this));
+  // TODO: cleanup
+  //handleGroupChange: function (groups) {
+  //  ajax.put('/groups', groups || [])
+  //      .then(function (groups) {
+  //      }.bind(this))
+  //      .catch(function (err) {
+  //        console.log(err);
+  //        displayError(err);
+  //      }.bind(this));
+  //},
+
+  getCalendarOptions: function () {
+    var calendars = this.state.calendars.concat([]);
+
+    // add missing options to the calendar options and group options
+    this.state.availability.forEach(function (entry) {
+      if (entry.calendar) {
+        var calendarExists = calendars.some(function (calendar) {
+          return calendar.id == entry.calendar;
+        });
+        if (!calendarExists) {
+          calendars.push({id: entry.calendar});
+        }
+      }
+    }.bind(this));
+
+    // generate calendar options
+    return calendars.map(function (calendar) {
+      var text = calendar.summary || calendar.id;
+      if (text.length > 30) {
+        text = text.substring(0, 30) + '...';
+      }
+      return {
+        value: calendar.id,
+        text: text
+      }
+    });
+  },
+
+  getGroupOptions: function () {
+    var groupsList = this.state.groupsList;
+
+    // add missing options to the calendar options and group options
+    this.state.availability.forEach(function (entry) {
+      if (entry.group) {
+        var groupExists = groupsList.some(function (group) {
+          return group.name == entry.group;
+        });
+        if (!groupExists) {
+          groupsList.push({
+            name: entry.group,
+            count: 1,
+            members: [this.props.user.email]
+          });
+        }
+      }
+    }.bind(this));
+
+    // generate group options
+    return groupsList.map(function (group) {
+      return {
+        value: group.name,
+        text: this.groupLabel(group)
+      }
+    }.bind(this));
   },
 
   /**
    * Create a text label for a group
-   * @param {{group: string, count: number, members: string[]}} group
+   * @param {{name: string, count: number, members: string[]}} group
    * @returns {string}  Returns a label to be displayed in the selectize.js box
    */
   groupLabel: function (group) {
     // TODO: show member count. Should update when you add yourself
     // return group.group + (group.count !== undefined ? (' (' + group.count + ')') : '')
-
-    return group.group;
+    return group.name;
   },
 
   updateUser: function (user) {

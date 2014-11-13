@@ -1,8 +1,32 @@
-// See also: https://gist.github.com/HeyImAlex/d72d88fd606bbdf80f64
+/**
+ * React wrapper for the Selectize.js control
+ * https://github.com/brianreavis/selectize.js
+ *
+ * Other implementation: https://gist.github.com/HeyImAlex/d72d88fd606bbdf80f64
+ *
+ * Usage:
+ *
+ *   <Selectize value={this.state.value} options={this.state.options} onChange={this.handleChange} />
+ *   <Selectize value={this.state.value} options={this.state.options} onChange={this.handleChange} multiple="true" />
+ *
+ * Where:
+ *
+ * - `value` is a string
+ * - `options` is an array containing obects like {value: string, text: string}
+ * - `onChange` is a function, called with the new value (a string) as argument
+ *
+ * And you can use all options available for selectize.js
+ *
+ * Selectize methods can be accessed like:
+ *
+ *   <Selectize ref="mySelectize" ... />
+ *
+ *   this.refs.mySelectize.selectize.focus();
+ */
 var Selectize = React.createClass({
   render: function() {
     if (this.props.multiple) {
-      return <input type="text" ref="selectize" />;
+      return <input ref="selectize" />;
     }
     else {
       return <select ref="selectize" />;
@@ -26,9 +50,12 @@ var Selectize = React.createClass({
     var value = options.value;
     delete options.value;
 
+    // TODO: dynamically update options, instead of recreating the control in that case
+
     // test whether the settings are changed, in that case the control must
     // be re-created
-    var changed = JSON.stringify(options) != JSON.stringify(this.prevOptions); // TODO: improve this, this is dangerous
+    // TODO: this deep comparison, this is dangerous, object keys are unordered
+    var changed = JSON.stringify(options) != JSON.stringify(this.prevOptions);
     if (changed) {
       this.destroy();
       this.prevOptions = options;
