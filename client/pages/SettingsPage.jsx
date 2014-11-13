@@ -1,4 +1,10 @@
 var SettingsPage = React.createClass({
+  SHARE: [
+    {value:'calendar', text: 'Everyone with access to my calendar'},
+    {value:'contacts', text: 'All my contacts'},
+    {value:'everybody', text: 'Everybody'}
+  ],
+
   getInitialState: function () {
     this.loadCalendarList();
     this.loadGroupsList();
@@ -51,11 +57,11 @@ var SettingsPage = React.createClass({
 
       <h2>Sharing</h2>
       <p>Who is allowed to view your free/busy profile and plan events in your calendar via Liz&#63;</p>
-      <select value={this.state.user.share} onChange={this.handleShareSelection}>
-        <option value="calendar">Everyone with access to my calendar</option>
-        <option value="contacts">All my contacts</option>
-        <option value="everybody">Everybody</option>
-      </select>
+      <Selectize
+          value={this.state.user.share}
+          options={this.SHARE}
+          onChange={this.handleShareSelection}
+      />
 
       <h2>Account</h2>
       <p><button onClick={this.deleteAccount} className="btn btn-danger">Delete account</button></p>
@@ -202,9 +208,9 @@ var SettingsPage = React.createClass({
     this.updateUser(user);
   },
 
-  handleShareSelection: function (event) {
+  handleShareSelection: function (value) {
     var user = this.state.user;
-    user.share = event.target.value;
+    user.share = value;
 
     this.updateUser(user);
   },
