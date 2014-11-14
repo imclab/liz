@@ -418,12 +418,21 @@ app.get('/groups', function(req, res){
   });
 });
 
-// replace all groups of current user
+// create or update a group of a user
 app.put('/groups', function(req, res){
   var email = req.session.email;
-  var groups = req.body;
+  var group = req.body;
+  if (group.email === undefined) group.email = email;
 
-  db.groups.replace(email, groups, function (err, groups) {
+  db.groups.update(group, function (err, groups) {
+    if (err) return sendError(res, err);
+    return res.json(groups);
+  });
+});
+
+// delete a group
+app.delete('/groups/:id', function(req, res){
+  db.groups.remove(req.params.id, function (err, groups) {
     if (err) return sendError(res, err);
     return res.json(groups);
   });

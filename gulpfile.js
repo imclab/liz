@@ -19,12 +19,13 @@ var SRC_JS = [
   //'node_modules/bootflat/bootflat/js/jquery.fs.stepper.min.js',
   'node_modules/moment/min/moment.min.js',
   'node_modules/promise-js/promise.js',
+  'node_modules/uuid-v4.js/uuid-v4.min.js',
   'node_modules/juration/juration.js',
 
   'node_modules/react/dist/react.min.js',
 
-  'client/assets/react-radiogroup/react-radiogroup.jsx',
-  'node_modules/react-checkbox-group/react-checkbox-group.jsx',
+  //'client/assets/react-radiogroup/react-radiogroup.jsx',
+  //'node_modules/react-checkbox-group/react-checkbox-group.jsx',
   'node_modules/selectize/dist/js/standalone/selectize.min.js',
   'client/assets/selectize/Selectize.jsx',
 
