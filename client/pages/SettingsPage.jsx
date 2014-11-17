@@ -17,6 +17,7 @@ var SettingsPage = React.createClass({
       groupsError: null,
       calendarList: [],
       calendarListError: null,
+      calendarListLoading: true,
       groupsList: [],
 
       showHelp: false
@@ -87,19 +88,18 @@ var SettingsPage = React.createClass({
     if (this.state.calendarListError != null) {
       return <p className="error">{this.state.calendarListError.toString()}</p>
     }
-    else if (this.state.calendarList != null) {
+    else if (this.state.calendarListLoading) {
+      return <div>loading <img className="loading" src="img/ajax-loader.gif" /></div>;
+    }
+    else {
       return <CalendarList
           calendars={this.state.calendarList}
           selection={selection}
           onChange={this.handleCalendarSelection} />;
     }
-    else {
-      return <div>loading <img className="loading" src="img/ajax-loader.gif" /></div>;
-    }
   },
 
   renderAvailabilityTable: function () {
-    var calendarList = this.state.calendarList;
     var calendarOptions = this.getCalendarOptions();
     var groupOptions = this.getGroupOptions();
 
@@ -292,11 +292,15 @@ var SettingsPage = React.createClass({
           console.log('calendarList', calendarList);
           this.setState({
             calendarList: calendarList.items || [],
+            calendarListLoading: false,
             calendarListError: null
           });
         }.bind(this))
         .catch(function (err) {
-          this.setState({calendarListError: err});
+          this.setState({
+            calendarListLoading: false,
+            calendarListError: err
+          });
           console.log(err);
           displayError(err);
         }.bind(this));
