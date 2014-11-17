@@ -16,7 +16,10 @@ var SettingsPage = React.createClass({
       groups: null,
       groupsError: null,
       calendarList: [],
-      groupsList: []
+      calendarListError: null,
+      groupsList: [],
+
+      showHelp: false
     };
   },
 
@@ -45,9 +48,25 @@ var SettingsPage = React.createClass({
 
       <h2>Availability profile</h2>
       <p>
-        Specify when you are available an in what role. To mark youself available, create (recurring) events in your calendar having the specified tag as event title.
+        Specify when you are available an in what role. To mark yourself as available, create (recurring) events in your calendar having the specified tag as event title.
       </p>
       {availability}
+
+      <h2>Busy</h2>
+      <p>Select which of your calendars will be used to check when you are busy.&nbsp;
+      {
+          this.state.showHelp ?
+            <span>You are considered busy when you have an event in one of the selected calendars, unless this event:
+              <ul>
+                <li>is marked as <i>available</i> instead of <i>busy</i> in Google Calendar</li>
+                <li>is one of the events of your available profile(s), having the configured tag as title</li>
+              </ul>
+            </span>
+                :
+            <a href="#" onClick={this.showHelp}>Help</a>
+      }
+      </p>
+          {this.renderCalendarList()}
 
       <h2>Sharing</h2>
       <p>Who is allowed to view your free/busy profile and plan events in your calendar via Liz&#63;</p>
@@ -60,6 +79,23 @@ var SettingsPage = React.createClass({
       <h2>Account</h2>
       <p><button onClick={this.deleteAccount} className="btn btn-danger">Delete account</button></p>
     </div>;
+  },
+
+  renderCalendarList: function () {
+    var selection = this.state.user && this.state.user.calendars || [];
+
+    if (this.state.calendarListError != null) {
+      return <p className="error">{this.state.calendarListError.toString()}</p>
+    }
+    else if (this.state.calendarList != null) {
+      return <CalendarList
+          calendars={this.state.calendarList}
+          selection={selection}
+          onChange={this.handleCalendarSelection} />;
+    }
+    else {
+      return <div>loading <img className="loading" src="img/ajax-loader.gif" /></div>;
+    }
   },
 
   renderAvailabilityTable: function () {
@@ -215,6 +251,13 @@ var SettingsPage = React.createClass({
   },
   timers: {},
 
+  handleCalendarSelection: function (selection) {
+    var user = this.state.user;
+    user.calendars = selection;
+
+    this.updateUser(user);
+  },
+
   handleShareSelection: function (value) {
     var user = this.state.user;
     user.share = value;
@@ -238,6 +281,7 @@ var SettingsPage = React.createClass({
             groupsError: err
           });
           console.log(err);
+          displayError(err);
         }.bind(this));
   },
 
@@ -246,9 +290,13 @@ var SettingsPage = React.createClass({
     ajax.get('/calendar/')
         .then(function (calendarList) {
           console.log('calendarList', calendarList);
-          this.setState({calendarList: calendarList.items || []});
+          this.setState({
+            calendarList: calendarList.items || [],
+            calendarListError: null
+          });
         }.bind(this))
         .catch(function (err) {
+          this.setState({calendarListError: err});
           console.log(err);
           displayError(err);
         }.bind(this));
@@ -344,5 +392,11 @@ var SettingsPage = React.createClass({
             displayError(err);
           })
     }
+  },
+
+  showHelp: function (event) {
+    event.preventDefault();
+
+    this.setState({showHelp: true});
   }
 });
