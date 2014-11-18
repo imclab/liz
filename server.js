@@ -12,6 +12,7 @@ var async = require('async');
 
 var config = require('./config');
 var gutils = require('./lib/google-utils');
+var intervals = require('./shared/intervals');
 var authorization = require('./lib/authorization');
 
 // create a connection to mongodb
@@ -326,6 +327,8 @@ app.get('/freeBusy/:calendarId?', function(req, res) {
       now.getHours(), Math.round(now.getMinutes() / 30) * 30, 0);
   var defaultTimeMax = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7);
   var query = {
+    singleEvents: true, // expand recurring events
+    orderBy: 'startTime',
     timeMin: req.query.timeMin || defaultTimeMin.toISOString(),
     timeMax: req.query.timeMax || defaultTimeMax.toISOString()
   };
@@ -340,7 +343,8 @@ app.get('/freeBusy/:calendarId?', function(req, res) {
       });
     }
     else { // email
-      getAuthFreeBusy(email, calendarId, query, function (err, profile) {
+      var role = req.query.role || email;
+      getAuthFreeBusy(email, role, calendarId, query, function (err, profile) {
         if (profile) profile.id = calendarId;
         callback(err, profile);
       });
@@ -476,13 +480,15 @@ function stringifyError(err) {
 
 /**
  * Get the free busy profile of a user by it's email (will authorize)
- * @param {string} email          The email of the logged in user
- * @param {string} calendarId     A calendar id
+ * @param {string} email                The email of the logged in user
+ * @param {string} [role=undefined]     Group id for which to return the availability
+ *                                      is the users email by default
+ * @param {string} calendarId           A calendar id
  * @param {{timeMin: string, timeMax: string} | {timeMin: string, timeMax: string, items: Array.<{id: string}>}} query
  * @param {function} callback     Called as callback(err, {free: Array, busy:Array, errors:Array})
  *                                `err` is null
  */
-function getAuthFreeBusy(email, calendarId, query, callback) {
+function getAuthFreeBusy(email, role, calendarId, query, callback) {
   authorize(email, calendarId, function (err, accessToken, user) {
     if (err) {
       var profilesError = createProfileError(err);
@@ -495,7 +501,7 @@ function getAuthFreeBusy(email, calendarId, query, callback) {
             ]
           }, query);
 
-          return getFreeBusy(loggedInUser, loggedInQuery, function (err, profile) {
+          return getFreeBusy(loggedInUser, role, loggedInQuery, function (err, profile) {
             if (profile && profile.errors && profile.errors.length > 0) {
               // return the original error
               return callback(null, profilesError);
@@ -511,7 +517,7 @@ function getAuthFreeBusy(email, calendarId, query, callback) {
       });
     }
     else {
-      getFreeBusy(user, query, callback);
+      getFreeBusy(user, role, query, callback);
     }
   });
 }
@@ -538,7 +544,7 @@ function getGroupFreeBusy(groupId, query, callback) {
         if (err) console.log('Error getting group member', member , err);
         if (err) return callback(null, {free: [], busy: []});
 
-        getFreeBusy(user, query, callback);
+        getFreeBusy(user, groupId, query, callback);
       });
     }, function (err, profilesArray) {
       // merge the array with profile objects
@@ -559,11 +565,14 @@ function getGroupFreeBusy(groupId, query, callback) {
 /**
  * Get the free busy profile of a user
  * @param {Object} user
+ * @param {string} [role=undefined]   Role for which to get the users busy profile
+ *                                    if undefined, the profile for the users
+ *                                    email is returned.
  * @param {{timeMin: string, timeMax: string} | {timeMin: string, timeMax: string, items: Array.<{id: string}>}} query
  * @param {function} callback     Called as callback(err, {free: Array, busy:Array, errors:Array})
  *                                `err` is null
  */
-function getFreeBusy(user, query, callback) {
+function getFreeBusy(user, role, query, callback) {
   var _query = _.extend({}, query);
   if (!query.items) {
     _query.items = (user.calendars || []).map(function (calendarId) {
@@ -571,17 +580,103 @@ function getFreeBusy(user, query, callback) {
     })
   }
 
-  gcal(user.auth.accessToken).freebusy.query(_query, function(err, data) {
+  // first get all groups of this user
+  db.groups.get(user.email, function (err, allGroups) {
     if (err) return callback(null, createProfileError(err));
 
-    var profiles = data && data.calendars || {};
+    // filter groups with the current role
+    var groups = allGroups.filter(function (group) {
+      return (group.group == role) &&
+          (typeof group.calendar == 'string') &&
+          (group.calendar.length > 0) &&
+          (typeof group.tag == 'string') &&
+          (group.tag.length > 0)
+    });
 
-    // merge this users (private) calendars, do not expose them
-    var mergedProfile = gutils.mergeBusy(profiles, query);
-    mergedProfile.errors = gutils.mergeErrors(profiles);
+    // create a map of tags per calendarId
+    var tags = groups.reduce(function (tags, group) {
+      var calendarId = group.calendar;
+      if (tags[calendarId] == undefined) {
+        tags[calendarId] = [];
+      }
+      tags[calendarId].push(group.tag.toLowerCase());
+      // yes yes, tags could contain the same tag multiple times. Doesn't really matter
 
-    return callback(null, mergedProfile);
+      return tags;
+    }, {});
+
+    // create an Array with calendars to consult
+    var calendarIds = _.uniq(Object.keys(tags).concat(user.calendars || []));
+
+    // read events for each of the calendars
+    var notAvailable = []; // intervals from events of the user (busy)
+    var available = [];    // intervals from availability tags of this user
+    async.each(calendarIds, function (calendarId, cb) {
+      gcal(user.auth.accessToken).events.list(calendarId, query, function (err, response) {
+        if (err) return cb(err);
+
+        var calendarTags = tags[calendarId];
+        response.items && response.items.forEach(function (item) {
+          // ignore all day events
+          // FIXME: do not ignore all day events?
+          if (item.start.dateTime !== undefined && item.end.dateTime !== undefined) {
+            var interval = {
+              start: item.start.dateTime || item.start.date,
+              end:   item.end.dateTime   || item.end.date
+            };
+
+            if (calendarTags && calendarTags.indexOf(item.summary.toLowerCase()) != -1) {
+              // this is an availability tag
+              available.push(interval);
+            }
+            else {
+              // this is a regular event (user is busy)
+              // TODO: check whether this item is marked as busy or as available (is there a field for that in the returned calendar items?)
+              notAvailable.push(interval);
+            }
+          }
+        });
+
+        return cb(null);
+      });
+    }, function (err) {
+      if (err) return callback(null, createProfileError(err));
+
+      if (Object.keys(tags).length === 0 && role == user.email) {
+        // mark as available the whole interval if there is no availability
+        // profile configured
+        available.push({
+          start: query.timeMin,
+          end: query.timeMax
+        });
+      }
+
+      // merge intervals, change into a freeBusy profile
+      var inverted = intervals.invert(intervals.merge(available), query.timeMin, query.timeMax);
+      var busy     = intervals.merge(inverted.concat(notAvailable));
+      var free     = intervals.invert(busy, query.timeMin, query.timeMax);
+
+      return callback(null, {
+        free: free,
+        busy: busy,
+        errors: []
+      })
+    });
+
   });
+
+  // TODO: cleanup
+  //gcal(user.auth.accessToken).freebusy.query(_query, function(err, data) {
+  //  if (err) return callback(null, createProfileError(err));
+  //
+  //  var profiles = data && data.calendars || {};
+  //
+  //  // merge this users (private) calendars, do not expose them
+  //  var mergedProfile = gutils.mergeBusy(profiles, query);
+  //  mergedProfile.errors = gutils.mergeErrors(profiles);
+  //
+  //  return callback(null, mergedProfile);
+  //});
 }
 
 /**
@@ -602,7 +697,7 @@ function getFreeGroupMembers(groupId, query, callback) {
 
         if (!user) return callback(false);
 
-        getFreeBusy(user, query, function (err, profile) {
+        getFreeBusy(user, groupId, query, function (err, profile) {
           return callback(profile.free.some(function (free) {
             return (free.start <= query.timeMin && free.end >= query.timeMax);
           }));
