@@ -57,7 +57,8 @@ var SettingsPage = React.createClass({
       <p>Select which of your calendars will be used to check when you are busy.&nbsp;
       {
           this.state.showHelp ?
-            <span>You are considered busy when you have an event in one of the selected calendars, unless this event:
+            <span><br/><br/>
+              You are considered busy when you have an event in one of the selected calendars, unless this event:
               <ul>
                 <li>is marked as <i>available</i> instead of <i>busy</i> in Google Calendar</li>
                 <li>is one of the events of your available profile(s), having the configured tag as title</li>
@@ -104,9 +105,9 @@ var SettingsPage = React.createClass({
     var groupOptions = this.getGroupOptions();
 
     var header = <tr key="header">
+      <th>Role</th>
       <th>Calendar</th>
       <th>Tag</th>
-      <th>Role (optional)</th>
       <th></th>
     </tr>;
 
@@ -114,6 +115,18 @@ var SettingsPage = React.createClass({
       // TODO: for both selectize controls, utilize dynamic loading via query,
       //       retrieve filtered groups from the server
       return <tr key={entry._id || 'new'}>
+            <td>
+              <Selectize
+                  value={entry.group}
+                  options={groupOptions}
+                  create={true}
+                  createOnBlur={true}
+                  placeholder="Select a role..."
+                  onChange={function (value) {
+                    this.handleGroupChange(index, 'group', value);
+                  }.bind(this)}
+              />
+            </td>
             <td>
               <Selectize
                   options={calendarOptions}
@@ -132,18 +145,6 @@ var SettingsPage = React.createClass({
                   placeholder="Event title..."
                   onChange={function (event) {
                     this.handleGroupChange(index, 'tag', event.target.value);
-                  }.bind(this)}
-              />
-            </td>
-            <td>
-              <Selectize
-                  value={entry.group}
-                  options={groupOptions}
-                  create={true}
-                  createOnBlur={true}
-                  placeholder="Select a role..."
-                  onChange={function (value) {
-                    this.handleGroupChange(index, 'group', value);
                   }.bind(this)}
               />
             </td>
@@ -201,7 +202,7 @@ var SettingsPage = React.createClass({
       _id: UUID(),
       tag: 'Available',
       calendar: this.props.user.email || '',
-      group: ''
+      group: this.props.user.email || ''
     });
 
     this.setState({groups: groups});
@@ -348,8 +349,12 @@ var SettingsPage = React.createClass({
   },
 
   getGroupOptions: function () {
+    var user = this.props.user;
+
+    // all groups
     var groupsList = this.state.groupsList;
 
+    // all groups of the user
     // add missing options to the calendar options and group options
     this.state.groups.forEach(function (entry) {
       if (entry.group) {
@@ -360,11 +365,23 @@ var SettingsPage = React.createClass({
           groupsList.push({
             name: entry.group,
             count: 1,
-            members: [this.props.user.email]
+            members: [user.email]
           });
         }
       }
     }.bind(this));
+
+    // email address of the user
+    var selfExists = groupsList.some(function (group) {
+      return group.name == user.email;
+    });
+    if (!selfExists) {
+      groupsList.push({
+        name: user.email,
+        count: 1,
+        members: [user.email]
+      });
+    }
 
     // generate group options
     return groupsList.map(function (group) {
