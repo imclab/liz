@@ -582,14 +582,17 @@ function getFreeBusy(user, role, query, callback) {
   }
 
   // get all groups of this user filtered by the selected role
-  getGroups(user, role, function (err, groups) {
+  getGroups(user, function (err, groups) {
     if (err) return callback(null, createProfileError(err));
 
     // create a map of tags per calendarId
-    var tags = getTags(groups);
+    var allTags = getTags(groups);
+    var filteredTags = getTags(groups.filter(function (group) {
+      return (group.group == role);
+    }));
 
     // create an Array with calendars to consult
-    var calendarIds = _.uniq(Object.keys(tags).concat(user.calendars || []));
+    var calendarIds = _.uniq(Object.keys(allTags).concat(user.calendars || []));
 
     // read events for each of the calendars
     var notAvailable = []; // intervals from events of the user (busy)
@@ -598,22 +601,24 @@ function getFreeBusy(user, role, query, callback) {
       gcal(user.auth.accessToken).events.list(calendarId, query, function (err, response) {
         if (err) return cb(err);
 
-        var calendarTags = tags[calendarId];
         response.items && response.items.forEach(function (item) {
           // ignore all day events
-          // FIXME: do not ignore all day events? or make that customizable?
+          // FIXME: do not ignore all day events? or make that customizable? Or introduce a "#ignore" tag or something?
           if (item.start.dateTime !== undefined && item.end.dateTime !== undefined) {
             // create interval, normalize start and end into an ISO date string
             var interval = {
               start: moment(item.start.dateTime || item.start.date).toISOString(),
               end:   moment(item.end.dateTime   || item.end.date).toISOString()
             };
+            var summary = item.summary.toLowerCase();
 
-            if (calendarTags && calendarTags.indexOf(item.summary.toLowerCase()) != -1) {
+            if (filteredTags[calendarId] &&
+                filteredTags[calendarId].indexOf(summary) != -1) {
               // this is an availability tag
               available.push(interval);
             }
-            else {
+            else if (allTags[calendarId] == undefined ||
+                allTags[calendarId].indexOf(summary) == -1) {
               // this is a regular event (user is busy)
               // TODO: check whether this item is marked as busy or as available (is there a field for that in the returned calendar items?)
               notAvailable.push(interval);
@@ -626,7 +631,7 @@ function getFreeBusy(user, role, query, callback) {
     }, function (err) {
       if (err) return callback(null, createProfileError(err));
 
-      if (Object.keys(tags).length === 0 &&
+      if (Object.keys(filteredTags).length === 0 &&
           (role == user.email || role == undefined)) {
         // mark as available the whole interval if there is no availability profile configured
         available.push({
@@ -732,24 +737,20 @@ function chooseGroupMembers(event, callback) {
 }
 
 /**
- * Get all groups of a user filtered by one role
+ * Get all groups of a user
  * @param {Object} user
- * @param {string} [role]  The uses email by default
  * @param {function (err: Error, groups: Array)} callback
  *           Returns an array with groups. Each group is an object structured
  *           as: {group: string, email: string, calendar: string, tag: string}
  */
-function getGroups(user, role, callback) {
-  role = role || user.email;
-
+function getGroups(user, callback) {
   // first get all groups of this user
   db.groups.get(user.email, function (err, allGroups) {
     if (err) return callback(err, null);
 
     // filter groups with the current role
     var groups = allGroups.filter(function (group) {
-      return (group.group == role) &&
-          (typeof group.calendar == 'string') &&
+      return (typeof group.calendar == 'string') &&
           (group.calendar.length > 0) &&
           (typeof group.tag == 'string') &&
           (group.tag.length > 0)
