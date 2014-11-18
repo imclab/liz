@@ -268,7 +268,7 @@ app.get('/calendar/:calendarId', function(req, res){
     var now = new Date();
     var defaultTimeMin = new Date(now.getFullYear(), now.getMonth(), now.getDate(),
         now.getHours(), Math.round(now.getMinutes() / 30) * 30, 0);
-    var defaultTimeMax = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7);
+    var defaultTimeMax = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 14);
 
     var options = {
       singleEvents: true, // expand recurring events
@@ -327,7 +327,7 @@ app.get('/freeBusy/:calendarId?', function(req, res) {
   var now = new Date();
   var defaultTimeMin = new Date(now.getFullYear(), now.getMonth(), now.getDate(),
       now.getHours(), Math.round(now.getMinutes() / 30) * 30, 0);
-  var defaultTimeMax = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7);
+  var defaultTimeMax = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 14);
   var query = {
     singleEvents: true, // expand recurring events
     orderBy: 'startTime',

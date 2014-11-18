@@ -23,8 +23,6 @@
  *                        timeslot to be selected.
  */
 var TimeslotList = React.createClass({
-  MAX_TIMESLOTS: 10,
-
   getInitialState: function () {
     return {
       value: this.props.value || 0
@@ -39,7 +37,7 @@ var TimeslotList = React.createClass({
       return timeslot ? formatHumanDate(timeslot.start) : null;
     }
 
-    var rows = timeslots.slice(0, 10).map(function (timeslot, index) {
+    var rows = timeslots.map(function (timeslot, index) {
       var prevDate = getDate(timeslots[index - 1]);
       var date     = getDate(timeslot);
       var nextDate = getDate(timeslots[index + 1]);

@@ -24,6 +24,7 @@ var EventScheduler = React.createClass({
     {value: '8 hours'}
   ],
   FIELDS: ['summary', 'attendees', 'duration', 'location', 'description', 'start', 'end'],
+  MAX_TIMESLOTS: 10,
 
   getInitialState: function () {
     var user = this.props.user;
@@ -214,7 +215,7 @@ var EventScheduler = React.createClass({
       var timeslots = (this.state.timeslots.length > 0) ?
           <TimeslotList
               ref="timeslots"
-              timeslots={this.state.timeslots}
+              timeslots={this.state.timeslots.slice(0, this.MAX_TIMESLOTS)}
               value={selected}
               onChange={this.handleTimeslotChange}
           /> :
