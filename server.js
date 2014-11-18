@@ -404,6 +404,8 @@ app.get('/contacts/:email?', function(req, res){
 
 app.get('/groups*', auth);
 
+// TODO: improve the REST API
+
 // get all groups
 app.get('/groups/list', function(req, res){
   var options = req.query;
@@ -581,23 +583,20 @@ function getFreeBusy(user, role, query, callback) {
     })
   }
 
-  // get all groups of this user filtered by the selected role
-  getGroups(user, function (err, groups) {
+  // get all groups of this user
+  db.groups.get(user.email, function (err, groups) {
     if (err) return callback(null, createProfileError(err));
 
-    // create a map of tags per calendarId
+    // create an array with all tags, and one with all tags belonging to the specified role
     var allTags = getTags(groups);
     var filteredTags = getTags(groups.filter(function (group) {
       return (group.group == role);
     }));
 
-    // create an Array with calendars to consult
-    var calendarIds = _.uniq(Object.keys(allTags).concat(user.calendars || []));
-
     // read events for each of the calendars
     var notAvailable = []; // intervals from events of the user (busy)
     var available = [];    // intervals from availability tags of this user
-    async.each(calendarIds, function (calendarId, cb) {
+    async.each(user.calendars, function (calendarId, cb) {
       gcal(user.auth.accessToken).events.list(calendarId, query, function (err, response) {
         if (err) return cb(err);
 
@@ -612,16 +611,14 @@ function getFreeBusy(user, role, query, callback) {
             };
             var summary = item.summary.toLowerCase();
 
-            if (filteredTags[calendarId] &&
-                filteredTags[calendarId].indexOf(summary) != -1) {
-              // this is an availability tag
-              available.push(interval);
-            }
-            else if (allTags[calendarId] == undefined ||
-                allTags[calendarId].indexOf(summary) == -1) {
+            if (allTags.indexOf(summary) == -1) {
               // this is a regular event (user is busy)
               // TODO: check whether this item is marked as busy or as available (is there a field for that in the returned calendar items?)
               notAvailable.push(interval);
+            }
+            else if (filteredTags.indexOf(summary) != -1) {
+              // this is an availability tag for the specified role
+              available.push(interval);
             }
           }
         });
@@ -631,8 +628,7 @@ function getFreeBusy(user, role, query, callback) {
     }, function (err) {
       if (err) return callback(null, createProfileError(err));
 
-      if (Object.keys(filteredTags).length === 0 &&
-          (role == user.email || role == undefined)) {
+      if (filteredTags.length === 0 && (role == user.email || role == undefined)) {
         // mark as available the whole interval if there is no availability profile configured
         available.push({
           start: query.timeMin,
@@ -737,46 +733,20 @@ function chooseGroupMembers(event, callback) {
 }
 
 /**
- * Get all groups of a user
- * @param {Object} user
- * @param {function (err: Error, groups: Array)} callback
- *           Returns an array with groups. Each group is an object structured
- *           as: {group: string, email: string, calendar: string, tag: string}
- */
-function getGroups(user, callback) {
-  // first get all groups of this user
-  db.groups.get(user.email, function (err, allGroups) {
-    if (err) return callback(err, null);
-
-    // filter groups with the current role
-    var groups = allGroups.filter(function (group) {
-      return (typeof group.calendar == 'string') &&
-          (group.calendar.length > 0) &&
-          (typeof group.tag == 'string') &&
-          (group.tag.length > 0)
-    });
-
-    return callback(null, groups);
-  });
-}
-
-/**
- * Get a map with tags per calendar from an array with groups
+ * Get an array with all merged tags found in each of the groups.
  * @param {Array} groups
- * @returns {Object.<string, Array.<string>>} Returns an object with tags per calendar
+ * @returns {Array.<string>} Returns an array with lower case tags
  */
 function getTags(groups) {
-  // create a map of tags per calendarId
-  return groups.reduce(function (tags, group) {
-    var calendarId = group.calendar;
-    if (tags[calendarId] == undefined) {
-      tags[calendarId] = [];
+  var tags = groups.reduce(function (tags, group) {
+    if (group.tag != undefined) {
+      tags.push(group.tag.toLowerCase());
     }
-    tags[calendarId].push(group.tag.toLowerCase());
-    // yes yes, tags could contain the same tag multiple times. Doesn't really matter
-
     return tags;
-  }, {});
+  }, []);
+
+  // remove duplicates
+  return _.uniq(tags);
 }
 
 /**

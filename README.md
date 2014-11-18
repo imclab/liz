@@ -196,6 +196,8 @@ To the the code, run:
   Query parameters:
   - `timeMin: string` ISO date string with the start of a time interval.
   - `timeMax: string` ISO date string with the end of a time interval.
+  - `role: string`    A user role (like "Consultant"). If not provided,
+    the users email address is used as role.
 
   Returns:
 
@@ -272,21 +274,34 @@ To the the code, run:
 
 - `GET /groups`
 
-  Get all groups of the current users. Returns an Array with group names like:
+  Get all groups of the current users. Returns an Array with groups like:
 
   ```json
   [
-    "Developer"
+    {
+      "_id": "6a409334-72a5-4304-98ac-26318348cb18",
+      "email": "jos@almende.org",
+      "group": "Developer",
+      "tag": "Consultancy"
+    }
   ]
   ```
 
 - `PUT /groups`
 
-  Replace all groups of current user. Request body must contain an Array with
-  group names:
+  Create or update the group of current user. Request body must contain a group
+  like:
 
   ```json
-  [
-    "Developer"
-  ]
+  {
+    "_id": "6a409334-72a5-4304-98ac-26318348cb18",
+    "email": "jos@almende.org",
+    "group": "Developer",
+    "tag": "Consultancy"
+  }
   ```
+
+- `DELETE /groups/:id`
+
+  Delete a group by its id.
+

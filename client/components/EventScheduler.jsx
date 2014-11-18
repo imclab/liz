@@ -262,9 +262,9 @@ var EventScheduler = React.createClass({
           {this.state.error != null ? this.state.error.toString() : ''}
         </p>
         <p>
-          <button onClick={this.back} className="btn btn-normal">Back</button
-          > <button onClick={this.create} className="btn btn-primary" disabled={this.state.creating}>Create the event</button>
-        {creating}
+          <button onClick={this.back} className="btn btn-normal">Back</button>&nbsp;
+          <button onClick={this.create} className="btn btn-primary" disabled={this.state.creating}>Create the event</button>&nbsp;
+          {creating}
         </p>
     </div>;
   },

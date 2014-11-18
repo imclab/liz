@@ -52,13 +52,12 @@ var SettingsPage = React.createClass({
 
       <h2>Availability profile</h2>
       <p>
-        Specify when you are available an in what role.&nbsp;
+        Specify roles and tags for availability events.&nbsp;
       {
           this.state.showHelpAvailability ?
               <ul>
-                <li>Specify at least one role. Your default role is your own email address. You can create additional roles like "Consultant" or "Office hour".</li>
-                <li>Select the calendar in which you will define your availability, and enter a tag name.</li>
-                <li>To mark yourself as available, create (recurring) events in your calendar having the specified tag as event title. You can for example create five recurring events for this, Monday to Friday from 9:00 to 17:00, to denote your working hours.</li>
+                <li>Specify at least one role. Your default role is your own email address. You can create additional roles like "Consultant" or "Office hour". For each role, specify a tag. This tag can be anything, for example "Available" or "Consultancy".</li>
+                <li>To mark yourself as available, create (recurring) events in your calendar having the specified tag as event title. You can for example create five recurring events from Monday to Friday, 9:00 to 17:00, to denote your working hours.</li>
                 <li>To check when you are available in a specific role, Liz will filter all events with entered tag as event title from the selected calendar.</li>
               </ul>
               :
@@ -69,15 +68,15 @@ var SettingsPage = React.createClass({
       </p>
       {availability}
 
-      <h2>Busy</h2>
-      <p>Select which of your calendars will be used to check when you are busy.&nbsp;
+      <h2>Calendars</h2>
+      <p>Select which of your calendars will be used to determine your availability.&nbsp;
       {
           this.state.showHelpBusy ?
             <span><br/><br/>
-              You are considered busy when you have an event in one of the selected calendars, unless this event:
+                To determine your availability, the calendar events of all selected calendars are retrieved. You are considered available at some timeslot when both:
               <ul>
-                <li>is marked as <i>available</i> instead of <i>busy</i> in Google Calendar</li>
-                <li>is one of the events of your available profile(s), having the configured tag as title</li>
+                <li>the timeslot falls within an availability event: an event having one of the specified availability tags as title.</li>
+                <li>there are no events overlapping with this timeslot.</li>
               </ul>
             </span>
                 :
@@ -119,12 +118,10 @@ var SettingsPage = React.createClass({
   },
 
   renderAvailabilityTable: function () {
-    var calendarOptions = this.getCalendarOptions();
     var groupOptions = this.getGroupOptions();
 
     var header = <tr key="header">
       <th>Role</th>
-      <th>Calendar</th>
       <th>Tag</th>
       <th></th>
     </tr>;
@@ -142,16 +139,6 @@ var SettingsPage = React.createClass({
                   placeholder="Select a role..."
                   onChange={function (value) {
                     this.handleGroupChange(index, 'group', value);
-                  }.bind(this)}
-              />
-            </td>
-            <td>
-              <Selectize
-                  options={calendarOptions}
-                  value={entry.calendar}
-                  placeholder="Select a calendar..."
-                  onChange={function (value) {
-                    this.handleGroupChange(index, 'calendar', value);
                   }.bind(this)}
               />
             </td>
@@ -181,9 +168,8 @@ var SettingsPage = React.createClass({
       return <div>
         <table className="table">
           <colgroup>
-            <col width="30%" />
-            <col width="30%" />
-            <col width="30%" />
+            <col width="50%" />
+            <col width="40%" />
             <col width="10%" />
           </colgroup>
           <tbody>
@@ -219,7 +205,6 @@ var SettingsPage = React.createClass({
     groups.push({
       _id: UUID(),
       tag: 'Available',
-      calendar: this.props.user.email || '',
       group: this.props.user.email || ''
     });
 
@@ -336,34 +321,6 @@ var SettingsPage = React.createClass({
           console.log(err);
           displayError(err);
         }.bind(this));
-  },
-
-  getCalendarOptions: function () {
-    var calendarList = this.state.calendarList.concat([]);
-
-    // add missing options to the calendar options and group options
-    this.state.groups.forEach(function (entry) {
-      if (entry.calendar) {
-        var calendarExists = calendarList.some(function (calendar) {
-          return calendar.id == entry.calendar;
-        });
-        if (!calendarExists) {
-          calendarList.push({id: entry.calendar});
-        }
-      }
-    }.bind(this));
-
-    // generate calendar options
-    return calendarList.map(function (calendar) {
-      var text = calendar.summary || calendar.id;
-      if (text.length > 30) {
-        text = text.substring(0, 30) + '...';
-      }
-      return {
-        value: calendar.id,
-        text: text
-      }
-    });
   },
 
   getGroupOptions: function () {
