@@ -580,30 +580,12 @@ function getFreeBusy(user, role, query, callback) {
     })
   }
 
-  // first get all groups of this user
-  db.groups.get(user.email, function (err, allGroups) {
+  // get all groups of this user filtered by the selected role
+  getGroups(user, role, function (err, groups) {
     if (err) return callback(null, createProfileError(err));
 
-    // filter groups with the current role
-    var groups = allGroups.filter(function (group) {
-      return (group.group == role) &&
-          (typeof group.calendar == 'string') &&
-          (group.calendar.length > 0) &&
-          (typeof group.tag == 'string') &&
-          (group.tag.length > 0)
-    });
-
     // create a map of tags per calendarId
-    var tags = groups.reduce(function (tags, group) {
-      var calendarId = group.calendar;
-      if (tags[calendarId] == undefined) {
-        tags[calendarId] = [];
-      }
-      tags[calendarId].push(group.tag.toLowerCase());
-      // yes yes, tags could contain the same tag multiple times. Doesn't really matter
-
-      return tags;
-    }, {});
+    var tags = getTags(groups);
 
     // create an Array with calendars to consult
     var calendarIds = _.uniq(Object.keys(tags).concat(user.calendars || []));
@@ -618,7 +600,7 @@ function getFreeBusy(user, role, query, callback) {
         var calendarTags = tags[calendarId];
         response.items && response.items.forEach(function (item) {
           // ignore all day events
-          // FIXME: do not ignore all day events?
+          // FIXME: do not ignore all day events? or make that customizable?
           if (item.start.dateTime !== undefined && item.end.dateTime !== undefined) {
             var interval = {
               start: item.start.dateTime || item.start.date,
@@ -642,9 +624,9 @@ function getFreeBusy(user, role, query, callback) {
     }, function (err) {
       if (err) return callback(null, createProfileError(err));
 
-      if (Object.keys(tags).length === 0 && role == user.email) {
-        // mark as available the whole interval if there is no availability
-        // profile configured
+      if (Object.keys(tags).length === 0 &&
+          (role == user.email || role == undefined)) {
+        // mark as available the whole interval if there is no availability profile configured
         available.push({
           start: query.timeMin,
           end: query.timeMax
@@ -745,6 +727,53 @@ function chooseGroupMembers(event, callback) {
   }, function (err) {
     err ? callback(err, null) : callback(null, event);
   });
+}
+
+/**
+ * Get all groups of a user filtered by one role
+ * @param {Object} user
+ * @param {string} [role]  The uses email by default
+ * @param {function (err: Error, groups: Array)} callback
+ *           Returns an array with groups. Each group is an object structured
+ *           as: {group: string, email: string, calendar: string, tag: string}
+ */
+function getGroups(user, role, callback) {
+  role = role || user.email;
+
+  // first get all groups of this user
+  db.groups.get(user.email, function (err, allGroups) {
+    if (err) return callback(err, null);
+
+    // filter groups with the current role
+    var groups = allGroups.filter(function (group) {
+      return (group.group == role) &&
+          (typeof group.calendar == 'string') &&
+          (group.calendar.length > 0) &&
+          (typeof group.tag == 'string') &&
+          (group.tag.length > 0)
+    });
+
+    return callback(null, groups);
+  });
+}
+
+/**
+ * Get a map with tags per calendar from an array with groups
+ * @param {Array} groups
+ * @returns {Object.<string, Array.<string>>} Returns an object with tags per calendar
+ */
+function getTags(groups) {
+  // create a map of tags per calendarId
+  return groups.reduce(function (tags, group) {
+    var calendarId = group.calendar;
+    if (tags[calendarId] == undefined) {
+      tags[calendarId] = [];
+    }
+    tags[calendarId].push(group.tag.toLowerCase());
+    // yes yes, tags could contain the same tag multiple times. Doesn't really matter
+
+    return tags;
+  }, {});
 }
 
 /**
