@@ -41,6 +41,7 @@ app.use(passport.initialize());
 app.use('/', express.static(__dirname + '/client'));
 app.use('/node_modules/', express.static(__dirname + '/node_modules'));
 app.use('/shared/', express.static(__dirname + '/shared'));
+app.use('/fonts/', express.static(__dirname + '/node_modules/bootflat/fonts'));
 
 app.listen(config.PORT);
 console.log('Server listening at http://localhost:' + config.PORT);
