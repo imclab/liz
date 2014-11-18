@@ -28,7 +28,8 @@ app.use(session({
   //store: new MongoStore({url: MONGO_URL + '/' + MONGO_DB + '/sessions', ssl: PRODUCTION}), // TODO: use SSL
   store: new MongoStore({
     url: config.MONGO_URL + '/' + config.MONGO_DB + '/sessions',
-    stringify: false
+    stringify: false,
+    auto_reconnect: true
   }),
   secret: 'youre not going to guess this one',
   resave: true,
