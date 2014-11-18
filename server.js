@@ -1,5 +1,6 @@
 var request = require('request');
 var express  = require('express');
+var moment = require('moment');
 var cookieParser  = require('cookie-parser');
 var bodyParser  = require('body-parser');
 var session = require('express-session');
@@ -602,9 +603,10 @@ function getFreeBusy(user, role, query, callback) {
           // ignore all day events
           // FIXME: do not ignore all day events? or make that customizable?
           if (item.start.dateTime !== undefined && item.end.dateTime !== undefined) {
+            // create interval, normalize start and end into an ISO date string
             var interval = {
-              start: item.start.dateTime || item.start.date,
-              end:   item.end.dateTime   || item.end.date
+              start: moment(item.start.dateTime || item.start.date).toISOString(),
+              end:   moment(item.end.dateTime   || item.end.date).toISOString()
             };
 
             if (calendarTags && calendarTags.indexOf(item.summary.toLowerCase()) != -1) {
