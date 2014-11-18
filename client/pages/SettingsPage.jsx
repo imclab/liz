@@ -20,7 +20,8 @@ var SettingsPage = React.createClass({
       calendarListLoading: true,
       groupsList: [],
 
-      showHelp: false
+      showHelpAvailability: false,
+      showHelpBusy: false
     };
   },
 
@@ -44,19 +45,34 @@ var SettingsPage = React.createClass({
       }
     }
 
+    // TODO: replace the inline help texts with a nice popover
+
     return <div>
       <h1>Settings</h1>
 
       <h2>Availability profile</h2>
       <p>
-        Specify when you are available an in what role. To mark yourself as available, create (recurring) events in your calendar having the specified tag as event title.
+        Specify when you are available an in what role.&nbsp;
+      {
+          this.state.showHelpAvailability ?
+              <ul>
+                <li>Specify at least one role. Your default role is your own email address. You can create additional roles like "Consultant" or "Office hour".</li>
+                <li>Select the calendar in which you will define your availability, and enter a tag name.</li>
+                <li>To mark yourself as available, create (recurring) events in your calendar having the specified tag as event title. You can for example create five recurring events for this, Monday to Friday from 9:00 to 17:00, to denote your working hours.</li>
+                <li>To check when you are available in a specific role, Liz will filter all events with entered tag as event title from the selected calendar.</li>
+              </ul>
+              :
+              <a href="#" title="How does this work?" onClick={this.showHelpAvailability}>
+                <span className="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
+              </a>
+          }
       </p>
       {availability}
 
       <h2>Busy</h2>
       <p>Select which of your calendars will be used to check when you are busy.&nbsp;
       {
-          this.state.showHelp ?
+          this.state.showHelpBusy ?
             <span><br/><br/>
               You are considered busy when you have an event in one of the selected calendars, unless this event:
               <ul>
@@ -65,7 +81,9 @@ var SettingsPage = React.createClass({
               </ul>
             </span>
                 :
-            <a href="#" onClick={this.showHelp}>Help</a>
+            <a href="#" title="How does this work?" onClick={this.showHelpBusy}>
+              <span className="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
+            </a>
       }
       </p>
           {this.renderCalendarList()}
@@ -415,9 +433,15 @@ var SettingsPage = React.createClass({
     }
   },
 
-  showHelp: function (event) {
+  showHelpBusy: function (event) {
     event.preventDefault();
 
-    this.setState({showHelp: true});
+    this.setState({showHelpBusy: true});
+  },
+
+  showHelpAvailability: function (event) {
+    event.preventDefault();
+
+    this.setState({showHelpAvailability: true});
   }
 });
