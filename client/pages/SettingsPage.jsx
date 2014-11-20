@@ -90,20 +90,21 @@ var SettingsPage = React.createClass({
 
         var text = (calendar !== undefined) ? calendar.summary : calendarId;
         if (index != calendarsArray.length - 1) {
-          text += ', ';
+          text += ',';
         }
         var style = {
-          //display: 'inline-block',
+          display: 'inline-block',
           maxWidth: 200,
-          overflow: 'hidden'
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          paddingRight: 5
           //color: calendar && calendar.foregroundColor || '',
           //backgroundColor: calendar && calendar.backgroundColor || '',
           //margin: 3,
-          //padding: 3,
           //borderRadius: 3
         };
 
-        return <span style={style} title={calendarId}>{text}</span>;
+        return <div style={style} title={calendarId}>{text}</div>;
       }.bind(this));
 
       return <tr key={profile._id}>
