@@ -139,7 +139,10 @@ var Profile = React.createClass({
     }
 
     var elem = this.refs.profile.getDOMNode();
-    $(elem).modal('show');
+    $(elem).modal({
+      keyboard: false, // prevent conflict with pressing ESC in dropdowns
+      show: true
+    });
   },
 
   hide: function () {

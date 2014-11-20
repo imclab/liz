@@ -81,13 +81,10 @@ table.events td {
   vertical-align: top;
 }
 
-table.availability th,
-table.availability td {
-  padding: 5px;
-}
-
-table.availability input[type="text"] {
-  width: 5em;
+table.table.profiles th,
+table.table.profiles td {
+  text-overflow: ellipsis;
+  word-break: break-all;
 }
 
 div.calendars {

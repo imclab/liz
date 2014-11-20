@@ -137,7 +137,7 @@ var SettingsPage = React.createClass({
       }.bind(this));
 
       return <div>
-        <table className="table">
+        <table className="table profiles">
           <tbody>
             {header}
             {rows}
