@@ -82,25 +82,28 @@ var SettingsPage = React.createClass({
       //       retrieve filtered profiles from the server
 
       var calendarsArray = profile.calendars && profile.calendars.split(',') || [];
-      var calendars = calendarsArray.map(function (calendarId) {
+      var calendars = calendarsArray.map(function (calendarId, index) {
         calendarId = calendarId.trim();
         var calendar = this.state.calendarList.filter(function (c) {
           return c.id == calendarId;
         })[0];
 
         var text = (calendar !== undefined) ? calendar.summary : calendarId;
+        if (index != calendarsArray.length - 1) {
+          text += ', ';
+        }
         var style = {
-          display: 'inline-block',
+          //display: 'inline-block',
           maxWidth: 200,
-          overflow: 'hidden',
-          color: calendar && calendar.foregroundColor || '',
-          backgroundColor: calendar && calendar.backgroundColor || '',
-          margin: 3,
-          padding: 3,
-          borderRadius: 3
+          overflow: 'hidden'
+          //color: calendar && calendar.foregroundColor || '',
+          //backgroundColor: calendar && calendar.backgroundColor || '',
+          //margin: 3,
+          //padding: 3,
+          //borderRadius: 3
         };
 
-        return <div style={style} title={calendarId}>{text}</div>;
+        return <span style={style} title={calendarId}>{text}</span>;
       }.bind(this));
 
       return <tr key={profile._id}>
@@ -141,7 +144,7 @@ var SettingsPage = React.createClass({
               <td colSpan="4">
                 <button
                     onClick={this.addProfile}
-                    className="btn btn-primary"
+                    className="btn btn-normal"
                     title="Add a new profile"
                 ><span className="glyphicon glyphicon-plus"></span> Add</button>
               </td>

@@ -116,10 +116,7 @@ app.get('/auth/callback',
             if(err) return sendError(res, err);
 
             // initialize some default settings when missing
-            if (!userData.calendars) {
-              userData.calendars = [user.email]; // add field with default calendar
-            }
-            if (!user.share) {
+            if (user.share == undefined) {
               // add field with default permissions
               userData.share = 'calendar'; // 'me', 'calendar', 'contacts'
             }
@@ -579,16 +576,33 @@ function getGroupFreeBusy(role, query, callback) {
  *                                `err` is null
  */
 function getFreeBusy(user, role, query, callback) {
-  var _query = _.extend({}, query);
-  if (!query.items) {
-    _query.items = (user.calendars || []).map(function (calendarId) {
-      return {id: calendarId};
-    })
-  }
+  // TODO: restructure this method, its too complicated
 
   // get all profiles of this user
-  db.profiles.get(user.email, function (err, profiles) {
+  db.profiles.list(user.email, function (err, profiles) {
     if (err) return callback(null, createProfileError(err));
+
+    // get all calendars
+    var calendarIds = profiles.reduce(function (calendarIds, profile) {
+      if (profile.calendars != undefined) {
+        var cals = profile.calendars.split(',').map(function (cal) {
+          return cal.trim();
+        });
+        calendarIds = calendarIds.concat(cals);
+      }
+
+      return calendarIds;
+    }, []);
+    calendarIds = _.uniq(calendarIds); // remove duplicates
+
+    // add the calendar ids to the google calendar request query
+    var _query = _.extend({}, query);
+    if (!query.items) {
+      _query.items = calendarIds.map(function (calendarId) {
+        return {id: calendarId};
+      })
+    }
+    _query.singleEvents = true; // expand recurring events
 
     // create an array with all tags, and one with all tags belonging to the specified role
     var allTags = getTags(profiles);
@@ -596,11 +610,15 @@ function getFreeBusy(user, role, query, callback) {
       return (profile.role == role);
     }));
 
+    console.log('getFreeBusy', user.email, role, query, calendarIds, query, allTags)
+
     // read events for each of the calendars
     var notAvailable = []; // intervals from events of the user (busy)
     var available = [];    // intervals from availability tags of this user
-    async.each(user.calendars, function (calendarId, cb) {
-      gcal(user.auth.accessToken).events.list(calendarId, query, function (err, response) {
+    async.each(calendarIds, function (calendarId, cb) {
+      gcal(user.auth.accessToken).events.list(calendarId, _query, function (err, response) {
+        console.log('getFreeBusy response', err, response)
+
         if (err) return cb(err);
 
         response.items && response.items.forEach(function (item) {
@@ -686,6 +704,9 @@ function getFreeGroupMembers(role, query, callback) {
         if (!user) return callback(false);
 
         getFreeBusy(user, role, query, function (err, profile) {
+
+          console.log('GROUP MEMBER', user.email, role, query, profile)
+
           return callback(profile.free.some(function (free) {
             return (free.start <= query.timeMin && free.end >= query.timeMax);
           }));
