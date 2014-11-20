@@ -81,7 +81,6 @@ table.events td {
   vertical-align: top;
 }
 
-table.table.profiles th,
 table.table.profiles td {
   text-overflow: ellipsis;
   word-break: break-all;

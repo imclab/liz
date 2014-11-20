@@ -360,7 +360,10 @@ var SettingsPage = React.createClass({
 
     // all groups without individual users
     var groupsList = this.state.groupsList.filter(function (group) {
-      return group.email == group.name; // filter users
+      // filter users
+      var isUser = group.members && group.members[0] == group.name;
+
+      return !isUser;
     });
 
     // all profiles of the user
