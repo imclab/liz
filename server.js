@@ -221,7 +221,7 @@ app.delete('/user', function(req, res, next) {
     // remove the user
     db.users.remove(email, function (err, result) {
       // remove the users profiles
-      db.profiles.replace(email, [], function (err, result) {
+      db.profiles.removeAll(email, function (err, profiles) {
 
         //revoke granted permissions at google
         var accessToken = user.auth && user.auth.accessToken;
