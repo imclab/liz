@@ -281,7 +281,8 @@ To the the code, run:
     {
       "_id": "6a409334-72a5-4304-98ac-26318348cb18",
       "email": "jos@almende.org",
-      "group": "Developer",
+      "calendars": "calendarIdA, calendarIdB",
+      "role": "Developer",
       "tag": "Consultancy"
     }
   ]
@@ -296,7 +297,8 @@ To the the code, run:
   {
     "_id": "6a409334-72a5-4304-98ac-26318348cb18",
     "email": "jos@almende.org",
-    "group": "Developer",
+    "calendars": "calendarIdA, calendarIdB",
+    "role": "Developer",
     "tag": "Consultancy"
   }
   ```

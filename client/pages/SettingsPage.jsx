@@ -26,66 +26,33 @@ var SettingsPage = React.createClass({
   },
 
   render: function () {
-    var availability;
+    var profiles;
     if (this.state.loading) {
-      availability = <div>
+      profiles = <div>
         <h1>Settings</h1>
         <div>loading <img className="loading" src="img/ajax-loader.gif" /></div>
       </div>;
     }
     else if (this.state.groupsError) {
-      return <p className="error">{this.state.groupsError.toString()}</p>
+      profiles = <p className="error">{this.state.groupsError.toString()}</p>
     }
     else {
-      try {
-        availability = this.renderAvailabilityTable()
-      }
-      catch (err) {
-        console.log(err)
-      }
+      profiles = this.renderProfiles();
     }
-
-    // TODO: replace the inline help texts with a nice popover
 
     return <div>
       <h1>Settings</h1>
 
-      <h2>Availability profile</h2>
-      <p>
-        Specify roles and tags for availability events.&nbsp;
-      {
-          this.state.showHelpAvailability ?
-              <ul>
-                <li>Specify at least one role. Your default role is your own email address. You can create additional roles like "Consultant" or "Office hour". For each role, specify a tag. This tag can be anything, for example "Available" or "Consultancy".</li>
-                <li>To mark yourself as available, create (recurring) events in your calendar having the specified tag as event title. You can for example create five recurring events from Monday to Friday, 9:00 to 17:00, to denote your working hours.</li>
-                <li>To check when you are available in a specific role, Liz will filter all events with entered tag as event title from the selected calendar.</li>
-              </ul>
-              :
-              <a href="#" title="How does this work?" onClick={this.showHelpAvailability}>
-                <span className="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
-              </a>
-          }
-      </p>
-      {availability}
+      <h2>Availability profiles</h2>
+      <p>Create one or multiple profiles to specify when you are available and in what role.</p>
+      {profiles}
 
-      <h2>Calendars</h2>
-      <p>Select which of your calendars will be used to determine your availability.&nbsp;
-      {
-          this.state.showHelpBusy ?
-            <span><br/><br/>
-                To determine your availability, the calendar events of all selected calendars are retrieved. You are considered available at some timeslot when both:
-              <ul>
-                <li>the timeslot falls within an availability event: an event having one of the specified availability tags as title.</li>
-                <li>there are no events overlapping with this timeslot.</li>
-              </ul>
-            </span>
-                :
-            <a href="#" title="How does this work?" onClick={this.showHelpBusy}>
-              <span className="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
-            </a>
-      }
-      </p>
-          {this.renderCalendarList()}
+      <Profile
+          ref="profile"
+          roles={this.getRoleOptions()}
+          calendars={this.getCalendarOptions()}
+          onChange={this.handleProfileChange}
+      />
 
       <h2>Sharing</h2>
       <p>Who is allowed to view your free/busy profile and plan events in your calendar via Liz&#63;</p>
@@ -100,87 +67,79 @@ var SettingsPage = React.createClass({
     </div>;
   },
 
-  renderCalendarList: function () {
-    var selection = this.state.user && this.state.user.calendars || [];
-
-    if (this.state.calendarListError != null) {
-      return <p className="error">{this.state.calendarListError.toString()}</p>
-    }
-    else if (this.state.calendarListLoading) {
-      return <div>loading <img className="loading" src="img/ajax-loader.gif" /></div>;
-    }
-    else {
-      return <CalendarList
-          calendars={this.state.calendarList}
-          selection={selection}
-          onChange={this.handleCalendarSelection} />;
-    }
-  },
-
-  renderAvailabilityTable: function () {
-    var groupOptions = this.getGroupOptions();
-
+  renderProfiles: function () {
     var header = <tr key="header">
       <th>Role</th>
+      <th>Calendars</th>
       <th>Tag</th>
       <th></th>
     </tr>;
 
-    var rows = this.state.groups.map(function (entry, index) {
+    var groups = this.state.groups || [];
+    var rows = groups.map(function (entry) {
       // TODO: for both selectize controls, utilize dynamic loading via query,
       //       retrieve filtered groups from the server
-      return <tr key={entry._id || 'new'}>
+
+      var calendarsArray = entry.calendars && entry.calendars.split(',') || [];
+      var calendars = calendarsArray.map(function (calendarId) {
+        calendarId = calendarId.trim();
+        var calendar = this.state.calendarList.filter(function (c) {
+          return c.id == calendarId;
+        })[0];
+
+        var text = (calendar !== undefined) ? calendar.summary : calendarId;
+        var style = {
+          display: 'inline-block',
+          color: calendar && calendar.foregroundColor || '',
+          backgroundColor: calendar && calendar.backgroundColor || '',
+          margin: 3,
+          padding: 3,
+          borderRadius: 3
+        };
+
+        return <div style={style} title={calendarId}>{text}</div>;
+      }.bind(this));
+
+      return <tr key={entry._id}>
             <td>
-              <Selectize
-                  value={entry.group}
-                  options={groupOptions}
-                  create={true}
-                  createOnBlur={true}
-                  placeholder="Select a role..."
-                  onChange={function (value) {
-                    this.handleGroupChange(index, 'group', value);
-                  }.bind(this)}
-              />
+              {entry.role}
             </td>
             <td>
-              <input
-                  type="text"
-                  className="form-control"
-                  value={entry.tag}
-                  placeholder="Event title..."
-                  onChange={function (event) {
-                    this.handleGroupChange(index, 'tag', event.target.value);
-                  }.bind(this)}
-              />
+              {calendars}
+            </td>
+            <td>
+              {entry.tag}
             </td>
             <td>
               <button
-                  className="btn btn-danger"
-                  title="Delete this row"
+                  className="btn btn-normal"
+                  title="Edit this profile"
                   onClick={function () {
-                    this.removeGroup(entry._id);
+                    this.editProfile(entry._id);
                   }.bind(this)}
-              >&times;</button>
+              ><span className="glyphicon glyphicon-pencil"></span></button>&nbsp;
+              <button
+                  className="btn btn-danger"
+                  title="Delete this profile"
+                  onClick={function () {
+                    this.removeProfile(entry._id);
+                  }.bind(this)}
+              ><span className="glyphicon glyphicon-remove"></span></button>
             </td>
           </tr>;
       }.bind(this));
 
       return <div>
         <table className="table">
-          <colgroup>
-            <col width="50%" />
-            <col width="40%" />
-            <col width="10%" />
-          </colgroup>
           <tbody>
             {header}
             {rows}
             <tr key="footer">
               <td colSpan="4">
                 <button
-                    onClick={this.addGroup}
+                    onClick={this.addProfile}
                     className="btn btn-primary"
-                    title="Add a new row"
+                    title="Add a new profile"
                 >Add</button>
               </td>
             </tr>
@@ -189,52 +148,65 @@ var SettingsPage = React.createClass({
       </div>;
   },
 
-  handleGroupChange: function (index, field, value) {
-    var groups = this.state.groups.slice(0);
-    var group = _.extend({}, groups[index]);
-    group[field] = value;
-    groups[index] = group;
-
-    this.setState({groups: groups});
-
-    this.updateGroup(group);
-  },
-
-  addGroup: function () {
-    var groups = this.state.groups.slice(0);
-    groups.push({
+  addProfile: function () {
+    var profile = {
       _id: UUID(),
-      tag: 'Available',
-      group: this.props.user.email || ''
-    });
+      tag: '#available',
+      role: this.props.user.email || '',
+      calendars: this.props.user.email || ''
+    };
 
-    this.setState({groups: groups});
+    this.refs.profile.show(profile);
   },
 
-  removeGroup: function (id) {
-    var groups = this.state.groups;
-    var group = groups.filter(function (group) {
-      return group._id == id;
-    })[0];
-    console.log('removeGroup', group)
-    if (group !== undefined) {
-      groups.splice(groups.indexOf(group), 1);
-
-      this.setState({groups: groups});
-
-      ajax.del('/groups/' + id)
-          .then(function (groups) {
-          }.bind(this))
-          .catch(function (err) {
-            console.log(err);
-            displayError(err);
-          }.bind(this));
+  editProfile: function (id) {
+    var profile = this.findProfile(id);
+    if (profile) {
+      this.refs.profile.show(profile);
     }
   },
 
-  // save a changed group after a delay
-  updateGroup: function (group) {
-    var id = group._id;
+  removeProfile: function (id) {
+    var group = this.findProfile(id);
+    console.log('removeProfile', group);
+    if (group !== undefined) {
+      // TODO: implement a nicer looking confirm box
+      if (confirm('Are you sure you want to delete profile "' + group.name + '"?')) {
+        var groups = this.state.groups;
+        groups.splice(groups.indexOf(group), 1);
+
+        this.setState({groups: groups});
+
+        ajax.del('/groups/' + id)
+            .then(function (groups) {
+            }.bind(this))
+            .catch(function (err) {
+              console.log(err);
+              displayError(err);
+            }.bind(this));
+      }
+    }
+  },
+
+  /**
+   * Find a profile by its id
+   * @param {string} id   The id of a profile (stored in the field _id)
+   * @returns {Object | undefined}  Returns the profile when found, else returns undefined
+   */
+  findProfile: function (id) {
+    var profiles = this.state.groups;
+    return profiles.filter(function (profile) {
+      return profile._id == id;
+    })[0];
+  },
+
+  // save a changed profile after a delay
+  saveProfile: function (profile) {
+    var id = profile._id;
+    if (id === undefined) {
+      id = UUID();
+      profile._id = id;
+    }
     if (this.timers[id]) {
       clearTimeout(this.timers[id]);
     }
@@ -242,10 +214,11 @@ var SettingsPage = React.createClass({
     var delay = 300; // ms
     this.timers[id] = setTimeout(function () {
       delete this.timers[id];
-      console.log('saving group...', group);
+      console.log('saving profile...', profile);
 
-      ajax.put('/groups', group)
-          .then(function (groups) {
+      ajax.put('/groups', profile)
+          .then(function (profiles) {
+            // TODO: do something with the returned profiles?
           }.bind(this))
           .catch(function (err) {
             console.log(err);
@@ -254,6 +227,26 @@ var SettingsPage = React.createClass({
     }.bind(this), delay);
   },
   timers: {},
+
+  handleProfileChange: function (profile) {
+    console.log('profile changed', profile);
+    var found = false;
+    var profiles = this.state.groups.map(function (p) {
+      if (p._id == profile._id) {
+        found = true;
+        return profile;
+      }
+      else {
+        return p;
+      }
+    });
+    if (!found) {
+      profiles.push(profile); // a new profile
+    }
+
+    this.setState({groups: profiles});
+    this.saveProfile(profile);
+  },
 
   handleCalendarSelection: function (selection) {
     var user = this.state.user;
@@ -323,7 +316,36 @@ var SettingsPage = React.createClass({
         }.bind(this));
   },
 
-  getGroupOptions: function () {
+  getCalendarOptions: function () {
+    var calendarList = this.state.calendarList.concat([]);
+
+    // add missing options to the calendar options and group options
+    var groups = this.state.groups || [];
+    groups.forEach(function (entry) {
+      if (entry.calendar) {
+        var calendarExists = calendarList.some(function (calendar) {
+          return calendar.id == entry.calendar;
+        });
+        if (!calendarExists) {
+          calendarList.push({id: entry.calendar});
+        }
+      }
+    }.bind(this));
+
+    // generate calendar options
+    return calendarList.map(function (calendar) {
+      var text = calendar.summary || calendar.id;
+      if (text.length > 30) {
+        text = text.substring(0, 30) + '...';
+      }
+      return {
+        value: calendar.id,
+        text: text
+      }
+    });
+  },
+
+  getRoleOptions: function () {
     var user = this.props.user;
 
     // all groups
@@ -331,7 +353,8 @@ var SettingsPage = React.createClass({
 
     // all groups of the user
     // add missing options to the calendar options and group options
-    this.state.groups.forEach(function (entry) {
+    var groups = this.state.groups || [];
+    groups.forEach(function (entry) {
       if (entry.group) {
         var groupExists = groupsList.some(function (group) {
           return group.name == entry.group;
@@ -400,5 +423,9 @@ var SettingsPage = React.createClass({
     event.preventDefault();
 
     this.setState({showHelpAvailability: true});
+  },
+
+  showWizard: function () {
+    this.refs.wizard.show();
   }
 });

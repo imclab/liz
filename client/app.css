@@ -81,6 +81,15 @@ table.events td {
   vertical-align: top;
 }
 
+table.availability th,
+table.availability td {
+  padding: 5px;
+}
+
+table.availability input[type="text"] {
+  width: 5em;
+}
+
 div.calendars {
   max-height: 200px;
   overflow: auto;
