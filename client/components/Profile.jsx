@@ -43,9 +43,9 @@ var Profile = React.createClass({
             <p>Configure an availability profile.</p>
             <h5>Role</h5>
             <p>
-            In which role do you want to be available&#63;&nbsp;
+            In which role do you want to be available&#63; You can create new roles.&nbsp;
             {
-              this.renderPopover('Role', 'Role can be either your own email address, or the name of a team like "Consultant". You can create new roles.')
+              this.renderPopover('Role', 'Role can be either your own email address, or the name of a team like "Consultant".')
             }
 
             </p>
@@ -60,9 +60,9 @@ var Profile = React.createClass({
 
             <h5>Calendars</h5>
             <p>
-              Which calendars do you want to take into account for determining your availability&#63;&nbsp;
+              Which calendars do you want to take into account to determine your availability&#63;&nbsp;
               {
-                  this.renderPopover('Calendars', 'Select one or multiple calendars to be used to determine your availability: these calendars will be searched for availability events to determine when you are available, and regular events to determine when you are busy.')
+                this.renderPopover('Calendars', 'Select one or multiple calendars to determine your availability. These calendars will be used to determine (a) when you are busy, and (b) when you are availability by filtering tagged events.', 'left')
               }
             </p>
             <Selectize
@@ -98,11 +98,11 @@ var Profile = React.createClass({
     </div>;
   },
 
-  renderPopover: function (title, content) {
+  renderPopover: function (title, content, placement) {
     return <a href="#" onClick={function (event) {event.preventDefault()}}>
       <span
           data-toggle="popover"
-          data-placement="bottom"
+          data-placement={placement || 'top'}
           title={title}
           data-content={content}
           className="glyphicon glyphicon-info-sign"

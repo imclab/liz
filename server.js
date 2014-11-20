@@ -610,15 +610,11 @@ function getFreeBusy(user, role, query, callback) {
       return (profile.role == role);
     }));
 
-    console.log('getFreeBusy', user.email, role, query, calendarIds, query, allTags)
-
     // read events for each of the calendars
     var notAvailable = []; // intervals from events of the user (busy)
     var available = [];    // intervals from availability tags of this user
     async.each(calendarIds, function (calendarId, cb) {
       gcal(user.auth.accessToken).events.list(calendarId, _query, function (err, response) {
-        console.log('getFreeBusy response', err, response)
-
         if (err) return cb(err);
 
         response.items && response.items.forEach(function (item) {
@@ -704,9 +700,6 @@ function getFreeGroupMembers(role, query, callback) {
         if (!user) return callback(false);
 
         getFreeBusy(user, role, query, function (err, profile) {
-
-          console.log('GROUP MEMBER', user.email, role, query, profile)
-
           return callback(profile.free.some(function (free) {
             return (free.start <= query.timeMin && free.end >= query.timeMax);
           }));
