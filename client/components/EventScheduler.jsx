@@ -421,7 +421,7 @@ var EventScheduler = React.createClass({
   loadContacts: function () {
     Promise.all([
           ajax.get('/contacts'),
-          ajax.get('/groups/list')
+          ajax.get('/groups')
         ])
         .then(function (results) {
           var googleContacts = results[0];

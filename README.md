@@ -137,9 +137,6 @@ To the the code, run:
   {
       "name": "User Name",
       "picture": "url_to_picture",
-      "calendars": [
-        "email@example.com"
-      ],
       "share": "calendar"
     }
   }
@@ -252,11 +249,12 @@ To the the code, run:
   as described here: https://developers.google.com/google-apps/contacts/v3/
 
 
-## Groups
+## Profiles, Groups
 
-- `GET /groups/list`
+- `GET /groups`
 
-  Get a list with all groups. Returns an Array structured like:
+  Get a list with all groups (aggregated result from all profiles).
+  Returns an Array structured like:
 
   ```json
   [
@@ -272,9 +270,9 @@ To the the code, run:
   ]
   ```
 
-- `GET /groups`
+- `GET /profiles`
 
-  Get all groups of the current users. Returns an Array with groups like:
+  Get all profiles of the current users. Returns an Array with profiles like:
 
   ```json
   [
@@ -288,9 +286,9 @@ To the the code, run:
   ]
   ```
 
-- `PUT /groups`
+- `PUT /profiles`
 
-  Create or update the group of current user. Request body must contain a group
+  Create or update the profile of current user. Request body must contain a profile
   like:
 
   ```json
@@ -303,7 +301,6 @@ To the the code, run:
   }
   ```
 
-- `DELETE /groups/:id`
+- `DELETE /profiles/:id`
 
-  Delete a group by its id.
-
+  Delete a profile by its id.

@@ -7,7 +7,7 @@ var SettingsPage = React.createClass({
 
   getInitialState: function () {
     this.loadCalendarList();
-    this.loadProfilesList();
+    this.loadGroupsList();
     this.loadProfiles();
 
     return {
@@ -18,7 +18,7 @@ var SettingsPage = React.createClass({
       calendarList: [],
       calendarListError: null,
       calendarListLoading: true,
-      profilesList: [],
+      groupsList: [],
 
       showHelpAvailability: false,
       showHelpBusy: false
@@ -63,6 +63,7 @@ var SettingsPage = React.createClass({
       />
 
       <h2>Account</h2>
+      <p>Remove your account at Liz.</p>
       <p><button onClick={this.deleteAccount} className="btn btn-danger">Delete account</button></p>
     </div>;
   },
@@ -179,7 +180,7 @@ var SettingsPage = React.createClass({
 
         this.setState({profiles: profiles});
 
-        ajax.del('/groups/' + id)
+        ajax.del('/profiles/' + id)
             .then(function (profiles) {
             }.bind(this))
             .catch(function (err) {
@@ -218,7 +219,7 @@ var SettingsPage = React.createClass({
       delete this.timers[id];
       console.log('saving profile...', profile);
 
-      ajax.put('/groups', profile)
+      ajax.put('/profiles', profile)
           .then(function (profiles) {
             // TODO: do something with the returned profiles?
           }.bind(this))
@@ -266,7 +267,7 @@ var SettingsPage = React.createClass({
 
   // load the profiles of the user
   loadProfiles: function () {
-    ajax.get('/groups')
+    ajax.get('/profiles')
         .then(function (profiles) {
           console.log('profiles', profiles);
           this.setState({
@@ -305,12 +306,12 @@ var SettingsPage = React.createClass({
         }.bind(this));
   },
 
-  // load all existing, aggregated profiles
-  loadProfilesList: function () {
-    ajax.get('/groups/list')
-        .then(function (profilesList) {
-          console.log('profilesList', profilesList);
-          this.setState({profilesList: profilesList});
+  // load all existing, aggregated groups
+  loadGroupsList: function () {
+    ajax.get('/groups')
+        .then(function (groupsList) {
+          console.log('groupsList', groupsList);
+          this.setState({groupsList: groupsList});
         }.bind(this))
         .catch(function (err) {
           console.log(err);
@@ -353,19 +354,19 @@ var SettingsPage = React.createClass({
   getRoleOptions: function () {
     var user = this.props.user;
 
-    // all profiles
-    var profilesList = this.state.profilesList;
+    // all groups
+    var groupsList = this.state.groupsList;
 
     // all profiles of the user
     // add missing options to the calendar options and profile options
     var profiles = this.state.profiles || [];
     profiles.forEach(function (profile) {
       if (profile.role) {
-        var roleExists = profilesList.some(function (entry) {
+        var roleExists = groupsList.some(function (entry) {
           return entry.name == profile.role;
         });
         if (!roleExists) {
-          profilesList.push({
+          groupsList.push({
             name: profile.role,
             count: 1,
             members: [user.email]
@@ -375,11 +376,11 @@ var SettingsPage = React.createClass({
     }.bind(this));
 
     // email address of the user
-    var selfExists = profilesList.some(function (entry) {
+    var selfExists = groupsList.some(function (entry) {
       return entry.name == user.email;
     });
     if (!selfExists) {
-      profilesList.push({
+      groupsList.push({
         name: user.email,
         count: 1,
         members: [user.email]
@@ -387,7 +388,7 @@ var SettingsPage = React.createClass({
     }
 
     // generate profile options
-    return profilesList.map(function (entry) {
+    return groupsList.map(function (entry) {
       return {
         value: entry.name,
         text: entry.name

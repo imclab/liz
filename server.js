@@ -223,8 +223,8 @@ app.delete('/user', function(req, res, next) {
 
     // remove the user
     db.users.remove(email, function (err, result) {
-      // remove the users groups
-      db.groups.replace(email, [], function (err, result) {
+      // remove the users profiles
+      db.profiles.replace(email, [], function (err, result) {
 
         //revoke granted permissions at google
         var accessToken = user.auth && user.auth.accessToken;
@@ -339,9 +339,9 @@ app.get('/freeBusy/:calendarId?', function(req, res) {
   // retrieve the free/busy profiles of each of the selected calendars and groups
   async.map(calendarIds, function (calendarId, callback) {
     if (calendarId.substr(0, 6) == 'group:') {
-      var groupId = calendarId.substr(6);
-      getGroupFreeBusy(groupId, query, function (err, profile) {
-        if (profile) profile.id = groupId;
+      var role = calendarId.substr(6);
+      getGroupFreeBusy(role, query, function (err, profile) {
+        if (profile) profile.id = role;
         callback(err, profile);
       });
     }
@@ -406,10 +406,8 @@ app.get('/contacts/:email?', function(req, res){
 
 app.get('/groups*', auth);
 
-// TODO: improve the REST API
-
-// get all groups
-app.get('/groups/list', function(req, res){
+// get all groups (aggregated from all user profiles)
+app.get('/groups', function(req, res){
   var options = req.query;
   db.groups.list(options, function (err, groups) {
     if (err) return sendError(res, err);
@@ -417,33 +415,36 @@ app.get('/groups/list', function(req, res){
   });
 });
 
-// get all groups of current user
-app.get('/groups', function(req, res){
+
+app.get('/profiles*', auth);
+
+// get all profiles of current user
+app.get('/profiles', function(req, res){
   var email = req.session.email;
 
-  db.groups.get(email, function (err, groups) {
+  db.profiles.list(email, function (err, profiles) {
     if (err) return sendError(res, err);
-    return res.json(groups);
+    return res.json(profiles);
   });
 });
 
-// create or update a group of a user
-app.put('/groups', function(req, res){
+// create or update a profile of a user
+app.put('/profiles', function(req, res){
   var email = req.session.email;
-  var group = req.body;
-  if (group.email === undefined) group.email = email;
+  var profile = req.body;
+  if (profile.email === undefined) profile.email = email;
 
-  db.groups.update(group, function (err, groups) {
+  db.profiles.update(profile, function (err, profiles) {
     if (err) return sendError(res, err);
-    return res.json(groups);
+    return res.json(profiles);
   });
 });
 
-// delete a group
-app.delete('/groups/:id', function(req, res){
-  db.groups.remove(req.params.id, function (err, groups) {
+// delete a profile
+app.delete('/profiles/:id', function(req, res){
+  db.profiles.remove(req.params.id, function (err, profiles) {
     if (err) return sendError(res, err);
-    return res.json(groups);
+    return res.json(profiles);
   });
 });
 
@@ -486,8 +487,8 @@ function stringifyError(err) {
 /**
  * Get the free busy profile of a user by it's email (will authorize)
  * @param {string} email                The email of the logged in user
- * @param {string} [role=undefined]     Group id for which to return the availability
- *                                      is the users email by default
+ * @param {string} [role=undefined]     Role for which to return the availability.
+ *                                      This is the users email by default
  * @param {string} calendarId           A calendar id
  * @param {{timeMin: string, timeMax: string} | {timeMin: string, timeMax: string, items: Array.<{id: string}>}} query
  * @param {function} callback     Called as callback(err, {free: Array, busy:Array, errors:Array})
@@ -530,14 +531,14 @@ function getAuthFreeBusy(email, role, calendarId, query, callback) {
 /**
  * Get the freeBusy profile of a Group. The freeBusy profiles of all
  * group members will be retrieved and merged.
- * @param {string} groupId                            Id of the group
+ * @param {string} role                            A role like "Consultant"
  * @param {{timeMin: string, timeMax: string}} query  Object with start and end time
  * @param {function} callback     Called as callback(err, {busy:Array, errors:Array})
  *                                `err` is null
  */
-function getGroupFreeBusy(groupId, query, callback) {
+function getGroupFreeBusy(role, query, callback) {
   // get the members of this group
-  db.groups.group(groupId, function (err, group) {
+  db.groups.getByRole(role, function (err, group) {
     if (err) return callback(null, createProfileError(err));
 
     // get the freeBusy profiles of each of the group members
@@ -549,7 +550,7 @@ function getGroupFreeBusy(groupId, query, callback) {
         if (err) console.log('Error getting group member', member , err);
         if (err) return callback(null, {free: [], busy: []});
 
-        getFreeBusy(user, groupId, query, callback);
+        getFreeBusy(user, role, query, callback);
       });
     }, function (err, profilesArray) {
       // merge the array with profile objects
@@ -585,14 +586,14 @@ function getFreeBusy(user, role, query, callback) {
     })
   }
 
-  // get all groups of this user
-  db.groups.get(user.email, function (err, groups) {
+  // get all profiles of this user
+  db.profiles.get(user.email, function (err, profiles) {
     if (err) return callback(null, createProfileError(err));
 
     // create an array with all tags, and one with all tags belonging to the specified role
-    var allTags = getTags(groups);
-    var filteredTags = getTags(groups.filter(function (group) {
-      return (group.group == role);
+    var allTags = getTags(profiles);
+    var filteredTags = getTags(profiles.filter(function (profile) {
+      return (profile.role == role);
     }));
 
     // read events for each of the calendars
@@ -668,12 +669,12 @@ function getFreeBusy(user, role, query, callback) {
 
 /**
  * Get a free group member
- * @param {string} groupId
+ * @param {string} role
  * @param {{timeMin: string, timeMax: string}} query   Time interval
  * @param {function} callback   Called as callback(err, memberIds: string[])
  */
-function getFreeGroupMembers(groupId, query, callback) {
-  db.groups.group(groupId, function (err, group) {
+function getFreeGroupMembers(role, query, callback) {
+  db.groups.getByRole(role, function (err, group) {
     if (err) return callback(err, null);
 
     async.filter(group.members, function (member, callback) {
@@ -684,7 +685,7 @@ function getFreeGroupMembers(groupId, query, callback) {
 
         if (!user) return callback(false);
 
-        getFreeBusy(user, groupId, query, function (err, profile) {
+        getFreeBusy(user, role, query, function (err, profile) {
           return callback(profile.free.some(function (free) {
             return (free.start <= query.timeMin && free.end >= query.timeMax);
           }));
@@ -713,8 +714,8 @@ function chooseGroupMembers(event, callback) {
 
   async.each(event.attendees, function (attendee, callback) {
     if (attendee.email.substr(0, 6) == 'group:') {
-      var groupId = attendee.email.substr(6);
-      getFreeGroupMembers(groupId, query, function (err, members) {
+      var role = attendee.email.substr(6);
+      getFreeGroupMembers(role, query, function (err, members) {
         if (err) return callback(err);
 
         if (members.length == 0) {
@@ -735,14 +736,14 @@ function chooseGroupMembers(event, callback) {
 }
 
 /**
- * Get an array with all merged tags found in each of the groups.
- * @param {Array} groups
+ * Get an array with all merged tags found in an array with profiles
+ * @param {Array} profiles
  * @returns {Array.<string>} Returns an array with lower case tags
  */
-function getTags(groups) {
-  var tags = groups.reduce(function (tags, group) {
-    if (group.tag != undefined) {
-      tags.push(group.tag.toLowerCase());
+function getTags(profiles) {
+  var tags = profiles.reduce(function (tags, profile) {
+    if (profile.tag != undefined) {
+      tags.push(profile.tag.toLowerCase());
     }
     return tags;
   }, []);
