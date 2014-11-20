@@ -7,18 +7,18 @@ var SettingsPage = React.createClass({
 
   getInitialState: function () {
     this.loadCalendarList();
-    this.loadGroupsList();
-    this.loadGroups();
+    this.loadProfilesList();
+    this.loadProfiles();
 
     return {
       loading: true,
       user: this.props.user,
-      groups: null,
-      groupsError: null,
+      profiles: null,
+      profilesError: null,
       calendarList: [],
       calendarListError: null,
       calendarListLoading: true,
-      groupsList: [],
+      profilesList: [],
 
       showHelpAvailability: false,
       showHelpBusy: false
@@ -33,8 +33,8 @@ var SettingsPage = React.createClass({
         <div>loading <img className="loading" src="img/ajax-loader.gif" /></div>
       </div>;
     }
-    else if (this.state.groupsError) {
-      profiles = <p className="error">{this.state.groupsError.toString()}</p>
+    else if (this.state.profilesError) {
+      profiles = <p className="error">{this.state.profilesError.toString()}</p>
     }
     else {
       profiles = this.renderProfiles();
@@ -75,12 +75,12 @@ var SettingsPage = React.createClass({
       <th></th>
     </tr>;
 
-    var groups = this.state.groups || [];
-    var rows = groups.map(function (entry) {
+    var profiles = this.state.profiles || [];
+    var rows = profiles.map(function (profile) {
       // TODO: for both selectize controls, utilize dynamic loading via query,
-      //       retrieve filtered groups from the server
+      //       retrieve filtered profiles from the server
 
-      var calendarsArray = entry.calendars && entry.calendars.split(',') || [];
+      var calendarsArray = profile.calendars && profile.calendars.split(',') || [];
       var calendars = calendarsArray.map(function (calendarId) {
         calendarId = calendarId.trim();
         var calendar = this.state.calendarList.filter(function (c) {
@@ -90,6 +90,8 @@ var SettingsPage = React.createClass({
         var text = (calendar !== undefined) ? calendar.summary : calendarId;
         var style = {
           display: 'inline-block',
+          maxWidth: 200,
+          overflow: 'hidden',
           color: calendar && calendar.foregroundColor || '',
           backgroundColor: calendar && calendar.backgroundColor || '',
           margin: 3,
@@ -100,29 +102,29 @@ var SettingsPage = React.createClass({
         return <div style={style} title={calendarId}>{text}</div>;
       }.bind(this));
 
-      return <tr key={entry._id}>
+      return <tr key={profile._id}>
             <td>
-              {entry.role}
+              {profile.role}
             </td>
             <td>
               {calendars}
             </td>
             <td>
-              {entry.tag}
+              {profile.tag}
             </td>
             <td>
               <button
                   className="btn btn-normal"
                   title="Edit this profile"
                   onClick={function () {
-                    this.editProfile(entry._id);
+                    this.editProfile(profile._id);
                   }.bind(this)}
               ><span className="glyphicon glyphicon-pencil"></span></button>&nbsp;
               <button
                   className="btn btn-danger"
                   title="Delete this profile"
                   onClick={function () {
-                    this.removeProfile(entry._id);
+                    this.removeProfile(profile._id);
                   }.bind(this)}
               ><span className="glyphicon glyphicon-remove"></span></button>
             </td>
@@ -140,7 +142,7 @@ var SettingsPage = React.createClass({
                     onClick={this.addProfile}
                     className="btn btn-primary"
                     title="Add a new profile"
-                >Add</button>
+                ><span className="glyphicon glyphicon-plus"></span> Add</button>
               </td>
             </tr>
           </tbody>
@@ -167,18 +169,18 @@ var SettingsPage = React.createClass({
   },
 
   removeProfile: function (id) {
-    var group = this.findProfile(id);
-    console.log('removeProfile', group);
-    if (group !== undefined) {
+    var profile = this.findProfile(id);
+    console.log('removeProfile', profile);
+    if (profile !== undefined) {
       // TODO: implement a nicer looking confirm box
-      if (confirm('Are you sure you want to delete profile "' + group.name + '"?')) {
-        var groups = this.state.groups;
-        groups.splice(groups.indexOf(group), 1);
+      if (confirm('Are you sure you want to delete profile "' + profile.name + '"?')) {
+        var profiles = this.state.profiles;
+        profiles.splice(profiles.indexOf(profile), 1);
 
-        this.setState({groups: groups});
+        this.setState({profiles: profiles});
 
         ajax.del('/groups/' + id)
-            .then(function (groups) {
+            .then(function (profiles) {
             }.bind(this))
             .catch(function (err) {
               console.log(err);
@@ -194,7 +196,7 @@ var SettingsPage = React.createClass({
    * @returns {Object | undefined}  Returns the profile when found, else returns undefined
    */
   findProfile: function (id) {
-    var profiles = this.state.groups;
+    var profiles = this.state.profiles;
     return profiles.filter(function (profile) {
       return profile._id == id;
     })[0];
@@ -231,7 +233,7 @@ var SettingsPage = React.createClass({
   handleProfileChange: function (profile) {
     console.log('profile changed', profile);
     var found = false;
-    var profiles = this.state.groups.map(function (p) {
+    var profiles = this.state.profiles.map(function (p) {
       if (p._id == profile._id) {
         found = true;
         return profile;
@@ -244,7 +246,7 @@ var SettingsPage = React.createClass({
       profiles.push(profile); // a new profile
     }
 
-    this.setState({groups: profiles});
+    this.setState({profiles: profiles});
     this.saveProfile(profile);
   },
 
@@ -262,20 +264,20 @@ var SettingsPage = React.createClass({
     this.updateUser(user);
   },
 
-  // load the groups of the user
-  loadGroups: function () {
+  // load the profiles of the user
+  loadProfiles: function () {
     ajax.get('/groups')
-        .then(function (groups) {
-          console.log('groups', groups);
+        .then(function (profiles) {
+          console.log('profiles', profiles);
           this.setState({
             loading: false,
-            groups: groups
+            profiles: profiles
           });
         }.bind(this))
         .catch(function (err) {
           this.setState({
             loading: false,
-            groupsError: err
+            profilesError: err
           });
           console.log(err);
           displayError(err);
@@ -303,12 +305,12 @@ var SettingsPage = React.createClass({
         }.bind(this));
   },
 
-  // load all existing, aggregated groups
-  loadGroupsList: function () {
+  // load all existing, aggregated profiles
+  loadProfilesList: function () {
     ajax.get('/groups/list')
-        .then(function (groupsList) {
-          console.log('groupsList', groupsList);
-          this.setState({groupsList: groupsList});
+        .then(function (profilesList) {
+          console.log('profilesList', profilesList);
+          this.setState({profilesList: profilesList});
         }.bind(this))
         .catch(function (err) {
           console.log(err);
@@ -319,16 +321,19 @@ var SettingsPage = React.createClass({
   getCalendarOptions: function () {
     var calendarList = this.state.calendarList.concat([]);
 
-    // add missing options to the calendar options and group options
-    var groups = this.state.groups || [];
-    groups.forEach(function (entry) {
-      if (entry.calendar) {
-        var calendarExists = calendarList.some(function (calendar) {
-          return calendar.id == entry.calendar;
-        });
-        if (!calendarExists) {
-          calendarList.push({id: entry.calendar});
-        }
+    // add missing options to the calendar options and profile options
+    var profiles = this.state.profiles || [];
+    profiles.forEach(function (profile) {
+      if (profile.calendars) {
+        profile.calendars.split(',')
+            .forEach(function (calendarId) {
+              var calendarExists = calendarList.some(function (calendar) {
+                return calendar.id == calendarId ;
+              });
+              if (!calendarExists) {
+                calendarList.push({id: calendarId});
+              }
+            });
       }
     }.bind(this));
 
@@ -348,20 +353,20 @@ var SettingsPage = React.createClass({
   getRoleOptions: function () {
     var user = this.props.user;
 
-    // all groups
-    var groupsList = this.state.groupsList;
+    // all profiles
+    var profilesList = this.state.profilesList;
 
-    // all groups of the user
-    // add missing options to the calendar options and group options
-    var groups = this.state.groups || [];
-    groups.forEach(function (entry) {
-      if (entry.group) {
-        var groupExists = groupsList.some(function (group) {
-          return group.name == entry.group;
+    // all profiles of the user
+    // add missing options to the calendar options and profile options
+    var profiles = this.state.profiles || [];
+    profiles.forEach(function (profile) {
+      if (profile.role) {
+        var roleExists = profilesList.some(function (entry) {
+          return entry.name == profile.role;
         });
-        if (!groupExists) {
-          groupsList.push({
-            name: entry.group,
+        if (!roleExists) {
+          profilesList.push({
+            name: profile.role,
             count: 1,
             members: [user.email]
           });
@@ -370,22 +375,22 @@ var SettingsPage = React.createClass({
     }.bind(this));
 
     // email address of the user
-    var selfExists = groupsList.some(function (group) {
-      return group.name == user.email;
+    var selfExists = profilesList.some(function (entry) {
+      return entry.name == user.email;
     });
     if (!selfExists) {
-      groupsList.push({
+      profilesList.push({
         name: user.email,
         count: 1,
         members: [user.email]
       });
     }
 
-    // generate group options
-    return groupsList.map(function (group) {
+    // generate profile options
+    return profilesList.map(function (entry) {
       return {
-        value: group.name,
-        text: group.name
+        value: entry.name,
+        text: entry.name
       }
     }.bind(this));
   },
