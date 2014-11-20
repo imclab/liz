@@ -438,14 +438,20 @@ var EventScheduler = React.createClass({
           });
 
           // format and merge the groups
-          contacts = contacts.concat(groups.map(function (group) {
-            return {
-              name: group.name,
-              email: group.id,
-              //text: group.name + ' (' + group.count + ')' // TODO: how to format groups?
-              text: group.name
+          groups.forEach(function (group) {
+            var exists = contacts.some(function (contact) {
+              return contact.email == group.name;
+            });
+
+            if (!exists) {
+              contacts.push({
+                name: group.name,
+                email: group.id,
+                //text: group.name + ' (' + group.count + ')' // TODO: how to format groups?
+                text: group.name
+              });
             }
-          }));
+          });
 
           // append the user itself if missing in the contacts
           var containsUser = contacts.some(function (contact) {

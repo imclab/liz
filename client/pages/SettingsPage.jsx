@@ -358,8 +358,10 @@ var SettingsPage = React.createClass({
   getRoleOptions: function () {
     var user = this.props.user;
 
-    // all groups
-    var groupsList = this.state.groupsList;
+    // all groups without individual users
+    var groupsList = this.state.groupsList.filter(function (group) {
+      return group.email == group.name; // filter users
+    });
 
     // all profiles of the user
     // add missing options to the calendar options and profile options
