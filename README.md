@@ -329,3 +329,4 @@ To the the code, run:
     Either the field `calendar` must be provided with the id of an existing
     calendar, *or* the field `createCalendar` must be provided with the name
     of a new calendar. In the last case, a new calendar will be created.
+
