@@ -114,7 +114,7 @@ var EventScheduler = React.createClass({
                 /></td>
               </tr>
               <tr>
-                <th>Attendees</th>
+                <th>Attendees {this.renderPopover('Attendees', 'Select one or multiple attendees. You can select individuals and/or team members.')}</th>
                 <td><Selectize
                     ref="attendees"
                     className="form-control"
@@ -134,7 +134,7 @@ var EventScheduler = React.createClass({
                 </td>
               </tr>
               <tr>
-                <th>Duration</th>
+                <th>Duration {this.renderPopover('Duration', 'Choose a duration from the dropdown, or enter your own custom duration like "45min" or "1h 15m".')}</th>
                 <td>
                   <Selectize
                       ref="duration"
@@ -305,9 +305,21 @@ var EventScheduler = React.createClass({
         .split(',')
         .map(function (email) {
           var contact = this.getContact(email);
-          console.log('contact', email, contact)
           return <div>{contact.name ? (contact.name + ' <' + contact.email + '>') : contact.email}</div>;
         }.bind(this))
+  },
+
+  renderPopover: function (title, content, placement) {
+    return <a href="#" onClick={function (event) {event.preventDefault()}}>
+      <span
+          data-toggle="popover"
+          data-placement={placement || 'top'}
+          title={title}
+          data-content={content}
+          className="glyphicon glyphicon-info-sign"
+          aria-hidden="true"
+      ></span>
+    </a>
   },
 
   back: function () {
@@ -513,6 +525,9 @@ var EventScheduler = React.createClass({
 
   componentDidMount: function() {
     this.initStep();
+
+    // initialize all popovers
+    $('[data-toggle="popover"]').popover();
   },
 
   componentDidUpdate: function (prevProps, prevState) {
@@ -520,6 +535,9 @@ var EventScheduler = React.createClass({
       hash.set({step: this.state.step});
       this.initStep();
     }
+
+    // initialize all popovers
+    $('[data-toggle="popover"]').popover();
   },
 
   initStep: function () {
