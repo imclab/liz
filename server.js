@@ -445,6 +445,35 @@ app.delete('/profiles/:id', function(req, res){
   });
 });
 
+// generate availability events
+app.post('/profiles/generate', function (req, res) {
+  var email = req.session.email;
+  var calendarId = req.body.calendar || email;
+
+  authorize(email, email, function (err, accessToken, user) {
+    if(err) return sendError(res, err);
+
+    // get timeZone of the selected calendar
+    gutils.getTimeZone(calendarId, accessToken, function (err, timeZone) {
+      if (err) return sendError(res, err);
+
+      // generate events from the given profile
+      gutils.generateAvailabilityEvents(req.body, timeZone, function (err, events) {
+        if (err) return sendError(res, err);
+
+        // create the events in the calendar
+        async.map(events, function (event, callback) {
+          gcal(accessToken).events.insert(calendarId, event, callback);
+        }, function (err, createdEvents) {
+          if(err) return sendError(res, err);
+          return res.json(createdEvents);
+        });
+      });
+
+    });
+  });
+});
+
 /**
  * Send an error
  * @param {Object} res

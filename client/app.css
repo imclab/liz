@@ -81,6 +81,18 @@ table.events td {
   vertical-align: top;
 }
 
+table.availability {
+  margin: 10px 0;
+}
+
+table.availability td {
+  padding: 5px;
+}
+
+table.availability input[type="text"] {
+  width: 5em;
+}
+
 table.table.profiles td {
   text-overflow: ellipsis;
   word-break: break-all;
@@ -138,6 +150,14 @@ div.scheduler img.loading {
 div.scheduler table,
 div.scheduler ul {
   margin: 24px 0;
+}
+
+.panel-heading h5 {
+  margin: 0;
+}
+
+.panel-body {
+  background-color: #f5f5f5;
 }
 
 div.scheduler ul {

@@ -8,7 +8,7 @@
  *      roles={Array}
  *      calendars={Array}
  *      onChange={function}
- *      />
+ *   />
  *
  * Where:
  *
@@ -25,9 +25,12 @@
 var Profile = React.createClass({
   getInitialState: function () {
     return {
-      role: '',
-      calendars: '',
-      tag: ''
+      profile: this.props.profile || {
+        role: '',
+        calendars: '',
+        tag: ''
+      },
+      showGenerator: false
     };
   },
 
@@ -50,7 +53,7 @@ var Profile = React.createClass({
 
             </p>
             <Selectize
-                value={this.state.role || ''}
+                value={this.state.profile.role || ''}
                 options={this.props.roles}
                 create={true}
                 createOnBlur={true}
@@ -66,7 +69,7 @@ var Profile = React.createClass({
               }
             </p>
             <Selectize
-                value={this.state.calendars || ''}
+                value={this.state.profile.calendars || ''}
                 options={this.props.calendars}
                 multiple="true"
                 placeholder="Select a calendar..."
@@ -84,16 +87,57 @@ var Profile = React.createClass({
                 type="text"
                 className="form-control"
                 title="Availability tag"
-                value={this.state.tag || ''}
+                value={this.state.profile.tag || ''}
                 placeholder="Enter a tag like '#available'"
                 onChange={this.handleTagChange}
             />
+
+            <h5>Generate availability events (optional)</h5>
+            <p>Do you want to generate availability events in your calendar&#63;&nbsp;
+            {
+              this.renderPopover('Availability events', 'Via the generator, you can generate recurring events in your calendar on your working hours. The generated events have the specified tag "' + (this.state.profile.tag || '') + '" as event title and mark when you are available.')
+            }
+            </p>
+            <p>
+            <button
+                className="btn btn-default"
+                onClick={this.state.showGenerator ? this.hideGenerator : this.showGenerator}
+            >{
+              this.state.showGenerator ? 'Hide generator' : 'Show generator'
+              }</button>
+            </p>
+            <div>
+              {this.state.showGenerator ? this.renderGenerator() : ''}
+            </div>
+
           </div>
           <div className="modal-footer">
-            <button type="button" className="btn btn-default" data-dismiss="modal">Cancel</button>
+            <button type="button" className="btn btn-default" onClick={this.hide}>Cancel</button>
             <button type="button" className="btn btn-success" onClick={this.save}>Save</button>
           </div>
         </div>
+      </div>
+    </div>;
+  },
+
+  renderGenerator: function () {
+    var selected = this.state.profile && this.state.profile.calendars &&
+        this.state.profile.calendars.split(',');
+    var calendars = this.props.calendars.filter(function (calendar) {
+      return selected.indexOf(calendar.value) != -1;
+    });
+
+    return <div className="panel panel-primary">
+      <div className="panel-heading">
+        <h5 classNameclass="panel-title">Availability event generator</h5>
+      </div>
+      <div className="panel-body">
+        <EventGenerator
+            ref="generator"
+            tag={this.state.profile.tag}
+            calendars={calendars}
+            onCreate={this.handleCreate}
+        />
       </div>
     </div>;
   },
@@ -114,49 +158,86 @@ var Profile = React.createClass({
   componentDidMount: function () {
     // initialize all popovers
     $('[data-toggle="popover"]').popover();
+
+    this.updateVisibility();
   },
 
   componentDidUpdate: function () {
     // initialize all popovers
     $('[data-toggle="popover"]').popover();
+
+    this.updateVisibility();
+  },
+
+  updateVisibility: function () {
+    var elem = this.refs.profile.getDOMNode();
+
+    if (this.state.show) {
+      $(elem).modal({
+        keyboard: false, // prevent conflict with pressing ESC in dropdowns
+        show: true
+      });
+    }
+    else {
+      $(elem).modal('hide');
+    }
   },
 
   handleRoleChange: function (value) {
-    this.setState({role: value});
+    var profile = _.extend({}, this.state.profile);
+    profile.role = value;
+    this.setState({profile: profile});
   },
 
   handleCalendarsChange: function (value) {
-    this.setState({calendars: value});
+    var profile = _.extend({}, this.state.profile);
+    profile.calendars = value;
+    this.setState({profile: profile});
   },
 
   handleTagChange: function (event) {
-    this.setState({tag: event.target.value});
+    var profile = _.extend({}, this.state.profile);
+    profile.tag = event.target.value;
+    this.setState({profile: profile});
+  },
+
+  handleCreate: function (events) {
+    // TODO: nicer looking alert
+    alert('The availability events are successfully generated');
+
+    this.hideGenerator();
   },
 
   show: function (profile) {
-    if (profile) {
-      this.setProfile(profile);
-    }
-
-    var elem = this.refs.profile.getDOMNode();
-    $(elem).modal({
-      keyboard: false, // prevent conflict with pressing ESC in dropdowns
-      show: true
+    this.setState({
+      profile: profile,
+      show: true,
+      showGenerator: false
     });
   },
 
+  showGenerator: function () {
+    this.setState({showGenerator: true});
+  },
+
+  hideGenerator: function () {
+    this.setState({showGenerator: false});
+  },
+
   hide: function () {
-    var elem = this.refs.profile.getDOMNode();
-    $(elem).modal('hide');
+    this.setState({
+      show: false,
+      showGenerator: false
+    });
   },
 
   setProfile: function (profile) {
-    this.setState(profile);
+    this.setState({profile: profile});
   },
 
   getProfile: function () {
     // return a copy of the state
-    return _.extend({}, this.state);
+    return _.extend({}, this.state.profile);
   },
 
   save: function () {

@@ -438,9 +438,5 @@ var SettingsPage = React.createClass({
     event.preventDefault();
 
     this.setState({showHelpAvailability: true});
-  },
-
-  showWizard: function () {
-    this.refs.wizard.show();
   }
 });

@@ -74,208 +74,225 @@ To the the code, run:
 
 ## Authentication
 
-- `GET /auth`
+-   `GET /auth`
 
-  Authenticate the user. Will redirect to the OAuth 2 website of Google.
-  After authentication, the page is redirected to `/auth/callback`.
+    Authenticate the user. Will redirect to the OAuth 2 website of Google.
+    After authentication, the page is redirected to `/auth/callback`.
 
-- `GET /auth/callback`
+-   `GET /auth/callback`
 
-  Redirect page after a user has authenticated itself. This page will
-  redirect to the original page the user was at before logging in.
+    Redirect page after a user has authenticated itself. This page will
+    redirect to the original page the user was at before logging in.
 
 - `GET /auth/signin`
 
-  Sign in, authenticate the user, redirects to `/auth`.
+    Sign in, authenticate the user, redirects to `/auth`.
 
-  Query parameters:
-  - `redirectTo` An url to redirect to (typically the users current page)
-    after authentication was successful. Default value is `/`.
+    Query parameters:
+    -   `redirectTo` An url to redirect to (typically the users current page)
+        after authentication was successful. Default value is `/`.
 
-- `GET /auth/signout`
+-   `GET /auth/signout`
 
-  Sign out and destroy the users session.
+    Sign out and destroy the users session.
 
-  Query parameters:
-  - `redirectTo` An url to redirect to (typically the users current page)
-    after authentication was successful. Default value is `/`.
+    Query parameters:
+    -   `redirectTo` An url to redirect to (typically the users current page)
+        after authentication was successful. Default value is `/`.
 
 
 ## User
 
-- `GET /user`
+-   `GET /user`
 
-  Get the profile of the current user. When logged in, an object with the
-  following structure is returned:
+    Get the profile of the current user. When logged in, an object with the
+    following structure is returned:
 
-  ```json
-  {
-    "loggedIn": true,
-    "email": "email@example.com",
-    "name": "User Name",
-    "picture": "url_to_picture",
-    "calendars": [
-      "email@example.com"
-    ],
-    "share": "calendar"
-  }
-  ```
-
-  When not logged in, the returned object looks like:
-
-  ```json
-  {
-    "loggedIn": false
-  }
-  ```
-
-- `PUT /user`
-
-  Update a users profile. The request body must contain a JSON Object like:
-
-  ```json
-  {
+    ```json
+    {
+      "loggedIn": true,
+      "email": "email@example.com",
       "name": "User Name",
       "picture": "url_to_picture",
+      "calendars": [
+        "email@example.com"
+      ],
       "share": "calendar"
     }
-  }
-  ```
-  Only provided properties are updated on the users profile, other properties
-  are left unchanged. One can add new properties if needed.
+    ```
 
-- `DELETE /user`
+    When not logged in, the returned object looks like:
 
-  Delete the logged in user. This will completely remove the users account
-  and revoke granted permissions.
+    ```json
+    {
+      "loggedIn": false
+    }
+    ```
+
+-   `PUT /user`
+
+    Update a users profile. The request body must contain a JSON Object like:
+
+    ```json
+    {
+        "name": "User Name",
+        "picture": "url_to_picture",
+        "share": "calendar"
+      }
+    }
+    ```
+
+    Only provided properties are updated on the users profile, other properties
+    are left unchanged. One can add new properties if needed.
+
+-   `DELETE /user`
+
+    Delete the logged in user. This will completely remove the users account
+    and revoke granted permissions.
 
 
 ## Calendar
 
-- `GET /calendar`
+-   `GET /calendar`
 
-  Returns an object with all the users Google Calendars. Returns the response
-  of the Google Calendar `/calendarList` API:
-  https://developers.google.com/google-apps/calendar/v3/reference/calendarList/list
+    Returns an object with all the users Google Calendars. Returns the response
+    of the Google Calendar `/calendarList` API:
+    https://developers.google.com/google-apps/calendar/v3/reference/calendarList/list
 
-- `GET /calendar/:calendarId`
+-   `GET /calendar/:calendarId`
 
-  Retrieve calendar items. Returns an Object with calendar events as returned
-  by the Google Calendar `/events` API:
-  https://developers.google.com/google-apps/calendar/v3/reference/events/list
+    Retrieve calendar items. Returns an Object with calendar events as returned
+    by the Google Calendar `/events` API:
+    https://developers.google.com/google-apps/calendar/v3/reference/events/list
 
-  By default, all events between now and seven days are retrieved.
+    By default, all events between now and seven days are retrieved.
 
-  Query parameters:
-  - `timeMin` ISO date string with the start of a time interval.
-  - `timeMax` ISO date string with the end of a time interval.
+    Query parameters:
+    -   `timeMin` ISO date string with the start of a time interval.
+    -   `timeMax` ISO date string with the end of a time interval.
 
-- `PUT /calendar/:calendarId`
+-   `PUT /calendar/:calendarId`
 
-  Insert a new calendar event. The event must be a valid [Event resource](https://developers.google.com/google-apps/calendar/v3/reference/events#resource),
-  as described here:
-  https://developers.google.com/google-apps/calendar/v3/reference/events/insert
+    Insert a new calendar event. The event must be a valid [Event resource](https://developers.google.com/google-apps/calendar/v3/reference/events#resource),
+    as described here:
+    https://developers.google.com/google-apps/calendar/v3/reference/events/insert
 
-- `DELETE /calendar/:calendarId/:eventId`
+-   `DELETE /calendar/:calendarId/:eventId`
 
-  Delete a calendar event.
+    Delete a calendar event.
 
 
 ## FreeBusy
 
-- `GET /freeBusy/:calendarId?`
+-   `GET /freeBusy/:calendarId?`
 
-  Get the free busy interval of a specific calendarId. If no `calendarId` is
-  provided, the email of the logged in user is used as calendar id.
+    Get the free busy interval of a specific calendarId. If no `calendarId` is
+    provided, the email of the logged in user is used as calendar id.
 
-  By default, all intervals between now and seven days are retrieved.
+    By default, all intervals between now and seven days are retrieved.
 
-  Query parameters:
-  - `timeMin: string` ISO date string with the start of a time interval.
-  - `timeMax: string` ISO date string with the end of a time interval.
-  - `role: string`    A user role (like "Consultant"). If not provided,
-    the users email address is used as role.
+    Query parameters:
+    -   `timeMin: string` ISO date string with the start of a time interval.
+    -   `timeMax: string` ISO date string with the end of a time interval.
+    -   `role: string`    A user role (like "Consultant"). If not provided,
+        the users email address is used as role.
 
-  Returns:
+    Returns:
 
-  ```js
-  {
-    "free": [
-      {
-        "start": ISO_DATE_STRING,
-        "end": ISO_DATE_STRING
-      }
-    ],
-    "busy": [
-      {
-        "start": ISO_DATE_STRING,
-        "end": ISO_DATE_STRING
-      }
-    ],
-    "errors": [
-      {
-        "id": CALENDAR_ID,
-        "message": STRING"
-      }
-    ]
-  }
-  ```
+    ```js
+    {
+      "free": [
+        {
+          "start": ISO_DATE_STRING,
+          "end": ISO_DATE_STRING
+        }
+      ],
+      "busy": [
+        {
+          "start": ISO_DATE_STRING,
+          "end": ISO_DATE_STRING
+        }
+      ],
+      "errors": [
+        {
+          "id": CALENDAR_ID,
+          "message": STRING"
+        }
+      ]
+    }
+    ```
 
 
 ## Contacts
 
-- `GET /contacts/:email?`
+-   `GET /contacts/:email?`
 
-  Get all contacts of a user. If parameter `email` is not provided, the contacts
-  of the logged in user are returned.
+    Get all contacts of a user. If parameter `email` is not provided, the contacts
+    of the logged in user are returned.
 
-  Query parameters:
-  - `raw: boolean` If true, the "raw" Google Contacts as returned by Googles
-    API are returned as JSON. If false (default), a simple list with contacts
-    having `name` and `email` is returned.
+    Query parameters:
+    - `raw: boolean` If true, the "raw" Google Contacts as returned by Googles
+      API are returned as JSON. If false (default), a simple list with contacts
+      having `name` and `email` is returned.
 
-  If `raw == false` (default), returns:
+    If `raw == false` (default), returns:
 
-  ```json
-  [
-    {
-      "name": "User Name",
-      "email": "foo@company.com"
-    }
-  ]
-  ```
+    ```json
+    [
+      {
+        "name": "User Name",
+        "email": "foo@company.com"
+      }
+    ]
+    ```
 
-  If `raw == true`, an object with Google Contacts is returns (JSON format),
-  as described here: https://developers.google.com/google-apps/contacts/v3/
+    If `raw == true`, an object with Google Contacts is returns (JSON format),
+    as described here: https://developers.google.com/google-apps/contacts/v3/
 
 
 ## Profiles, Groups
 
-- `GET /groups`
+-   `GET /groups`
 
-  Get a list with all groups (aggregated result from all profiles).
-  Returns an Array structured like:
+    Get a list with all groups (aggregated result from all profiles).
+    Returns an Array structured like:
 
-  ```json
-  [
-    {
-      "id": "group:Developer",
-      "name": "Developer",
-      "count": 2,
-      "members": [
-          "foo@company.com",
-          "bar@company.com"
-      ]
-    }
-  ]
-  ```
+    ```json
+    [
+      {
+        "id": "group:Developer",
+        "name": "Developer",
+        "count": 2,
+        "members": [
+            "foo@company.com",
+            "bar@company.com"
+        ]
+      }
+    ]
+    ```
 
-- `GET /profiles`
+-   `GET /profiles`
 
-  Get all profiles of the current users. Returns an Array with profiles like:
+    Get all profiles of the current users. Returns an Array with profiles like:
 
-  ```json
-  [
+    ```json
+    [
+      {
+        "_id": "6a409334-72a5-4304-98ac-26318348cb18",
+        "email": "jos@almende.org",
+        "calendars": "calendarIdA, calendarIdB",
+        "role": "Developer",
+        "tag": "Consultancy"
+      }
+    ]
+    ```
+
+-   `PUT /profiles`
+
+    Create or update the profile of current user. Request body must contain a profile
+    like:
+
+    ```json
     {
       "_id": "6a409334-72a5-4304-98ac-26318348cb18",
       "email": "jos@almende.org",
@@ -283,24 +300,32 @@ To the the code, run:
       "role": "Developer",
       "tag": "Consultancy"
     }
-  ]
-  ```
+    ```
 
-- `PUT /profiles`
+-   `DELETE /profiles/:id`
 
-  Create or update the profile of current user. Request body must contain a profile
-  like:
+    Delete a profile by its id.
 
-  ```json
-  {
-    "_id": "6a409334-72a5-4304-98ac-26318348cb18",
-    "email": "jos@almende.org",
-    "calendars": "calendarIdA, calendarIdB",
-    "role": "Developer",
-    "tag": "Consultancy"
-  }
-  ```
+-   `POST /profiles/generate`
 
-- `DELETE /profiles/:id`
+    Generate availability events. Expects a request body with a JSON object like:
 
-  Delete a profile by its id.
+    ```json
+    {
+      "tag": STRING           // for example '#availability'
+      "calendar": CALENDAR_ID,
+      "createCalendar": NEW_CALENDAR_NAME,
+      "zone": TIME_ZONE       // for example -60 or '-01:00' or '+08:00'
+      "days": [
+        {
+          "day": WEEK_DAY,    // "Monday", "Tuesday", ...
+          "start": TIME,      // "09:00"
+          "end": TIME         // "17:00"
+        }
+      ]
+    }
+    ```
+
+    Either the field `calendar` must be provided with the id of an existing
+    calendar, *or* the field `createCalendar` must be provided with the name
+    of a new calendar. In the last case, a new calendar will be created.
