@@ -70,6 +70,87 @@ var SettingsPage = React.createClass({
 
   renderProfiles: function () {
     var header = <tr key="header">
+      <th>Description</th>
+      <th></th>
+    </tr>;
+
+    var profiles = this.state.profiles || [];
+    var rows = profiles.map(function (profile) {
+      // TODO: for both selectize controls, utilize dynamic loading via query,
+      //       retrieve filtered profiles from the server
+
+      var calendarsArray = profile.calendars && profile.calendars.split(',') || [];
+      var calendars = calendarsArray.map(function (calendarId, index) {
+        calendarId = calendarId.trim();
+        var calendar = this.state.calendarList.filter(function (c) {
+          return c.id == calendarId;
+        })[0];
+
+        var text = (calendar !== undefined) ? calendar.summary : calendarId;
+        if (index != calendarsArray.length - 1) {
+          text += ', ';
+        }
+
+        return <span title={calendarId}>{text}</span>;
+      }.bind(this));
+
+      return <div key={profile._id} className="profile-entry">
+            <table>
+              <tbody>
+                <tr>
+                  <th>Role</th>
+                  <td>{(profile.role == 'group') ? 'Team member' : 'Individual'}</td>
+                </tr>
+                {
+                  (profile.role == 'group') ?
+                    <tr>
+                      <th>Team</th>
+                      <td>{profile.group}</td>
+                    </tr> : ''
+                }
+                <tr>
+                  <th>Calendars</th>
+                  <td>{calendars}</td>
+                </tr>
+                <tr>
+                  <th>Tag</th>
+                  <td>{profile.tag}</td>
+                </tr>
+              </tbody>
+            </table>
+            <div className="menu">
+              <button
+                  className="btn btn-normal"
+                  title="Edit this profile"
+                  onClick={function () {
+                    this.editProfile(profile._id);
+                  }.bind(this)}
+              ><span className="glyphicon glyphicon-pencil"></span></button>&nbsp;
+              <button
+                  className="btn btn-danger"
+                  title="Delete this profile"
+                  onClick={function () {
+                    this.removeProfile(profile._id);
+                  }.bind(this)}
+              ><span className="glyphicon glyphicon-remove"></span></button>
+            </div>
+          </div>;
+    }.bind(this));
+
+    return <div>
+      {rows}
+      <div>
+        <button
+            onClick={this.addProfile}
+            className="btn btn-normal"
+            title="Add a new profile"
+        ><span className="glyphicon glyphicon-plus"></span> Add</button>
+      </div>
+    </div>;
+  },
+
+  renderProfilesOld: function () {
+    var header = <tr key="header">
       <th>Role</th>
       <th>Calendars</th>
       <th>Tag</th>
@@ -179,7 +260,7 @@ var SettingsPage = React.createClass({
     console.log('removeProfile', profile);
     if (profile !== undefined) {
       // TODO: implement a nicer looking confirm box
-      if (confirm('Are you sure you want to delete profile "' + profile.name + '"?')) {
+      if (confirm('Are you sure you want to delete this profile?')) {
         var profiles = this.state.profiles;
         profiles.splice(profiles.indexOf(profile), 1);
 

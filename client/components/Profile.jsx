@@ -43,7 +43,7 @@ var Profile = React.createClass({
   },
 
   render: function () {
-    return <div className="modal" ref="profile">
+    return <div className="modal profile" ref="profile">
       <div className="modal-dialog">
         <div className="modal-content">
           <div className="modal-header">
