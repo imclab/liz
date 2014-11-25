@@ -152,6 +152,10 @@ div.scheduler ul {
   margin: 24px 0;
 }
 
+table.role {
+  width: 100%;
+}
+
 .panel-heading h5 {
   margin: 0;
 }

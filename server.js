@@ -336,15 +336,15 @@ app.get('/freeBusy/:calendarId?', function(req, res) {
   // retrieve the free/busy profiles of each of the selected calendars and groups
   async.map(calendarIds, function (calendarId, callback) {
     if (calendarId.substr(0, 6) == 'group:') {
-      var role = calendarId.substr(6);
-      getGroupFreeBusy(role, query, function (err, profile) {
-        if (profile) profile.id = role;
+      var group = calendarId.substr(6);
+      getGroupFreeBusy(group, query, function (err, profile) {
+        if (profile) profile.id = group;
         callback(err, profile);
       });
     }
     else { // email
-      var role = req.query.role || email;
-      getAuthFreeBusy(email, role, calendarId, query, function (err, profile) {
+      var group = req.query.group || null;
+      getAuthFreeBusy(email, group, calendarId, query, function (err, profile) {
         if (profile) profile.id = calendarId;
         callback(err, profile);
       });
@@ -403,7 +403,7 @@ app.get('/contacts/:email?', function(req, res){
 
 app.get('/groups*', auth);
 
-// get all groups (aggregated from all user profiles)
+// get all groups (aggregated from all user profiles having role=='group')
 app.get('/groups', function(req, res){
   var options = req.query;
   db.groups.list(options, function (err, groups) {
@@ -417,9 +417,9 @@ app.get('/profiles*', auth);
 
 // get all profiles of current user
 app.get('/profiles', function(req, res){
-  var email = req.session.email;
+  var userId = req.session.email;
 
-  db.profiles.list(email, function (err, profiles) {
+  db.profiles.list(userId, function (err, profiles) {
     if (err) return sendError(res, err);
     return res.json(profiles);
   });
@@ -427,9 +427,9 @@ app.get('/profiles', function(req, res){
 
 // create or update a profile of a user
 app.put('/profiles', function(req, res){
-  var email = req.session.email;
+  var userId = req.session.email;
   var profile = req.body;
-  if (profile.email === undefined) profile.email = email;
+  if (profile.user === undefined) profile.user = userId;
 
   db.profiles.update(profile, function (err, profiles) {
     if (err) return sendError(res, err);
@@ -513,14 +513,15 @@ function stringifyError(err) {
 /**
  * Get the free busy profile of a user by it's email (will authorize)
  * @param {string} email                The email of the logged in user
- * @param {string} [role=undefined]     Role for which to return the availability.
- *                                      This is the users email by default
+ * @param {string} [group=undefined]    Group for which to return the availability.
+ *                                      If not provided, the profile of the user
+ *                                      with role=='individual' is used
  * @param {string} calendarId           A calendar id
  * @param {{timeMin: string, timeMax: string} | {timeMin: string, timeMax: string, items: Array.<{id: string}>}} query
  * @param {function} callback     Called as callback(err, {free: Array, busy:Array, errors:Array})
  *                                `err` is null
  */
-function getAuthFreeBusy(email, role, calendarId, query, callback) {
+function getAuthFreeBusy(email, group, calendarId, query, callback) {
   authorize(email, calendarId, function (err, accessToken, user) {
     if (err) {
       var profilesError = createProfileError(err);
@@ -533,7 +534,7 @@ function getAuthFreeBusy(email, role, calendarId, query, callback) {
             ]
           }, query);
 
-          return getFreeBusy(loggedInUser, role, loggedInQuery, function (err, profile) {
+          return getFreeBusy(loggedInUser, group, loggedInQuery, function (err, profile) {
             if (profile && profile.errors && profile.errors.length > 0) {
               // return the original error
               return callback(null, profilesError);
@@ -549,7 +550,7 @@ function getAuthFreeBusy(email, role, calendarId, query, callback) {
       });
     }
     else {
-      getFreeBusy(user, role, query, callback);
+      getFreeBusy(user, group, query, callback);
     }
   });
 }
@@ -557,14 +558,14 @@ function getAuthFreeBusy(email, role, calendarId, query, callback) {
 /**
  * Get the freeBusy profile of a Group. The freeBusy profiles of all
  * group members will be retrieved and merged.
- * @param {string} role                            A role like "Consultant"
+ * @param {string} groupName                          A group name like "Consultant"
  * @param {{timeMin: string, timeMax: string}} query  Object with start and end time
  * @param {function} callback     Called as callback(err, {busy:Array, errors:Array})
  *                                `err` is null
  */
-function getGroupFreeBusy(role, query, callback) {
+function getGroupFreeBusy(groupName, query, callback) {
   // get the members of this group
-  db.groups.getByRole(role, function (err, group) {
+  db.groups.getByName(groupName, function (err, group) {
     if (err) return callback(null, createProfileError(err));
 
     // get the freeBusy profiles of each of the group members
@@ -576,7 +577,7 @@ function getGroupFreeBusy(role, query, callback) {
         if (err) console.log('Error getting group member', member , err);
         if (err) return callback(null, {free: [], busy: []});
 
-        getFreeBusy(user, role, query, callback);
+        getFreeBusy(user, groupName, query, callback);
       });
     }, function (err, profilesArray) {
       // merge the array with profile objects
@@ -597,14 +598,14 @@ function getGroupFreeBusy(role, query, callback) {
 /**
  * Get the free busy profile of a user
  * @param {Object} user
- * @param {string} [role=undefined]   Role for which to get the users busy profile
- *                                    if undefined, the profile for the users
- *                                    email is returned.
+ * @param {string} [group=undefined]  Group for which to get the users busy profile
+ *                                    If not provided, the profile of the user
+ *                                    with role=='individual' is used
  * @param {{timeMin: string, timeMax: string} | {timeMin: string, timeMax: string, items: Array.<{id: string}>}} query
  * @param {function} callback     Called as callback(err, {free: Array, busy:Array, errors:Array})
  *                                `err` is null
  */
-function getFreeBusy(user, role, query, callback) {
+function getFreeBusy(user, group, query, callback) {
   // TODO: restructure this method, its too complicated
 
   // get all profiles of this user
@@ -633,10 +634,12 @@ function getFreeBusy(user, role, query, callback) {
     }
     _query.singleEvents = true; // expand recurring events
 
-    // create an array with all tags, and one with all tags belonging to the specified role
+    // create an array with all tags, and one with all tags belonging to the specified group
     var allTags = getTags(profiles);
     var filteredTags = getTags(profiles.filter(function (profile) {
-      return (profile.role == role);
+      return (group == undefined) ?
+          (profile.role != 'group') :
+          (profile.role == 'group' && profile.group == group);
     }));
 
     // read events for each of the calendars
@@ -663,7 +666,7 @@ function getFreeBusy(user, role, query, callback) {
               notAvailable.push(interval);
             }
             else if (filteredTags.indexOf(summary) != -1) {
-              // this is an availability tag for the specified role
+              // this is an availability event, it has an availability tag as title
               available.push(interval);
             }
           }
@@ -674,7 +677,7 @@ function getFreeBusy(user, role, query, callback) {
     }, function (err) {
       if (err) return callback(null, createProfileError(err));
 
-      if (filteredTags.length === 0 && (role == user.email || role == undefined)) {
+      if (filteredTags.length === 0 && (group == undefined)) {
         // mark as available the whole interval if there is no availability profile configured
         available.push({
           start: query.timeMin,
@@ -712,23 +715,23 @@ function getFreeBusy(user, role, query, callback) {
 
 /**
  * Get a free group member
- * @param {string} role
+ * @param {string} groupName                           A group name like "Consultant"
  * @param {{timeMin: string, timeMax: string}} query   Time interval
  * @param {function} callback   Called as callback(err, memberIds: string[])
  */
-function getFreeGroupMembers(role, query, callback) {
-  db.groups.getByRole(role, function (err, group) {
+function getFreeGroupMembers(groupName, query, callback) {
+  db.groups.getByName(groupName, function (err, group) {
     if (err) return callback(err, null);
 
     async.filter(group.members, function (member, callback) {
       db.users.getAuthenticated(member, function (err, user) {
         // ignore failed members
         // TODO: return group member errors as non-critical errors or warnings?
-        if (err) console.log('Error getting group member', member , err);
+        if (err) console.log('Error getting group member', member, err);
 
         if (!user) return callback(false);
 
-        getFreeBusy(user, role, query, function (err, profile) {
+        getFreeBusy(user, groupName, query, function (err, profile) {
           return callback(profile.free.some(function (free) {
             return (free.start <= query.timeMin && free.end >= query.timeMax);
           }));
@@ -757,8 +760,8 @@ function chooseGroupMembers(event, callback) {
 
   async.each(event.attendees, function (attendee, callback) {
     if (attendee.email.substr(0, 6) == 'group:') {
-      var role = attendee.email.substr(6);
-      getFreeGroupMembers(role, query, function (err, members) {
+      var group = attendee.email.substr(6);
+      getFreeGroupMembers(group, query, function (err, members) {
         if (err) return callback(err);
 
         if (members.length == 0) {

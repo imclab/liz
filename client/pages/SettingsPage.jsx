@@ -49,7 +49,7 @@ var SettingsPage = React.createClass({
 
       <Profile
           ref="profile"
-          roles={this.getRoleOptions()}
+          groups={this.getGroupOptions()}
           calendars={this.getCalendarOptions()}
           onChange={this.handleProfileChange}
       />
@@ -109,7 +109,7 @@ var SettingsPage = React.createClass({
 
       return <tr key={profile._id}>
             <td>
-              {profile.role}
+              {(profile.role == 'group') ? ('Team: ' + profile.group) : 'Individual'}
             </td>
             <td>
               {calendars}
@@ -158,9 +158,10 @@ var SettingsPage = React.createClass({
   addProfile: function () {
     var profile = {
       _id: UUID(),
+      user: this.props.user.email,
+      calendars: this.props.user.email || '',
       tag: '#available',
-      role: this.props.user.email || '',
-      calendars: this.props.user.email || ''
+      role: 'individual'
     };
 
     this.refs.profile.show(profile);
@@ -355,49 +356,8 @@ var SettingsPage = React.createClass({
     });
   },
 
-  getRoleOptions: function () {
-    var user = this.props.user;
-
-    // all groups without individual users
-    var groupsList = this.state.groupsList.filter(function (group) {
-      // filter users
-      var isUser = group.members && group.members[0] == group.name;
-
-      return !isUser;
-    });
-
-    // all profiles of the user
-    // add missing options to the calendar options and profile options
-    var profiles = this.state.profiles || [];
-    profiles.forEach(function (profile) {
-      if (profile.role) {
-        var roleExists = groupsList.some(function (entry) {
-          return entry.name == profile.role;
-        });
-        if (!roleExists) {
-          groupsList.push({
-            name: profile.role,
-            count: 1,
-            members: [user.email]
-          });
-        }
-      }
-    }.bind(this));
-
-    // email address of the user
-    var selfExists = groupsList.some(function (entry) {
-      return entry.name == user.email;
-    });
-    if (!selfExists) {
-      groupsList.push({
-        name: user.email,
-        count: 1,
-        members: [user.email]
-      });
-    }
-
-    // generate profile options
-    return groupsList.map(function (entry) {
+  getGroupOptions: function () {
+    return this.state.groupsList.map(function (entry) {
       return {
         value: entry.name,
         text: entry.name

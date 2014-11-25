@@ -194,7 +194,7 @@ To the the code, run:
     Query parameters:
     -   `timeMin: string` ISO date string with the start of a time interval.
     -   `timeMax: string` ISO date string with the end of a time interval.
-    -   `role: string`    A user role (like "Consultant"). If not provided,
+    -   `group: string`   A group like "Consultant". If not provided,
         the users email address is used as role.
 
     Returns:
@@ -279,10 +279,11 @@ To the the code, run:
     [
       {
         "_id": "6a409334-72a5-4304-98ac-26318348cb18",
-        "email": "jos@almende.org",
+        "user": "jos@almende.org",
         "calendars": "calendarIdA, calendarIdB",
-        "role": "Developer",
-        "tag": "Consultancy"
+        "tag": "#consultancy",
+        "role": "group" | "individual",
+        "group": "Consultant" | null
       }
     ]
     ```
@@ -295,10 +296,11 @@ To the the code, run:
     ```json
     {
       "_id": "6a409334-72a5-4304-98ac-26318348cb18",
-      "email": "jos@almende.org",
+      "user": "jos@almende.org",
       "calendars": "calendarIdA, calendarIdB",
-      "role": "Developer",
-      "tag": "Consultancy"
+      "tag": "#consultancy",
+      "role": "group" | "individual",
+      "group": "Consultant" | null
     }
     ```
 

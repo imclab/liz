@@ -5,30 +5,38 @@
  *
  *   <Profile
  *      ref="profile"
- *      roles={Array}
+ *      groups={Array}
  *      calendars={Array}
  *      onChange={function}
  *   />
  *
  * Where:
  *
- *   - `roles` is an Array<{text: string, value: string}> with the available roles
+ *   - `groups` is an Array<{text: string, value: string}> with the available groups
  *   - `calendars` is an Array<{text: string, value: string}> with the available calendars
  *   - `onChange` is a function, called when the profile is changed, with
  *     the profile as first argument.
  *
  * Use:
  *
- *   profile.show({role: ..., calendars: ..., tag: ...});
+ *   profile.show({
+ *     user: ...,
+ *     calendars: ...,
+ *     tag: ...,
+ *     role: 'group' | 'individual',
+ *     group: ...
+ *   });
  *
  */
 var Profile = React.createClass({
   getInitialState: function () {
     return {
       profile: this.props.profile || {
-        role: '',
+        user: '',
         calendars: '',
-        tag: ''
+        tag: '',
+        role: '',
+        group: ''
       },
       showGenerator: false
     };
@@ -46,20 +54,53 @@ var Profile = React.createClass({
             <p>Configure an availability profile.</p>
             <h5>Role</h5>
             <p>
-            In which role do you want to be available&#63; You can create new roles.&nbsp;
+            In which role do you want to be available&#63; You can create new teams.&nbsp;
             {
-              this.renderPopover('Role', 'Role can be either your own email address, or the name of a team like "Consultant".')
+              this.renderPopover('Role', 'Select whether you want to define your availability as an individual or as a team member. You can create new teams like "Consultant".', 'left')
             }
 
             </p>
-            <Selectize
-                value={this.state.profile.role || ''}
-                options={this.props.roles}
-                create={true}
-                createOnBlur={true}
-                placeholder="Select a role..."
-                onChange={this.handleRoleChange}
-            />
+
+            <table className='role'>
+              <colgroup>
+                <col width="130px" />
+              </colgroup>
+              <tbody>
+                <tr>
+                  <td>
+                    <label><input
+                        type="radio"
+                        checked={this.state.profile.role != 'group'}
+                        onChange={function () {
+                          this.handleRoleChange('individual');
+                        }.bind(this)}
+                    /> Individual</label>
+                  </td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td>
+                    <label><input
+                        type="radio"
+                        checked={this.state.profile.role == 'group'}
+                        onChange={function () {
+                          this.handleRoleChange('group');
+                        }.bind(this)}
+                    /> Team member</label>
+                  </td>
+                  <td>
+                    <Selectize
+                        value={this.state.profile.group || ''}
+                        options={this.props.groups}
+                        create={true}
+                        createOnBlur={true}
+                        placeholder="Select or create a team..."
+                        onChange={this.handleGroupChange}
+                    />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
 
             <h5>Calendars</h5>
             <p>
@@ -172,20 +213,23 @@ var Profile = React.createClass({
   updateVisibility: function () {
     var elem = this.refs.profile.getDOMNode();
 
-    if (this.state.show) {
-      $(elem).modal({
-        keyboard: false, // prevent conflict with pressing ESC in dropdowns
-        show: true
-      });
-    }
-    else {
-      $(elem).modal('hide');
-    }
+    // prevent conflict with pressing ESC in dropdowns
+    $(elem).modal({keyboard: false});
+
+    // show/hide the modal
+    $(elem).modal(this.state.show ? 'show' : 'hide');
   },
 
   handleRoleChange: function (value) {
     var profile = _.extend({}, this.state.profile);
     profile.role = value;
+    this.setState({profile: profile});
+  },
+
+  handleGroupChange: function (value) {
+    var profile = _.extend({}, this.state.profile);
+    profile.group = value;
+    profile.role = 'group';
     this.setState({profile: profile});
   },
 
@@ -237,7 +281,13 @@ var Profile = React.createClass({
 
   getProfile: function () {
     // return a copy of the state
-    return _.extend({}, this.state.profile);
+    var profile = _.extend({}, this.state.profile);
+
+    if (profile.role != 'group') {
+      profile.group = null;
+    }
+
+    return profile;
   },
 
   save: function () {
