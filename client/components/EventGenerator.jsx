@@ -146,7 +146,7 @@ var EventGenerator = React.createClass({
 
   create: function () {
     var calendars = this.props.calendars || [];
-    var calendar = this.state.calendar || calendars[0];
+    var calendar = calendars.length == 1 ? calendars[0].value : this.state.calendar;
 
     if (!calendar) {
       return alert('Error: No calendar selected');
