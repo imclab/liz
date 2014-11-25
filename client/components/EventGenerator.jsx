@@ -145,7 +145,10 @@ var EventGenerator = React.createClass({
   },
 
   create: function () {
-    if (!this.state.calendar) {
+    var calendars = this.props.calendars || [];
+    var calendar = this.state.calendar || calendars[0];
+
+    if (!calendar) {
       return alert('Error: No calendar selected');
     }
 
@@ -159,7 +162,7 @@ var EventGenerator = React.createClass({
 
     var body = {
       "tag": this.props.tag,           // for example '#availability'
-      "calendar": this.state.calendar,
+      "calendar": calendar,
       //"createCalendar": NEW_CALENDAR_NAME,
       "zone": moment().zone(),       // for example -60 or '-01:00' or '+08:00'
       "days": days
