@@ -84,12 +84,6 @@ var SettingsPage = React.createClass({
             className="btn btn-normal"
             title="Add a new profile"
         ><span className="glyphicon glyphicon-plus"></span> Add</button>
-
-      &nbsp;
-        <button
-            onClick={this.loadProfiles}
-            className="btn btn-default"
-        >Refresh</button>
       </div>
     </div>;
   },
