@@ -9,6 +9,7 @@ var SettingsPage = React.createClass({
     this.loadCalendarList();
     this.loadGroupsList();
     this.loadProfiles();
+    this.loadAccessRequests();
 
     return {
       loading: true,
@@ -19,6 +20,7 @@ var SettingsPage = React.createClass({
       calendarListError: null,
       calendarListLoading: true,
       groupsList: [],
+      accessRequests: null,
 
       showHelpAvailability: false,
       showHelpBusy: false
@@ -42,6 +44,8 @@ var SettingsPage = React.createClass({
 
     return <div>
       <h1>Settings</h1>
+
+      {this.renderAccessRequests()}
 
       <h2>Availability profiles</h2>
       <p>Create one or multiple profiles to specify when you are available and in what role.</p>
@@ -69,73 +73,8 @@ var SettingsPage = React.createClass({
   },
 
   renderProfiles: function () {
-    var header = <tr key="header">
-      <th>Description</th>
-      <th></th>
-    </tr>;
-
     var profiles = this.state.profiles || [];
-    var rows = profiles.map(function (profile) {
-      // TODO: for both selectize controls, utilize dynamic loading via query,
-      //       retrieve filtered profiles from the server
-
-      var calendarsArray = profile.calendars && profile.calendars.split(',') || [];
-      var calendars = calendarsArray.map(function (calendarId, index) {
-        calendarId = calendarId.trim();
-        var calendar = this.state.calendarList.filter(function (c) {
-          return c.id == calendarId;
-        })[0];
-
-        var text = (calendar !== undefined) ? calendar.summary : calendarId;
-        if (index != calendarsArray.length - 1) {
-          text += ', ';
-        }
-
-        return <span title={calendarId}>{text}</span>;
-      }.bind(this));
-
-      return <div key={profile._id} className="profile-entry">
-            <table>
-              <tbody>
-                <tr>
-                  <th>Role</th>
-                  <td>{(profile.role == 'group') ? 'Team member' : 'Individual'}</td>
-                </tr>
-                {
-                  (profile.role == 'group') ?
-                    <tr>
-                      <th>Team</th>
-                      <td>{profile.group}</td>
-                    </tr> : ''
-                }
-                <tr>
-                  <th>Calendars</th>
-                  <td>{calendars}</td>
-                </tr>
-                <tr>
-                  <th>Tag</th>
-                  <td>{profile.tag}</td>
-                </tr>
-              </tbody>
-            </table>
-            <div className="menu">
-              <button
-                  className="btn btn-normal"
-                  title="Edit this profile"
-                  onClick={function () {
-                    this.editProfile(profile._id);
-                  }.bind(this)}
-              ><span className="glyphicon glyphicon-pencil"></span></button>&nbsp;
-              <button
-                  className="btn btn-danger"
-                  title="Delete this profile"
-                  onClick={function () {
-                    this.removeProfile(profile._id);
-                  }.bind(this)}
-              ><span className="glyphicon glyphicon-remove"></span></button>
-            </div>
-          </div>;
-    }.bind(this));
+    var rows = profiles.map(this.renderProfile);
 
     return <div>
       {rows}
@@ -145,104 +84,165 @@ var SettingsPage = React.createClass({
             className="btn btn-normal"
             title="Add a new profile"
         ><span className="glyphicon glyphicon-plus"></span> Add</button>
+
+      &nbsp;
+        <button
+            onClick={this.loadProfiles}
+            className="btn btn-default"
+        >Refresh</button>
       </div>
     </div>;
   },
 
-  renderProfilesOld: function () {
-    var header = <tr key="header">
-      <th>Role</th>
-      <th>Calendars</th>
-      <th>Tag</th>
-      <th></th>
-    </tr>;
+  renderProfile: function (profile) {
+    // TODO: for both selectize controls, utilize dynamic loading via query,
+    //       retrieve filtered profiles from the server
 
-    var profiles = this.state.profiles || [];
-    var rows = profiles.map(function (profile) {
-      // TODO: for both selectize controls, utilize dynamic loading via query,
-      //       retrieve filtered profiles from the server
+    var calendarsArray = profile.calendars && profile.calendars.split(',') || [];
+    var calendars = calendarsArray.map(function (calendarId, index) {
+      calendarId = calendarId.trim();
+      var calendar = this.state.calendarList.filter(function (c) {
+        return c.id == calendarId;
+      })[0];
 
-      var calendarsArray = profile.calendars && profile.calendars.split(',') || [];
-      var calendars = calendarsArray.map(function (calendarId, index) {
-        calendarId = calendarId.trim();
-        var calendar = this.state.calendarList.filter(function (c) {
-          return c.id == calendarId;
-        })[0];
+      var text = (calendar !== undefined) ? calendar.summary : calendarId;
+      if (index != calendarsArray.length - 1) {
+        text += ', ';
+      }
 
-        var text = (calendar !== undefined) ? calendar.summary : calendarId;
-        if (index != calendarsArray.length - 1) {
-          text += ',';
-        }
-        var style = {
-          display: 'inline-block',
-          maxWidth: 200,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          paddingRight: 5
-          //color: calendar && calendar.foregroundColor || '',
-          //backgroundColor: calendar && calendar.backgroundColor || '',
-          //margin: 3,
-          //borderRadius: 3
-        };
+      return <span title={calendarId}>{text}</span>;
+    }.bind(this));
 
-        return <div style={style} title={calendarId}>{text}</div>;
-      }.bind(this));
+    return <div key={profile._id} className="profile-entry">
+      <table>
+        <tbody>
+          <tr>
+            <th>Role</th>
+            <td>{(profile.role == 'group') ? 'Team member' : 'Individual'}</td>
+          </tr>
+                {
+                    (profile.role == 'group') ?
+                        <tr>
+                          <th>Team</th>
+                          <td>{profile.group}</td>
+                        </tr> : ''
+                    }
+          <tr>
+            <th>Calendars</th>
+            <td>{calendars}</td>
+          </tr>
+          <tr>
+            <th>Tag</th>
+            <td>{profile.tag}</td>
+          </tr>
+                {
+                    (profile.access == 'pending') ?
+                        <tr>
+                          <th>Access</th>
+                          <td><b style={{color: 'orange'}}>pending</b> {
+                              this.renderPopover('Access', 'Your request to join the team "' + profile.group + '" awaits approval of one of the team members.')
+                              }</td>
+                        </tr> :
+                        (profile.access == 'denied') ?
+                            <tr>
+                              <th>Access</th>
+                              <td><b style={{color: 'red'}}>denied</b> {
+                                  this.renderPopover('Access', 'Your request to join the team "' + profile.group + '" is denied by one of the team members.')
+                                  }</td>
+                            </tr> :
+                            ''
+                    }
+        </tbody>
+      </table>
+      <div className="menu">
+        <button
+            className="btn btn-normal"
+            title="Edit this profile"
+            onClick={function () {
+              this.editProfile(profile._id);
+            }.bind(this)}
+        ><span className="glyphicon glyphicon-pencil"></span></button>&nbsp;
+        <button
+            className="btn btn-danger"
+            title="Delete this profile"
+            onClick={function () {
+              this.removeProfile(profile._id);
+            }.bind(this)}
+        ><span className="glyphicon glyphicon-remove"></span></button>
+      </div>
+    </div>;
+  },
 
-      return <tr key={profile._id}>
-            <td>
-              {(profile.role == 'group') ? ('Team: ' + profile.group) : 'Individual'}
-            </td>
-            <td>
-              {calendars}
-            </td>
-            <td>
-              {profile.tag}
-            </td>
-            <td>
-              <button
-                  className="btn btn-normal"
-                  title="Edit this profile"
-                  onClick={function () {
-                    this.editProfile(profile._id);
-                  }.bind(this)}
-              ><span className="glyphicon glyphicon-pencil"></span></button>&nbsp;
-              <button
-                  className="btn btn-danger"
-                  title="Delete this profile"
-                  onClick={function () {
-                    this.removeProfile(profile._id);
-                  }.bind(this)}
-              ><span className="glyphicon glyphicon-remove"></span></button>
-            </td>
-          </tr>;
+  renderAccessRequests: function () {
+    if (this.state.accessRequests && this.state.accessRequests.length > 0) {
+      var requests = this.state.accessRequests.map(function (profile) {
+        return <div>
+          User <b>{profile.user}</b> requests access to the team <b>{profile.group}</b> <div
+              style={{display: 'inline-block'}}>
+            <button
+                className="btn btn-primary"
+                onClick={function () {
+                  this.grantAccess({
+                    user: profile.user,
+                    group: profile.group,
+                    access: 'granted'
+                  });
+                }.bind(this)}
+            >Accept</button>&nbsp;
+            <button
+                className="btn btn-danger"
+                onClick={function () {
+                  this.grantAccess({
+                    user: profile.user,
+                    group: profile.group,
+                    access: 'denied'
+                  });
+                }.bind(this)}
+            >Deny</button>
+          </div>
+        </div>;
       }.bind(this));
 
       return <div>
-        <table className="table profiles">
-          <tbody>
-            {header}
-            {rows}
-            <tr key="footer">
-              <td colSpan="4">
-                <button
-                    onClick={this.addProfile}
-                    className="btn btn-normal"
-                    title="Add a new profile"
-                ><span className="glyphicon glyphicon-plus"></span> Add</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <h2>Team access requests</h2>
+        {requests}
       </div>;
+    }
+    else {
+      return '';
+    }
+  },
+
+  renderPopover: function (title, content, placement) {
+    return <a href="#" onClick={function (event) {event.preventDefault()}}>
+      <span
+          data-toggle="popover"
+          data-placement={placement || 'top'}
+          title={title}
+          data-content={content}
+          className="glyphicon glyphicon-info-sign"
+          aria-hidden="true"
+      ></span>
+    </a>
+  },
+
+  componentDidMount: function () {
+    // initialize all popovers
+    $('[data-toggle="popover"]').popover();
+  },
+
+  componentDidUpdate: function () {
+    // initialize all popovers
+    $('[data-toggle="popover"]').popover();
   },
 
   addProfile: function () {
     var profile = {
-      _id: UUID(),
       user: this.props.user.email,
       calendars: this.props.user.email || '',
       tag: '#available',
-      role: 'individual'
+      role: 'individual',
+      access: null
     };
 
     this.refs.profile.show(profile);
@@ -306,8 +306,10 @@ var SettingsPage = React.createClass({
       console.log('saving profile...', profile);
 
       ajax.put('/profiles', profile)
-          .then(function (profiles) {
-            // TODO: do something with the returned profiles?
+          .then(function (result) {
+            // TODO: do something with the returned result?
+            // FIXME: new profile is not updated
+            this.loadProfiles(); // reload the list with profiles
           }.bind(this))
           .catch(function (err) {
             console.log(err);
@@ -329,8 +331,12 @@ var SettingsPage = React.createClass({
         return p;
       }
     });
+
     if (!found) {
-      profiles.push(profile); // a new profile
+      // a new profile
+      // push a clone, else we get issues with the new item not being updated
+      // when retrieved again from the server (with new access status).
+      profiles.push(_.extend({}, profile));
     }
 
     this.setState({profiles: profiles});
@@ -402,6 +408,32 @@ var SettingsPage = React.createClass({
         .catch(function (err) {
           console.log(err);
           displayError(err);
+        }.bind(this));
+  },
+
+  // load all pending requests for access to a team
+  loadAccessRequests: function () {
+    ajax.get('/profiles/pending')
+        .then(function (accessRequests) {
+          console.log('accessRequests', accessRequests);
+          this.setState({accessRequests: accessRequests});
+        }.bind(this))
+        .catch(function (err) {
+          console.log(err);
+          displayError(err);
+        }.bind(this));
+  },
+
+  grantAccess: function (profile) {
+    ajax.post('/profiles/grant', profile)
+        .then(function (result) {
+          console.log('result', result);
+          this.loadAccessRequests();
+        }.bind(this))
+        .catch(function (err) {
+          console.log(err);
+          displayError(err);
+          this.loadAccessRequests();
         }.bind(this));
   },
 

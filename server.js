@@ -429,7 +429,12 @@ app.get('/profiles', function(req, res){
 app.put('/profiles', function(req, res){
   var userId = req.session.email;
   var profile = req.body;
-  if (profile.user === undefined) profile.user = userId;
+  if (profile.user == undefined) {
+    profile.user = userId;
+  }
+  else if (profile.user != userId) {
+    return sendError(res, new Error('Cannot update a profile of an other user'));
+  }
 
   db.profiles.update(profile, function (err, profiles) {
     if (err) return sendError(res, err);
@@ -442,6 +447,27 @@ app.delete('/profiles/:id', function(req, res){
   db.profiles.remove(req.params.id, function (err, profiles) {
     if (err) return sendError(res, err);
     return res.json(profiles);
+  });
+});
+
+// get pending profiles
+app.get('/profiles/pending', function (req, res) {
+  var userId = req.session.email;
+
+  db.profiles.pending(userId, function (err, profiles) {
+    if (err) return sendError(res, err);
+    return res.json(profiles);
+  });
+});
+
+// grant access pending profiles
+app.post('/profiles/grant', function (req, res) {
+  var userId = req.session.email;
+  var profile = req.body;
+
+  db.profiles.grant(profile.group, userId, profile.user, profile.access, function (err, result) {
+    if (err) return sendError(res, err);
+    return res.json(result);
   });
 });
 

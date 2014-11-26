@@ -283,15 +283,16 @@ To the the code, run:
         "calendars": "calendarIdA, calendarIdB",
         "tag": "#consultancy",
         "role": "group" | "individual",
-        "group": "Consultant" | null
+        "group": "Consultant" | null,
+        "access": "pending" | "granted" | "denied"
       }
     ]
     ```
 
 -   `PUT /profiles`
 
-    Create or update the profile of current user. Request body must contain a profile
-    like:
+    Create or update the profile of current user. Request body must contain a
+    profile like:
 
     ```json
     {
@@ -307,6 +308,45 @@ To the the code, run:
 -   `DELETE /profiles/:id`
 
     Delete a profile by its id.
+
+
+-   `GET /profiles/pending`
+
+    Get a list with profiles with pending access requests. The returned list
+    contains all pending profiles having groups of which the logged in user is
+    a member.
+
+    Returns an Array like:
+
+    ```json
+    [
+      {
+        "_id": "6a409334-72a5-4304-98ac-26318348cb18",
+        "user": "jos@almende.org",
+        "calendars": "calendarIdA, calendarIdB",
+        "tag": "#consultancy",
+        "role": "group" | "individual",
+        "group": "Consultant" | null,
+        "access": "pending" | "granted" | "denied"
+      }
+    ]
+    ```
+
+-   `POST /profiles/grant`
+
+    Grant access for a new user to an existing group. Request body must contain
+    a JSON object like:
+
+    ```json
+    {
+      "user": "jos@almende.org",
+      "group": "Consultant",
+      "access": "granted" | "denied"
+    }
+    ```
+
+    The response will be "ok" when successful.
+
 
 -   `POST /profiles/generate`
 
