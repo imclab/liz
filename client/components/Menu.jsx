@@ -32,6 +32,9 @@ var Menu = React.createClass({
     var goCalendar = function () {_setPage('calendar'); return false;};
     var goSettings = function () {_setPage('settings'); return false;};
 
+    var signoutUrl = '/auth/signout?redirectTo=' + encodeURIComponent(location.href);
+    var signinUrl = '/auth/signin?redirectTo=' + encodeURIComponent(location.href);
+
     var login;
     var user = this.props.user;
     if (!user) {
@@ -47,12 +50,11 @@ var Menu = React.createClass({
       login = (
           <ul className="nav navbar-nav navbar-right">
             <li className="dropdown">
-              <a href="#" className="dropdown-toggle" data-toggle="dropdown"><span title={title}>{user.name}</span> <span className="caret"></span>
+              <a href="#" className="dropdown-toggle" data-toggle="dropdown">
+                <span title={title}>{user.name}</span> <span className="caret"></span>
               </a>
               <ul className="dropdown-menu" role="menu">
-                <li><a href="#" onClick={goSettings}>Settings</a></li>
-                <li className="divider"></li>
-                <li><a href={'/auth/signout?redirectTo=' + encodeURIComponent(location.href)}>Sign out</a></li>
+                <li><a href={signoutUrl}>Sign out</a></li>
               </ul>
             </li>
           </ul>
@@ -61,7 +63,7 @@ var Menu = React.createClass({
     else {
       login = <ul className="nav navbar-nav navbar-right">
         <li>
-          <a href={'/auth/signin?redirectTo=' + encodeURIComponent(location.href)}>Sign in</a>
+          <a href={signinUrl}>Sign in</a>
         </li>
       </ul>;
     }
@@ -81,6 +83,7 @@ var Menu = React.createClass({
           <ul className="nav navbar-nav">
             <li className={isHome}><a href="#" onClick={goHome}>Home</a></li>
             <li className={isCalendar}><a href="#" onClick={goCalendar}>Calendar</a></li>
+            <li className={isSettings}><a href="#" onClick={goSettings}>Settings</a></li>
           </ul>
               {login}
         </div>
