@@ -5,7 +5,7 @@
  *    user={{name: string, email: string, loggedIn: boolean}}
  *    page={string}
  *    onPage={function}
- *    />
+ * />
  *
  * Where:
  * - `user` is a user object with name, email, and loggedIn properties
@@ -32,42 +32,6 @@ var Menu = React.createClass({
     var goCalendar = function () {_setPage('calendar'); return false;};
     var goSettings = function () {_setPage('settings'); return false;};
 
-    var signoutUrl = '/auth/signout?redirectTo=' + encodeURIComponent(location.href);
-    var signinUrl = '/auth/signin?redirectTo=' + encodeURIComponent(location.href);
-
-    var login;
-    var user = this.props.user;
-    if (!user) {
-      // TODO: non clickable loading message          <p class="navbar-text navbar-right">loading...</p>
-      login = <ul className="nav navbar-nav navbar-right">
-        <li>
-          <a>loading...</a>
-        </li>
-      </ul>;
-    }
-    else if (user.loggedIn) {
-      var title = 'Signed in as ' + user.name + ' (' + user.email + ')';
-      login = (
-          <ul className="nav navbar-nav navbar-right">
-            <li className="dropdown">
-              <a href="#" className="dropdown-toggle" data-toggle="dropdown">
-                <span title={title}>{user.name}</span> <span className="caret"></span>
-              </a>
-              <ul className="dropdown-menu" role="menu">
-                <li><a href={signoutUrl}>Sign out</a></li>
-              </ul>
-            </li>
-          </ul>
-          );
-    }
-    else {
-      login = <ul className="nav navbar-nav navbar-right">
-        <li>
-          <a href={signinUrl}>Sign in</a>
-        </li>
-      </ul>;
-    }
-
     return <nav className="navbar navbar-default" role="navigation">
       <div className="container-fluid">
         <div className="navbar-header">
@@ -85,9 +49,44 @@ var Menu = React.createClass({
             <li className={isCalendar}><a href="#" onClick={goCalendar}>Calendar</a></li>
             <li className={isSettings}><a href="#" onClick={goSettings}>Settings</a></li>
           </ul>
-              {login}
+          {this.renderLogin()}
         </div>
       </div>
     </nav>;
+  },
+
+  renderLogin: function () {
+    var signoutUrl = '/auth/signout?redirectTo=' + encodeURIComponent(location.href);
+    var signinUrl = '/auth/signin?redirectTo=' + encodeURIComponent(location.href);
+
+    var user = this.props.user;
+    if (!user) {
+      // TODO: non clickable loading message          <p class="navbar-text navbar-right">loading...</p>
+      return <ul className="nav navbar-nav navbar-right">
+        <li>
+          <a>loading...</a>
+        </li>
+      </ul>;
+    }
+    else if (user.loggedIn) {
+      var title = 'Signed in as ' + user.name + ' (' + user.email + ')';
+      return <ul className="nav navbar-nav navbar-right">
+          <li className="dropdown">
+            <a href="#" className="dropdown-toggle" data-toggle="dropdown">
+              <span title={title}>{user.name}</span> <span className="caret"></span>
+            </a>
+            <ul className="dropdown-menu" role="menu">
+              <li><a href={signoutUrl}>Sign out</a></li>
+            </ul>
+          </li>
+        </ul>
+    }
+    else {
+      return <ul className="nav navbar-nav navbar-right">
+        <li>
+          <a href={signinUrl}>Sign in</a>
+        </li>
+      </ul>;
+    }
   }
 });
