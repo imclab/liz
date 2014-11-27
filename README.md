@@ -1,7 +1,7 @@
 liz
 ===
 
-Dynamic planning tool
+Dynamic planning application
 
 # Run
 
