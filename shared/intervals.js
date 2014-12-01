@@ -147,7 +147,6 @@
     var now = moment();
 
     if (duration > 0) {
-
       free.forEach(function (interval) {
         var iStart = moment(interval.start);
         var iEnd = moment(interval.end);
@@ -165,12 +164,7 @@
         var step = 2 * HOUR;
 
         while (end.valueOf() <= iEnd.valueOf()) {
-          // TODO: replace this with an availability profile
-          if (start > now &&
-              start.day() == end.day() &&
-              start.day() != 0 && start.day() != 6 &&  // no Sunday or Saturday
-              start.format('HH:mm:ss') >= '09:00:00' &&
-              end.format('HH:mm:ss') <= '17:00:00') {
+          if (start > now) {
             timeslots.push({
               start: start.toISOString(),
               end: end.toISOString()
@@ -185,126 +179,6 @@
 
     return timeslots;
   };
-
-  /**
-   * check if interval to be checked overlaps with any any of the intervals
-   * in given list
-   * @param intervals
-   * @param checkInterval
-   * @return isOverlapping
-   */
-  /* TODO
-  public static boolean overlaps(Interval checkInterval,
-      List<Interval> intervals) {
-    for (Interval interval : intervals) {
-      if (interval.overlaps(checkInterval)) {
-        return true;
-      }
-    }
-    return false;
-  }
-  */
-
-
-  /**
-   * Create a busy profile with office hours. The method returns the
-   * the available hours, inside office hours.
-   * By default, the office hours are from Monday-Friday, 09:00-17:00, with
-   * time zone CET.
-   * @param timeMin
-   * @param timeMax
-   * @return available
-   */
-  /* TODO
-  public static List<Interval> getOfficeHours(DateTime timeMin, DateTime timeMax) {
-    Set<Integer> workingDays = new HashSet<Integer>();  // 1=Monday, 7=Sunday
-    workingDays.add(1); // Monday
-    workingDays.add(2); // Tuesday
-    workingDays.add(3); // Wednesday
-    workingDays.add(4); // Thursday
-    workingDays.add(5); // Friday
-
-    int hourStart = 9;
-    int hourEnd = 17;
-    DateTimeZone timeZone = DateTimeZone.forID("CET"); // Central European Time
-
-    return getOfficeHours(timeMin, timeMax, workingDays, hourStart,
-        hourEnd, timeZone);
-  }
-  */
-
-  /**
-   * Create a busy profile with office hours. The method returns the
-   * the available hours, inside office hours.
-   * @param timeMin
-   * @param timeMax
-   * @param workingDays   Set with working days. 1 = Monday, 7 = Sunday
-   * @param hourStart     start hour, for example 9
-   * @param hourStart     end hour, for example 17
-   * @param timeZone      the timezone to be used to determine the working hours
-   * @return available
-   */
-  /* TODO
-  public static List<Interval> getOfficeHours(
-      DateTime timeMin, DateTime timeMax,
-      Set<Integer> workingDays,
-      int hourStart, int hourEnd, DateTimeZone timeZone) {
-    List<Interval> available = new ArrayList<Interval>();
-
-    MutableDateTime workingDayMin = MutableDateTime.now(); // 09:00:00
-    workingDayMin.setZoneRetainFields(timeZone);
-    workingDayMin.setMillisOfDay(0);
-    workingDayMin.setHourOfDay(hourStart);
-    MutableDateTime workingDayMax = MutableDateTime.now();   // 17:00:000
-    workingDayMax.setZoneRetainFields(timeZone);
-    workingDayMax.setMillisOfDay(0);
-    workingDayMax.setHourOfDay(hourEnd);
-
-    MutableDateTime time = new MutableDateTime(timeMin);
-    while (time.isBefore(timeMax)) {
-      // find the first working day inside the interval
-      while (!workingDays.contains(time.getDayOfWeek())) {
-        time.addDays(1);
-      }
-
-      // set working hours to today
-      workingDayMin.setDate(time);
-      workingDayMax.setDate(time);
-
-      // set time to the start of the day
-      time.setMillisOfDay(0);
-
-      // create the start of the working day
-      DateTime start = null;
-      if (workingDayMin.isAfter(timeMin)) {
-        start = new DateTime(workingDayMin);
-      }
-      else {
-        start = new DateTime(timeMin);
-      }
-
-      // create the end of the working day
-      DateTime end = null;
-      if (workingDayMax.isBefore(timeMax)) {
-        end = new DateTime(workingDayMax);
-      }
-      else {
-        end = new DateTime(timeMax);
-      }
-
-      // create interval if not empty
-      if (start.isBefore(end)) {
-        Interval hours = new Interval(start, end);
-        available.add(hours);
-      }
-
-      // move to the next day
-      time.addDays(1);
-    }
-
-    return available;
-  }
-  */
 
 })((function () {
   return (typeof exports !== 'undefined') ? exports : (window['intervals'] = {});

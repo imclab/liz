@@ -228,7 +228,7 @@ var EventScheduler = React.createClass({
     var back = <button onClick={this.back} className="btn btn-normal">Back</button>;
     var more;
     if (this.state.timeslots != null) {
-      var title = this.state.limitTimeslots ?
+      var title = this.isLimited() ?
         'Display more dates' :
         'Search for dates after ' + this.state.timeMax.format('YYYY-MM-DD');
       more = (this.state.timeslots != null) &&
@@ -616,8 +616,7 @@ var EventScheduler = React.createClass({
   },
 
   findMoreTimeslots: function () {
-    var isLimited = this.state.timeslots && this.state.timeslots.length > this.MAX_TIMESLOTS;
-    if (this.state.limitTimeslots && isLimited) {
+    if (this.isLimited()) {
       // show all timeslots, not just the first 10
       this.setState({
         limitTimeslots: false
@@ -627,10 +626,20 @@ var EventScheduler = React.createClass({
       // add another 14 days to the interval
       var timeMin = this.state.timeMin;
       var timeMax = this.state.timeMax.clone().add(14, 'days');
-      this.setState({timeMax: timeMax});
+      this.setState({
+        limitTimeslots: false,
+        timeMax: timeMax
+      });
 
       this.findTimeslots(timeMin, timeMax);
     }
+  },
+
+  // test whether the current array with timeslots is limited to MAX_TIMESLOTS
+  isLimited: function () {
+    return this.state.limitTimeslots &&
+        this.state.timeslots != null &&
+        this.state.timeslots.length > this.MAX_TIMESLOTS;
   },
 
   // Set focus to the title input
