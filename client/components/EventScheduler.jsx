@@ -121,7 +121,7 @@ var EventScheduler = React.createClass({
                     ref="attendees"
                     className="form-control"
                     value={this.state.attendees}
-                    options={this.state.contacts}
+                    options={this.getContacts()}
                     create={true}
                     createOnBlur={true}
                     multiple={true}
@@ -420,8 +420,9 @@ var EventScheduler = React.createClass({
   },
 
   getContact: function (email) {
-    if (this.state.contacts) {
-      var contact = this.state.contacts.filter(function (contact) {
+    var contacts = this.getContacts();
+    if (contacts) {
+      var contact = contacts.filter(function (contact) {
         return contact.email == email;
       })[0];
       if (contact) {
@@ -469,20 +470,46 @@ var EventScheduler = React.createClass({
             }
           });
 
-          // append the user itself if missing in the contacts
-          var containsUser = contacts.some(function (contact) {
-            return contact.email == this.props.user.email;
-          }.bind(this));
-          if (!containsUser) {
-            contacts.push(this.getOwnContact());
-          }
-
           this.setState({contacts: contacts});
         }.bind(this))
         .catch(function (err) {
           console.log(err);
           displayError(err);
         }.bind(this));
+  },
+
+  /**
+   * Get contacts. Appends logged in user and current selection if missing
+   */
+  getContacts: function () {
+    var contacts = this.state.contacts;
+
+    // append the user itself if missing in the contacts
+    var containsUser = contacts.some(function (contact) {
+      return contact.email == this.props.user.email;
+    }.bind(this));
+    if (!containsUser) {
+      contacts.push(this.getOwnContact());
+    }
+
+    // append current attendee selection if missing in the contacts
+    if (this.state.attendees.trim() != '') {
+      this.state.attendees.split(',').forEach(function (attendee) {
+        var containsAttendee = contacts.some(function (contact) {
+          return contact.email == attendee;
+        });
+
+        if (!containsAttendee) {
+          contacts.push( {
+            name:  attendee,
+            email: attendee,
+            text:  attendee
+          });
+        }
+      });
+    }
+
+    return contacts;
   },
 
   // the moment supreme: create the event
