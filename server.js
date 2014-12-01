@@ -335,15 +335,17 @@ app.get('/freeBusy/:calendarId?', function(req, res) {
 
   // retrieve the free/busy profiles of each of the selected calendars and groups
   async.map(calendarIds, function (calendarId, callback) {
+    var group;
+
     if (calendarId.substr(0, 6) == 'group:') {
-      var group = calendarId.substr(6);
+      group = calendarId.substr(6);
       getGroupFreeBusy(group, query, function (err, profile) {
         if (profile) profile.id = group;
         callback(err, profile);
       });
     }
     else { // email
-      var group = req.query.group || null;
+      group = req.query.group || null;
       getAuthFreeBusy(email, group, calendarId, query, function (err, profile) {
         if (profile) profile.id = calendarId;
         callback(err, profile);
@@ -543,24 +545,19 @@ function stringifyError(err) {
  *                                      If not provided, the profile of the user
  *                                      with role=='individual' is used
  * @param {string} calendarId           A calendar id
- * @param {{timeMin: string, timeMax: string} | {timeMin: string, timeMax: string, items: Array.<{id: string}>}} query
+ * @param {{timeMin: string, timeMax: string}} query
  * @param {function} callback     Called as callback(err, {free: Array, busy:Array, errors:Array})
  *                                `err` is null
  */
 function getAuthFreeBusy(email, group, calendarId, query, callback) {
   authorize(email, calendarId, function (err, accessToken, user) {
     if (err) {
+      // this user of `calendarId` does not exist. Try to get the freebusy profile via the logged in user
       var profilesError = createProfileError(err);
 
       db.users.getAuthenticated(email, function (err2, loggedInUser) {
         if (loggedInUser) {
-          var loggedInQuery = _.extend({
-            items: [
-              {id: calendarId}
-            ]
-          }, query);
-
-          return getFreeBusy(loggedInUser, group, loggedInQuery, function (err, profile) {
+          return getFreeBusyVia(loggedInUser, calendarId, query, function (err, profile) {
             if (profile && profile.errors && profile.errors.length > 0) {
               // return the original error
               return callback(null, profilesError);
@@ -576,6 +573,7 @@ function getAuthFreeBusy(email, group, calendarId, query, callback) {
       });
     }
     else {
+      // this user exists. get the freebusy profile
       getFreeBusy(user, group, query, callback);
     }
   });
@@ -622,18 +620,16 @@ function getGroupFreeBusy(groupName, query, callback) {
 }
 
 /**
- * Get the free busy profile of a user
+ * Get the free busy profile of a user in a certain role (team member or individual)
  * @param {Object} user
  * @param {string} [group=undefined]  Group for which to get the users busy profile
  *                                    If not provided, the profile of the user
  *                                    with role=='individual' is used
- * @param {{timeMin: string, timeMax: string} | {timeMin: string, timeMax: string, items: Array.<{id: string}>}} query
+ * @param {{timeMin: string, timeMax: string}} query
  * @param {function} callback     Called as callback(err, {free: Array, busy:Array, errors:Array})
  *                                `err` is null
  */
 function getFreeBusy(user, group, query, callback) {
-  // TODO: restructure this method, its too complicated
-
   // get all profiles of this user
   db.profiles.list(user.email, function (err, profiles) {
     if (err) return callback(null, createProfileError(err));
@@ -651,14 +647,14 @@ function getFreeBusy(user, group, query, callback) {
     }, []);
     calendarIds = _.uniq(calendarIds); // remove duplicates
 
-    // add the calendar ids to the google calendar request query
-    var _query = _.extend({}, query);
-    if (!query.items) {
-      _query.items = calendarIds.map(function (calendarId) {
-        return {id: calendarId};
-      })
-    }
-    _query.singleEvents = true; // expand recurring events
+    // add (override!) the calendar ids to the google calendar request query
+    var _query = _.extend({
+      singleEvents: true, // expand recurring events
+      orderBy: 'startTime'
+    }, query);
+    _query.items = calendarIds.map(function (calendarId) {
+      return {id: calendarId};
+    });
 
     // create an array with all tags, and one with all tags belonging to the specified group
     var allTags = getTags(profiles);
@@ -669,74 +665,110 @@ function getFreeBusy(user, group, query, callback) {
     }));
 
     // read events for each of the calendars
-    var notAvailable = []; // intervals from events of the user (busy)
-    var available = [];    // intervals from availability tags of this user
-    async.each(calendarIds, function (calendarId, cb) {
-      gcal(user.auth.accessToken).events.list(calendarId, _query, function (err, response) {
-        if (err) return cb(err);
+    async.map(calendarIds, function (calendarId, cb) {
+      gcal(user.auth.accessToken).events.list(calendarId, _query, cb);
+    }, function (err, allResults) {
+      if (err) return callback(err, null);
 
-        response.items && response.items.forEach(function (item) {
-          // ignore all day events
-          // FIXME: do not ignore all day events? or make that customizable? Or introduce a "#ignore" tag or something?
-          if (item.start.dateTime !== undefined && item.end.dateTime !== undefined) {
-            // create interval, normalize start and end into an ISO date string
-            var interval = {
-              start: moment(item.start.dateTime || item.start.date).toISOString(),
-              end:   moment(item.end.dateTime   || item.end.date).toISOString()
-            };
-            var summary = item.summary.toLowerCase();
+      // merge the results from different calendars into one list
+      var events = allResults.reduce(function (events, results) {
+        return events.concat(results.items || []);
+      }, []);
 
-            if (allTags.indexOf(summary) == -1) {
-              // this is a regular event (user is busy)
-              // TODO: check whether this item is marked as busy or as available (is there a field for that in the returned calendar items?)
-              notAvailable.push(interval);
-            }
-            else if (filteredTags.indexOf(summary) != -1) {
-              // this is an availability event, it has an availability tag as title
-              available.push(interval);
-            }
-          }
-        });
+      // merge the events into a freebusy profile and return that
+      var freebusy = mergeEvents(events, _query, allTags, filteredTags);
 
-        return cb(null);
-      });
-    }, function (err) {
-      if (err) return callback(null, createProfileError(err));
-
-      if (filteredTags.length === 0 && (group == undefined)) {
-        // mark as available the whole interval if there is no availability profile configured
-        available.push({
-          start: query.timeMin,
-          end: query.timeMax
-        });
-      }
-
-      // merge intervals, change into a freeBusy profile
-      var inverted = intervals.invert(intervals.merge(available), query.timeMin, query.timeMax);
-      var busy     = intervals.merge(inverted.concat(notAvailable));
-      var free     = intervals.invert(busy, query.timeMin, query.timeMax);
-
-      return callback(null, {
-        free: free,
-        busy: busy,
-        errors: []
-      })
+      return callback(null, freebusy);
     });
+  });
+}
 
+/**
+ * Get the free busy profile of a user via another users google calendar.
+ * This will not reckon with an availability profile.
+ * @param {Object} user
+ * @param {string} calendarId
+ * @param {{timeMin: string, timeMax: string}} query
+ * @param {function} callback     Called as callback(err, {free: Array, busy:Array, errors:Array})
+ *                                `err` is null
+ */
+function getFreeBusyVia(user, calendarId, query, callback) {
+  // add (override!) the calendar ids to the google calendar request query
+  var _query = _.extend({
+    singleEvents: true, // expand recurring events
+    orderBy: 'startTime'
+  }, query);
+  _query.items = [
+    {id: calendarId}
+  ];
+
+  gcal(user.auth.accessToken).events.list(calendarId, _query, function (err, results) {
+    if (err) return callback(null, createProfileError(err));
+
+    // merge the events into a freebusy profile and return that
+    var events = results.items;
+    var allTags = [];
+    var filteredTags = [];
+    var freebusy = mergeEvents(events, _query, allTags, filteredTags);
+
+    return callback(null, freebusy);
+  });
+}
+
+/**
+ * Merge an Array with events into a freebusy profile
+ * @param {Array} events Raw list with google calendar events
+ * @param {{timeMin: string, timeMax: string}} query
+ * @param {string[]} allTags
+ * @param {string[]} filteredTags
+ * @returns {{free: *, busy: Array.<Object>, errors: Array}}
+ */
+function mergeEvents(events, query, allTags, filteredTags) {
+  var notAvailable = []; // intervals from events of the user (busy)
+  var available = [];    // intervals from availability tags of this user
+
+  events.forEach(function (event) {
+    // ignore all day events
+    // FIXME: do not ignore all day events? or make that customizable? Or introduce a "#ignore" tag or something?
+    if (event.start.dateTime !== undefined && event.end.dateTime !== undefined) {
+      // create interval, normalize start and end into an ISO date string
+      var interval = {
+        start: moment(event.start.dateTime || event.start.date).toISOString(),
+        end:   moment(event.end.dateTime   || event.end.date).toISOString()
+      };
+      var summary = event.summary.toLowerCase();
+
+      if (allTags.indexOf(summary) == -1) {
+        // this is a regular event (user is busy)
+        // TODO: check whether this item is marked as busy or as available (is there a field for that in the returned calendar items?)
+        notAvailable.push(interval);
+      }
+      else if (filteredTags.indexOf(summary) != -1) {
+        // this is an availability event, it has an availability tag as title
+        available.push(interval);
+      }
+    }
   });
 
-  // TODO: cleanup
-  //gcal(user.auth.accessToken).freebusy.query(_query, function(err, data) {
-  //  if (err) return callback(null, createProfileError(err));
-  //
-  //  var profiles = data && data.calendars || {};
-  //
-  //  // merge this users (private) calendars, do not expose them
-  //  var mergedProfile = gutils.mergeBusy(profiles, query);
-  //  mergedProfile.errors = gutils.mergeErrors(profiles);
-  //
-  //  return callback(null, mergedProfile);
-  //});
+  if (filteredTags.length === 0) {
+    // mark as available the whole interval if there is no availability profile configured
+    available.push({
+      start: query.timeMin,
+      end: query.timeMax
+    });
+  }
+
+  // merge intervals
+  var inverted = intervals.invert(intervals.merge(available), query.timeMin, query.timeMax);
+  var busy     = intervals.merge(inverted.concat(notAvailable));
+  var free     = intervals.invert(busy, query.timeMin, query.timeMax);
+
+  // return a freebusy profile
+  return {
+    free: free,
+    busy: busy,
+    errors: []
+  };
 }
 
 /**
