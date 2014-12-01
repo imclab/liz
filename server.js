@@ -556,7 +556,6 @@ function getAuthFreeBusy(email, group, calendarId, query, callback) {
       var profilesError = createProfileError(err);
 
       db.users.getAuthenticated(email, function (err2, loggedInUser) {
-        console.log('getAutheticated', email, loggedInUser)
         if (loggedInUser) {
           return getFreeBusyVia(loggedInUser, calendarId, query, function (err, profile) {
             if (profile && profile.errors && profile.errors.length > 0) {
@@ -575,7 +574,6 @@ function getAuthFreeBusy(email, group, calendarId, query, callback) {
     }
     else {
       // this user exists. get the freebusy profile
-      console.log('getFreeBusy', user.email, group)
       getFreeBusy(user, group, query, callback);
     }
   });
@@ -678,8 +676,6 @@ function getFreeBusy(user, group, query, callback) {
       gcal(user.auth.accessToken).events.list(calendarId, _query, cb);
     }, function (err, allResults) {
       if (err) return callback(err, null);
-
-      console.log('result', allResults)
 
       // merge the results from different calendars into one list
       var events = allResults.reduce(function (events, results) {
