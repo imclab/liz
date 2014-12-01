@@ -165,7 +165,7 @@ To the the code, run:
     by the Google Calendar `/events` API:
     https://developers.google.com/google-apps/calendar/v3/reference/events/list
 
-    By default, all events between now and seven days are retrieved.
+    By default, all events between now and fourteen days are retrieved.
 
     Query parameters:
     -   `timeMin` ISO date string with the start of a time interval.
@@ -189,7 +189,7 @@ To the the code, run:
     Get the free busy interval of a specific calendarId. If no `calendarId` is
     provided, the email of the logged in user is used as calendar id.
 
-    By default, all intervals between now and seven days are retrieved.
+    By default, all intervals between now and fourteen days are retrieved.
 
     Query parameters:
     -   `timeMin: string` ISO date string with the start of a time interval.

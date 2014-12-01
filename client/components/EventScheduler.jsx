@@ -51,6 +51,8 @@ var EventScheduler = React.createClass({
       contacts: [this.getOwnContact()],
       freeBusy: null,
       timeslots: null,
+      limitTimeslots: true,
+      loadingTimeslots: false,
       error: null
     };
 
@@ -181,71 +183,73 @@ var EventScheduler = React.createClass({
   },
 
   renderSelect: function () {
-    if (this.state.error) {
-      return (
-          <div className="scheduler">
-            <p className="error">{this.state.error.toString()}</p>
-            <p>
-              <button onClick={this.back} className="btn btn-normal">Back</button>
-            </p>
-          </div>
-      )
+    // render errors
+    var error = this.state.error && <p className="error">{this.state.error.toString()}</p>;
+    var errors = this.state.freeBusy && this.state.freeBusy.errors;
+    if (error == undefined && errors != undefined && errors.length > 0) {
+      var missing = errors.map(function (error) {
+        return error.id;
+      });
+      error = <p className="error">Error: Could not retrieve the availablility of all
+        attendees. The following dates are calculated without the availability of <b>{missing.join(', ')}</b>.</p>
     }
-    else if (this.state.timeslots != null) {
-      var error = null;
 
-      // render errors
-      var errors = this.state.freeBusy && this.state.freeBusy.errors;
-      if (errors && errors.length > 0) {
-        var missing = errors.map(function (error) {
-          return error.id;
-        });
-        error = <p className="error">Error: Could not retrieve the availablility of all attendees
-          . The following dates are calculated without the availability of <b>{missing.join(', ')}</b>.</p>
-      }
-
+    // render timeslots (if loaded)
+    var timeslots = null;
+    if (this.state.timeslots) {
       // find the selected timeslot based on start and end in the state
       var start = this.state.start;
       var end = this.state.end;
-      var index = this.state.timeslots.findIndex(function (timeslot) {
+      var index = -1;
+      findIndex(this.state.timeslots, function (timeslot) {
         return timeslot.start == start && timeslot.end == end;
       });
       var selected = (index != -1) ? index : null;
 
-      var timeslots = (this.state.timeslots.length > 0) ?
+      timeslots = (this.state.timeslots.length > 0) ?
           <TimeslotList
               ref="timeslots"
-              timeslots={this.state.timeslots.slice(0, this.MAX_TIMESLOTS)}
+              timeslots={
+                this.state.limitTimeslots ?
+                    this.state.timeslots.slice(0, this.MAX_TIMESLOTS) :
+                    this.state.timeslots
+              }
               value={selected}
               onChange={this.handleTimeslotChange}
           /> :
           <p className="error">Sorry, there is no suitable date found to plan this event.</p>;
+    }
 
-      return (
-          <div className="scheduler">
-            <p>
-            Select any of the available dates for <b>{this.state.summary} (
-            {juration.stringify(juration.parse(this.state.duration))})</b>:
-            </p>
-            {error}
-            {timeslots}
-            <p>
-              <button onClick={this.back} className="btn btn-normal">Back</button>
-            </p>
-          </div>
-      );
+    // show a loading message while calculating the available timeslots
+    var loading = this.state.loadingTimeslots &&
+        <p className="loading">Calculating dates <img src="img/ajax-loader.gif" /></p>;
+
+    // show a button "Back" and a button "Find more dates"
+    var back = <button onClick={this.back} className="btn btn-normal">Back</button>;
+    var more;
+    if (this.state.timeslots != null) {
+      var title = this.state.limitTimeslots ?
+        'Display more dates' :
+        'Search for dates after ' + this.state.timeMax.format('YYYY-MM-DD');
+      more = (this.state.timeslots != null) &&
+          <button
+              className="btn btn-primary"
+              title={title}
+              onClick={this.findMoreTimeslots}
+          >Find more dates</button>;
     }
-    else { // loading
-      return (
-          <div className="scheduler">
-            <p className="loading">Calculating available dates for <b>{this.state.summary} (
-            {juration.stringify(juration.parse(this.state.duration))})</b> <img src="img/ajax-loader.gif" /></p>
-            <p>
-              <button onClick={this.back} className="btn btn-normal">Back</button>
-            </p>
-          </div>
-      )
-    }
+    var buttons = <p>{back} {more}</p>;
+
+    return <div className="scheduler">
+      <p>
+        Select any of the available dates for <b>{this.state.summary} (
+        {juration.stringify(juration.parse(this.state.duration))})</b>:
+      </p>
+      {error}
+      {timeslots}
+      {loading}
+      {buttons}
+    </div>
   },
 
   renderConfirm: function () {
@@ -549,7 +553,18 @@ var EventScheduler = React.createClass({
 
     if (this.state.step == 'select') {
       // load available timeslots from the server
-      this.calculateTimeslots();
+      var now = moment();
+      var timeMin = moment(new Date(now.year(), now.month(), now.date()));
+      var timeMax = timeMin.clone().add(14, 'days');
+
+      this.setState({
+        timeMin: timeMin,
+        timeMax: timeMax,
+        timeslots: null,
+        limitTimeslots: true,
+        error: null
+      });
+      this.findTimeslots(timeMin, timeMax);
     }
   },
 
@@ -564,14 +579,18 @@ var EventScheduler = React.createClass({
   },
 
   // calculate available time slots
-  calculateTimeslots: function () {
+  findTimeslots: function (timeMin, timeMax) {
     this.setState({
-      timeslots: null,
+      loadingTimeslots: true,
       error: null
     });
 
-    var attendees = this.state.attendees;
-    return ajax.get('/freeBusy/?calendars=' + encodeURIComponent(attendees))
+    var url = '/freeBusy/' +
+        '?calendars=' + encodeURIComponent(this.state.attendees) +
+        '&timeMin=' + timeMin.toISOString() +
+        '&timeMax=' + timeMax.toISOString();
+
+    return ajax.get(url)
         .then(function (freeBusy) {
           console.log('freeBusy', freeBusy);
           var free = freeBusy.free || [];
@@ -583,13 +602,35 @@ var EventScheduler = React.createClass({
           this.setState({
             timeslots: timeslots,
             freeBusy: freeBusy,
+            loadingTimeslots: false,
             error: null
           });
         }.bind(this))
         .catch(function (err) {
-          this.setState({error: err});
+          this.setState({
+            loadingTimeslots: false,
+            error: err
+          });
           console.log(err);
         }.bind(this));
+  },
+
+  findMoreTimeslots: function () {
+    var isLimited = this.state.timeslots && this.state.timeslots.length > this.MAX_TIMESLOTS;
+    if (this.state.limitTimeslots && isLimited) {
+      // show all timeslots, not just the first 10
+      this.setState({
+        limitTimeslots: false
+      })
+    }
+    else {
+      // add another 14 days to the interval
+      var timeMin = this.state.timeMin;
+      var timeMax = this.state.timeMax.clone().add(14, 'days');
+      this.setState({timeMax: timeMax});
+
+      this.findTimeslots(timeMin, timeMax);
+    }
   },
 
   // Set focus to the title input
