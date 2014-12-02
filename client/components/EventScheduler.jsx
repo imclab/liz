@@ -14,7 +14,7 @@
  *
  */
 var EventScheduler = React.createClass({
-  STEPS: ['form', 'select', 'confirm', 'done'],
+  STEPS: ['form', 'select', 'confirm', 'done'], // we also have steps 'delete', 'deleted', and 'update', 'updated'
   DURATIONS: [
     {value: '30 min'},
     {value: '1 hour'},
@@ -53,6 +53,11 @@ var EventScheduler = React.createClass({
       timeslots: null,
       limitTimeslots: true,
       loadingTimeslots: false,
+      loadingEvent: false,
+      deletingEvent: false,
+      deleted: false,
+      updated: false,
+      event: null, // event for updating or deleting
       error: null
     };
 
@@ -66,6 +71,9 @@ var EventScheduler = React.createClass({
 
   render: function () {
     switch(this.state.step) {
+      default: // 'form'
+        return this.renderForm();
+
       case 'select':
         return this.renderSelect();
 
@@ -75,8 +83,8 @@ var EventScheduler = React.createClass({
       case 'done':
         return this.renderDone();
 
-      default: // 'form'
-        return this.renderForm();
+      case 'delete':
+        return this.renderDelete();
     }
   },
 
@@ -100,6 +108,7 @@ var EventScheduler = React.createClass({
 
     return (
         <div className="scheduler">
+          <h1>Plan an event</h1>
           <form onSubmit={this.handleSubmit} >
             <table>
               <colgroup>
@@ -241,6 +250,7 @@ var EventScheduler = React.createClass({
     var buttons = <p>{back} {more}</p>;
 
     return <div className="scheduler">
+      <h1>Plan an event</h1>
       <p>
         Select any of the available dates for <b>{this.state.summary} (
         {juration.stringify(juration.parse(this.state.duration))})</b>:
@@ -259,11 +269,12 @@ var EventScheduler = React.createClass({
 
     // TODO: be able to cancel while creating
     return <div className="scheduler">
+        <h1>Plan an event</h1>
         <p>
         Summary:
         </p>
-        {this.renderEvent()}
-        {this.state.error != null ? <p className="error">{this.state.error.toString()}</p> : ''}
+        {this.renderEvent(this.state)}
+        {this.state.error && <p className="error">{this.state.error.toString()}</p>}
         <p>
           <button onClick={this.back} className="btn btn-normal">Back</button>&nbsp;
           <button onClick={this.create} className="btn btn-primary" disabled={this.state.creating}>Create the event</button>&nbsp;
@@ -274,38 +285,89 @@ var EventScheduler = React.createClass({
 
   renderDone: function () {
     return <div className="scheduler">
+        <h1>Plan an event</h1>
         <p>
         The event is created.
         </p>
-        {this.renderEvent()}
+        {this.renderEvent(this.state)}
         <p>
           <button onClick={this.done} className="btn btn-primary">Done</button>
         </p>
     </div>;
   },
 
-  renderEvent: function () {
+  renderDelete: function () {
+    var deleted = this.state.deleted || (this.state.event && this.state.event.status == 'cancelled');
+    var buttons;
+    if (deleted) {
+      buttons = <p>
+        <button onClick={this.done} className="btn btn-primary">Done</button>
+      </p>;
+    }
+    else {
+      buttons = <p>
+        <button onClick={this.done} className="btn btn-normal">Cancel</button>&nbsp;
+        <button onClick={this.deleteEvent} disabled={this.state.deletingEvent} className="btn btn-danger">Delete</button>
+      </p>;
+    }
+
+    return <div className="scheduler">
+        <h1>Delete an event</h1>
+        {
+          deleted ?
+            <p>The event has been deleted.</p> :
+            <p>Do you want to delete the following event&#63;</p>
+        }
+        {
+          this.state.loadingEvent &&
+            <p className="loading">Loading event details <img src="img/ajax-loader.gif" /></p>
+        }
+        {
+          (this.state.event && !deleted) && this.renderEvent(this.state.event)
+        }
+        {
+          this.state.error &&
+            <p className="error">{this.state.error.toString()}</p>
+        }
+        {
+          this.state.deletingEvent && <p className="loading">Deleting event <img src="img/ajax-loader.gif" /></p>
+        }
+        {buttons}
+    </div>;
+  },
+
+  /**
+   * Render an event in a table
+   * @param {{summary: string, attendees: string, start: string, end: string, location: string, description: string}} event
+   * @returns {XML} Returns an HTML table
+   */
+  renderEvent: function (event) {
     return <table className="dates">
       <tr>
-        <th>Title</th><td>{this.state.summary}</td>
+        <th>Title</th><td>{event.summary}</td>
       </tr>
       <tr>
-        <th>Attendees</th><td>{this.renderAttendees()}</td>
+        <th>Attendees</th><td>{this.renderAttendees(event.attendees)}</td>
       </tr>
       <tr>
-        <th>Time</th><td>{formatHumanDate(this.state.start)} {formatTime(this.state.start)} &ndash; {formatTime(this.state.end)}</td>
+        <th>Time</th><td>{formatHumanDate(event.start)} {formatTime(event.start)} &ndash; {formatTime(event.end)}</td>
       </tr>
       <tr>
-        <th>Location</th><td>{this.state.location}</td>
+        <th>Location</th><td>{event.location}</td>
       </tr>
       <tr>
-        <th>Description</th><td>{this.state.description}</td>
+        <th>Description</th><td>{event.description}</td>
       </tr>
     </table>;
   },
 
-  renderAttendees: function () {
-    return this.state.attendees
+  /**
+   * Render a list with comma separated attendees in a div
+   * @param {string} attendees
+   * @returns {XML} Returns a DIV element
+   */
+  renderAttendees: function (attendees) {
+    return attendees
         .split(',')
         .map(function (email) {
           var contact = this.getContact(email);
@@ -339,6 +401,7 @@ var EventScheduler = React.createClass({
     // reset all form input values
     this.setStore(this.DEFAULT);
     this.setState(this.DEFAULT);
+    hash.remove('id'); // event id from deleting or updating a calendar event
 
     // go to the first step (form), and reset the inputs
     this.setState({step: this.STEPS[0]});
@@ -479,6 +542,78 @@ var EventScheduler = React.createClass({
   },
 
   /**
+   * Load a calendar event by its id
+   * @param eventId
+   */
+  loadEvent: function (eventId) {
+    var calendarId = this.props.user.email;
+
+    this.setState({
+      loadingEvent: true,
+      deleted: false,
+      updated: false
+    });
+
+    ajax.get('/calendar/' + calendarId + '/' + eventId)
+        .then(function (googleEvent) {
+          console.log('event to delete', googleEvent);
+
+          var start = googleEvent.start.dateTime || googleEvent.start.date;
+          var end = googleEvent.end.dateTime || googleEvent.end.date;
+          var attendees = googleEvent.attendees ? googleEvent.attendees.map(function (attendee) {
+            return attendee.email;
+          }).join(',') : googleEvent.organizer.email;
+          var duration = juration.stringify((moment(end) - moment(start)) / 1000); //seconds
+
+          var event = {
+            summary: googleEvent.summary,
+            attendees: attendees,
+            duration: duration,
+            location: googleEvent.location,
+            description: googleEvent.description,
+            start: start,
+            end: end,
+            status: googleEvent.status
+          };
+
+          this.setState({
+            loadingEvent: false,
+            event: event
+          });
+        }.bind(this))
+        .catch(function (err) {
+          console.log(err);
+          this.setState({
+            loadingEvent: false,
+            error: err
+          });
+        }.bind(this));
+  },
+
+  deleteEvent: function () {
+    var calendarId = this.props.user.email;
+    var eventId = hash.get('id');
+
+    this.setState({deletingEvent: true});
+
+    ajax.del('/calendar/' + calendarId + '/' + eventId)
+        .then(function () {
+          this.setState({
+            deletingEvent: false,
+            deleted: true,
+            event: null
+          });
+        }.bind(this))
+        .catch(function (err) {
+          console.log(err);
+          this.setState({
+            deletingEvent: false,
+            error: err
+          });
+        }.bind(this));
+  },
+
+  /**
    * Get contacts. Appends logged in user and current selection if missing
    */
   getContacts: function () {
@@ -593,6 +728,11 @@ var EventScheduler = React.createClass({
       });
       this.findTimeslots(timeMin, timeMax);
     }
+
+    if (this.state.step == 'delete') {
+      var eventId = hash.get('id');
+      this.loadEvent(eventId);
+    }
   },
 
   // get contact object of the user itself
@@ -687,7 +827,8 @@ var EventScheduler = React.createClass({
     }
     else {
       Object.keys(key).forEach(function (k) {
-        localStorage[k] = key[k].toString();
+        var value = key[k] || '';
+        localStorage[k] = value.toString();
       })
     }
   }

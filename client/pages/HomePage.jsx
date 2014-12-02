@@ -10,7 +10,6 @@ var HomePage = React.createClass({
     var user = this.props.user;
 
     return <div>
-      <h1>Plan an event</h1>
       <EventScheduler user={user} />
     </div>;
   }

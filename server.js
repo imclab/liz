@@ -10,6 +10,7 @@ var MongoStore = require('connect-mongo')(session);
 var GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
 var _ = require('lodash');
 var async = require('async');
+var UUID = require('uuid-v4.js');
 
 var config = require('./config');
 var gutils = require('./lib/google-utils');
@@ -251,6 +252,7 @@ app.get('/calendar', function(req, res){
   });
 });
 
+// Get all calendar events
 app.get('/calendar/:calendarId', function(req, res){
   var calendarId = req.params.calendarId || req.session.email;
 
@@ -276,6 +278,30 @@ app.get('/calendar/:calendarId', function(req, res){
     };
 
     gcal(accessToken).events.list(calendarId, options, function(err, data) {
+      // TODO: filter availability events from the list
+      if(err) return sendError(res, err);
+      return res.json(data);
+    });
+  });
+});
+
+// Get a calendar event by it's id
+app.get('/calendar/:calendarId/:eventId', function(req, res){
+  var calendarId = req.params.calendarId || req.session.email;
+  var eventId = req.params.eventId;
+
+  // only user itself has access here
+  // TODO: this is a hacky solution, authorization module with a certain scope for this
+  if (calendarId != req.session.email) {
+    return sendError(res, new Error('Unauthorized'));
+  }
+
+  authorize(req.session.email, calendarId, function (err, accessToken, user) {
+    if(err) return sendError(res, err);
+
+    var options = {};
+    gcal(accessToken).events.get(calendarId, eventId, options, function(err, data) {
+      // TODO: filter availability events from the list
       if(err) return sendError(res, err);
       return res.json(data);
     });
@@ -309,9 +335,9 @@ app.delete('/calendar/:calendarId/:eventId', function(req, res){
   authorize(req.session.email, calendarId, function (err, accessToken, user) {
     if(err) return sendError(res, err);
 
-    gcal(accessToken).events.delete(calendarId, eventId, function(err, data) {
+    gcal(accessToken).events.delete(calendarId, eventId, function(err, result) {
       if(err) return sendError(res, err);
-      return res.redirect('/calendar/'+calendarId);
+      return res.json(result);
     });
   });
 });
