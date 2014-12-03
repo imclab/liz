@@ -333,7 +333,11 @@ var EventScheduler = React.createClass({
     else {
       buttons = <p>
         <button onClick={this.done} className="btn btn-normal">Oops, don't cancel</button>&nbsp;
-        <button onClick={this.cancelEvent} disabled={this.state.deletingEvent} className="btn btn-danger">Cancel</button>
+        <button
+            onClick={this.cancelEvent}
+            disabled={this.state.deletingEvent || this.state.loadingEvent}
+            className="btn btn-danger"
+        >Cancel</button>
       </p>;
     }
 
