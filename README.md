@@ -177,6 +177,12 @@ To the the code, run:
     as described here:
     https://developers.google.com/google-apps/calendar/v3/reference/events/insert
 
+    Query parameters:
+    -   `redirectTo` Optional url where to redirect the update and cancel links
+        which are added as a footer to the event description.
+        Default is 'https://smartplanner.herokuapp.com'.
+
+
 -   `DELETE /calendar/:calendarId/:eventId`
 
     Delete a calendar event.

@@ -14,7 +14,7 @@
  *
  */
 var EventScheduler = React.createClass({
-  STEPS: ['form', 'select', 'confirm', 'done'], // we also have steps 'delete', 'deleted', and 'update', 'updated'
+  STEPS: ['form', 'select', 'confirm', 'done'], // we also have steps 'cancel' and 'update'
   DURATIONS: [
     {value: '30 min'},
     {value: '1 hour'},
@@ -55,7 +55,7 @@ var EventScheduler = React.createClass({
       loadingTimeslots: false,
       loadingEvent: false,
       deletingEvent: false,
-      deleted: false,
+      canceled: false,
       updated: false,
       event: null, // event for updating or deleting
       error: null
@@ -83,8 +83,8 @@ var EventScheduler = React.createClass({
       case 'done':
         return this.renderDone();
 
-      case 'delete':
-        return this.renderDelete();
+      case 'cancel':
+        return this.renderCancel();
     }
   },
 
@@ -177,7 +177,7 @@ var EventScheduler = React.createClass({
                     className="form-control"
                     name="description"
                     ref="description"
-                    value={this.state.description}
+                    value={this.removeFooter(this.state.description)}
                     onChange={this.handleTextChange}
                 ></textarea>
                 </td>
@@ -277,7 +277,7 @@ var EventScheduler = React.createClass({
         {this.state.error && <p className="error">{this.state.error.toString()}</p>}
         <p>
           <button onClick={this.back} className="btn btn-normal">Back</button>&nbsp;
-          <button onClick={this.create} className="btn btn-primary" disabled={this.state.creating}>Create the event</button>&nbsp;
+          <button onClick={this.createEvent} className="btn btn-primary" disabled={this.state.creating}>Create the event</button>&nbsp;
           {creating}
         </p>
     </div>;
@@ -296,34 +296,34 @@ var EventScheduler = React.createClass({
     </div>;
   },
 
-  renderDelete: function () {
-    var deleted = this.state.deleted || (this.state.event && this.state.event.status == 'cancelled');
+  renderCancel: function () {
+    var canceled = this.state.canceled || (this.state.event && this.state.event.status == 'cancelled');
     var buttons;
-    if (deleted) {
+    if (canceled) {
       buttons = <p>
         <button onClick={this.done} className="btn btn-primary">Done</button>
       </p>;
     }
     else {
       buttons = <p>
-        <button onClick={this.done} className="btn btn-normal">Cancel</button>&nbsp;
-        <button onClick={this.deleteEvent} disabled={this.state.deletingEvent} className="btn btn-danger">Delete</button>
+        <button onClick={this.done} className="btn btn-normal">No, don't cancel</button>&nbsp;
+        <button onClick={this.cancelEvent} disabled={this.state.deletingEvent} className="btn btn-danger">Cancel</button>
       </p>;
     }
 
     return <div className="scheduler">
-        <h1>Delete an event</h1>
+        <h1>Cancel an event</h1>
         {
-          deleted ?
-            <p>The event has been deleted.</p> :
-            <p>Do you want to delete the following event&#63;</p>
+          canceled ?
+            <p>The event has been cancelled.</p> :
+            <p>Do you want to cancel the following event&#63;</p>
         }
         {
           this.state.loadingEvent &&
             <p className="loading">Loading event details <img src="img/ajax-loader.gif" /></p>
         }
         {
-          (this.state.event && !deleted) && this.renderEvent(this.state.event)
+          (this.state.event && !canceled) && this.renderEvent(this.state.event)
         }
         {
           this.state.error &&
@@ -356,7 +356,7 @@ var EventScheduler = React.createClass({
         <th>Location</th><td>{event.location}</td>
       </tr>
       <tr>
-        <th>Description</th><td>{event.description}</td>
+        <th>Description</th><td>{this.removeFooter(event.description)}</td>
       </tr>
     </table>;
   },
@@ -550,13 +550,13 @@ var EventScheduler = React.createClass({
 
     this.setState({
       loadingEvent: true,
-      deleted: false,
+      canceled: false,
       updated: false
     });
 
     ajax.get('/calendar/' + calendarId + '/' + eventId)
         .then(function (googleEvent) {
-          console.log('event to delete', googleEvent);
+          console.log('event to cancel', googleEvent);
 
           var start = googleEvent.start.dateTime || googleEvent.start.date;
           var end = googleEvent.end.dateTime || googleEvent.end.date;
@@ -590,7 +590,7 @@ var EventScheduler = React.createClass({
         }.bind(this));
   },
 
-  deleteEvent: function () {
+  cancelEvent: function () {
     var calendarId = this.props.user.email;
     var eventId = hash.get('id');
 
@@ -600,7 +600,7 @@ var EventScheduler = React.createClass({
         .then(function () {
           this.setState({
             deletingEvent: false,
-            deleted: true,
+            canceled: true,
             event: null
           });
         }.bind(this))
@@ -648,7 +648,7 @@ var EventScheduler = React.createClass({
   },
 
   // the moment supreme: create the event
-  create: function () {
+  createEvent: function () {
     this.setState({
       creating: true,
       error: null
@@ -671,7 +671,8 @@ var EventScheduler = React.createClass({
     };
     console.log('event', event);
 
-    ajax.put('/calendar/' + calendarId, event)
+    var redirectTo = location.origin + location.pathname; // like "https://server.com/index.html"
+    ajax.put('/calendar/' + calendarId + '?redirectTo=' + redirectTo, event)
         .then(function (response) {
           console.log('event created', response);
 
@@ -729,7 +730,7 @@ var EventScheduler = React.createClass({
       this.findTimeslots(timeMin, timeMax);
     }
 
-    if (this.state.step == 'delete') {
+    if (this.state.step == 'cancel') {
       var eventId = hash.get('id');
       this.loadEvent(eventId);
     }
@@ -831,5 +832,11 @@ var EventScheduler = React.createClass({
         localStorage[k] = value.toString();
       })
     }
+  },
+
+  // remove the Liz footer from an event description
+  removeFooter: function (description) {
+    var index = description.indexOf('This event is created by Liz');
+    return description.substring(0, index);
   }
 });

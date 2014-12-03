@@ -6,6 +6,9 @@ exports.PRODUCTION = (process.env.NODE_ENV == 'production');
 // express
 exports.PORT = argv.PORT || process.env.PORT || 8082;
 
+// server url (used for creating links in calendar items to update or cancel an event)
+exports.SERVER_URL = 'https://smartplanner.herokuapp.com';
+
 // mongo
 exports.MONGO_URL = argv.MONGO_URL ||
     process.env.MONGO_URL ||

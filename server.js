@@ -311,6 +311,7 @@ app.get('/calendar/:calendarId/:eventId', function(req, res){
 // insert a new event
 app.put('/calendar/:calendarId', function(req, res){
   var calendarId = req.params.calendarId || req.session.email;
+  var SERVER_URL = req.query.redirectTo || config.SERVER_URL;
   var event = req.body;
 
   authorize(req.session.email, calendarId, function (err, accessToken, user) {
@@ -322,7 +323,29 @@ app.put('/calendar/:calendarId', function(req, res){
 
       gcal(accessToken).events.insert(calendarId, event, function(err, createdEvent) {
         if(err) return sendError(res, err);
-        return res.json(createdEvent);
+
+        // add a footer to the event description enabling to update or cancel the meeting
+        var eventId = createdEvent.id;
+        var updateUrl = SERVER_URL + '#step=update&id=' + eventId;
+        var cancelUrl = SERVER_URL + '#step=cancel&id=' + eventId;
+        //var footer = '<p>This event is created by Liz. ' +
+        //    '<a href="' + updateUrl + '">Update</a> or ' +
+        //    '<a href="' + cancelUrl + '">Cancel</a> this event.</p>';
+        var footer = 'This event is created by Liz.\n' +
+            'Update: ' + updateUrl + '\n' +
+            'Cancel: ' + cancelUrl + '\n';
+        // TODO: use an url-shortener
+
+        var description = createdEvent.description || '';
+        if (description.indexOf(footer) === -1) {
+          createdEvent.description = (description.length > 0 ? '\n\n' : '') + footer;
+        }
+
+        // update the description of the event
+        gcal(accessToken).events.update(calendarId, eventId, createdEvent, function(err, updatedEvent) {
+          if(err) return sendError(res, err);
+          return res.json(updatedEvent);
+        });
       });
     });
   });
