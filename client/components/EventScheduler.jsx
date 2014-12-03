@@ -14,7 +14,7 @@
  *
  */
 var EventScheduler = React.createClass({
-  STEPS: ['form', 'select', 'confirm', 'done'], // we also have steps 'cancel' and 'update'
+  STEPS: ['form', 'select', 'confirm', 'done'], // we also have a step 'cancel'
   DURATIONS: [
     {value: '30 min'},
     {value: '1 hour'},
@@ -46,8 +46,12 @@ var EventScheduler = React.createClass({
       }
     }.bind(this));
 
+    // check if this is a cancel or update
+    var updateId = hash.get('update');
+    var cancelId = hash.get('cancel');
+
     var initialState = {
-      step:         hash.get('step') || this.STEPS[0],
+      step: (cancelId != undefined) ? 'cancel' : hash.get('step') || this.STEPS[0],
       contacts: [this.getOwnContact()],
       freeBusy: null,
       timeslots: null,
@@ -57,7 +61,8 @@ var EventScheduler = React.createClass({
       deletingEvent: false,
       canceled: false,
       updated: false,
-      event: null, // event for updating or deleting
+      updateId: updateId,
+      cancelId: cancelId,
       error: null
     };
 
@@ -106,87 +111,102 @@ var EventScheduler = React.createClass({
       durations.push({value: duration});
     }
 
+    var content = null;
+    if (this.state.loadingEvent) {
+      content = <p className="loading">Loading event details <img src="img/ajax-loader.gif" />
+      </p>
+    }
+    else {
+      content = <form onSubmit={this.handleSubmit} >
+        <table>
+          <colgroup>
+            <col width="100px" />
+          </colgroup>
+          <tr>
+            <th>Title</th>
+            <td>
+              <input type="text"
+                  className="form-control"
+                  name="summary"
+                  ref="summary"
+                  value={this.state.summary}
+                  onChange={this.handleTextChange}
+              />
+            </td>
+          </tr>
+          <tr>
+            <th>Attendees {this.renderPopover('Attendees', 'Select one or multiple attendees. You can select individuals and/or team members.')}</th>
+            <td>
+              <Selectize
+                  ref="attendees"
+                  className="form-control"
+                  value={this.state.attendees}
+                  options={this.getContacts()}
+                  create={true}
+                  createOnBlur={true}
+                  multiple={true}
+                  placeholder="Select one or multiple attendees..."
+                  searchField={['name', 'email']}
+                  sortField="text"
+                  labelField="text"
+                  valueField="email"
+                  hideSelected={true}
+                  onChange={this.handleAttendeesChange}
+              ></Selectize>
+            </td>
+          </tr>
+          <tr>
+            <th>Duration {this.renderPopover('Duration', 'Choose a duration from the dropdown, or enter your own custom duration like "45min" or "1h 15m".')}</th>
+            <td>
+              <Selectize
+                  ref="duration"
+                  className="form-control"
+                  value={duration}
+                  multipe={false}
+                  create={true}
+                  createOnBlur={true}
+                  options={durations}
+                  placeholder="Select a duration..."
+                  labelField="value"
+                  onChange={this.handleDurationChange}
+              ></Selectize>
+            </td>
+          </tr>
+          <tr>
+            <th>Location</th>
+            <td>
+              <input type="text"
+                  className="form-control"
+                  name="location"
+                  ref="location"
+                  value={this.state.location}
+                  onChange={this.handleTextChange}
+              />
+            </td>
+          </tr>
+          <tr>
+            <th>Description</th>
+            <td>
+              <textarea
+                  className="form-control"
+                  name="description"
+                  ref="description"
+                  value={this.removeFooter(this.state.description)}
+                  onChange={this.handleTextChange}
+              ></textarea>
+            </td>
+          </tr>
+        </table>
+        <p>
+          <input type="submit" className="btn btn-primary" value="Find a date" />
+        </p>
+      </form>;
+    }
+
     return (
         <div className="scheduler">
-          <h1>Plan an event</h1>
-          <form onSubmit={this.handleSubmit} >
-            <table>
-              <colgroup>
-                <col width="100px" />
-              </colgroup>
-              <tr>
-                <th>Title</th>
-                <td><input type="text"
-                    className="form-control"
-                    name="summary"
-                    ref="summary"
-                    value={this.state.summary}
-                    onChange={this.handleTextChange}
-                /></td>
-              </tr>
-              <tr>
-                <th>Attendees {this.renderPopover('Attendees', 'Select one or multiple attendees. You can select individuals and/or team members.')}</th>
-                <td><Selectize
-                    ref="attendees"
-                    className="form-control"
-                    value={this.state.attendees}
-                    options={this.getContacts()}
-                    create={true}
-                    createOnBlur={true}
-                    multiple={true}
-                    placeholder="Select one or multiple attendees..."
-                    searchField={['name', 'email']}
-                    sortField="text"
-                    labelField="text"
-                    valueField="email"
-                    hideSelected={true}
-                    onChange={this.handleAttendeesChange}
-                ></Selectize>
-                </td>
-              </tr>
-              <tr>
-                <th>Duration {this.renderPopover('Duration', 'Choose a duration from the dropdown, or enter your own custom duration like "45min" or "1h 15m".')}</th>
-                <td>
-                  <Selectize
-                      ref="duration"
-                      className="form-control"
-                      value={duration}
-                      multipe={false}
-                      create={true}
-                      createOnBlur={true}
-                      options={durations}
-                      placeholder="Select a duration..."
-                      labelField="value"
-                      onChange={this.handleDurationChange}
-                  ></Selectize>
-                </td>
-              </tr>
-              <tr>
-                <th>Location</th>
-                <td><input type="text"
-                    className="form-control"
-                    name="location"
-                    ref="location"
-                    value={this.state.location}
-                    onChange={this.handleTextChange}
-                /></td>
-              </tr>
-              <tr>
-                <th>Description</th>
-                <td><textarea
-                    className="form-control"
-                    name="description"
-                    ref="description"
-                    value={this.removeFooter(this.state.description)}
-                    onChange={this.handleTextChange}
-                ></textarea>
-                </td>
-              </tr>
-            </table>
-            <p>
-              <input type="submit" className="btn btn-primary" value="Find a date" />
-            </p>
-          </form>
+          {this.renderHeader()}
+          {content}
         </div>
     );
   },
@@ -250,7 +270,7 @@ var EventScheduler = React.createClass({
     var buttons = <p>{back} {more}</p>;
 
     return <div className="scheduler">
-      <h1>Plan an event</h1>
+      {this.renderHeader()}
       <p>
         Select any of the available dates for <b>{this.state.summary} (
         {juration.stringify(juration.parse(this.state.duration))})</b>:
@@ -263,13 +283,13 @@ var EventScheduler = React.createClass({
   },
 
   renderConfirm: function () {
-    var creating = this.state.creating ?
-      <span className="loading">Creating event... <img src="img/ajax-loader.gif" /></span> :
+    var busy = this.state.creating ?
+      <span className="loading">{this.state.updateId ? 'Updating' : 'Creating'} event... <img src="img/ajax-loader.gif" /></span> :
       <span></span>;
 
     // TODO: be able to cancel while creating
     return <div className="scheduler">
-        <h1>Plan an event</h1>
+        {this.renderHeader()}
         <p>
         Summary:
         </p>
@@ -277,17 +297,23 @@ var EventScheduler = React.createClass({
         {this.state.error && <p className="error">{this.state.error.toString()}</p>}
         <p>
           <button onClick={this.back} className="btn btn-normal">Back</button>&nbsp;
-          <button onClick={this.createEvent} className="btn btn-primary" disabled={this.state.creating}>Create the event</button>&nbsp;
-          {creating}
+          <button
+              onClick={this.state.updateId ? this.updateEvent : this.createEvent}
+              className="btn btn-primary"
+              disabled={this.state.creating}
+          >
+            {this.state.updateId ? 'Update' : 'Create'} the event
+          </button>&nbsp;
+          {busy}
         </p>
     </div>;
   },
 
   renderDone: function () {
     return <div className="scheduler">
-        <h1>Plan an event</h1>
+        {this.renderHeader()}
         <p>
-        The event is created.
+        The event is {this.state.updateId ? 'updated' : 'created'}.
         </p>
         {this.renderEvent(this.state)}
         <p>
@@ -297,7 +323,7 @@ var EventScheduler = React.createClass({
   },
 
   renderCancel: function () {
-    var canceled = this.state.canceled || (this.state.event && this.state.event.status == 'cancelled');
+    var canceled = this.state.canceled || this.state.status == 'cancelled';
     var buttons;
     if (canceled) {
       buttons = <p>
@@ -306,7 +332,7 @@ var EventScheduler = React.createClass({
     }
     else {
       buttons = <p>
-        <button onClick={this.done} className="btn btn-normal">No, don't cancel</button>&nbsp;
+        <button onClick={this.done} className="btn btn-normal">Oops, don't cancel</button>&nbsp;
         <button onClick={this.cancelEvent} disabled={this.state.deletingEvent} className="btn btn-danger">Cancel</button>
       </p>;
     }
@@ -319,11 +345,10 @@ var EventScheduler = React.createClass({
             <p>Do you want to cancel the following event&#63;</p>
         }
         {
-          this.state.loadingEvent &&
-            <p className="loading">Loading event details <img src="img/ajax-loader.gif" /></p>
+          this.state.eventLoading && <p className="loading">Loading event details <img src="img/ajax-loader.gif" /></p>
         }
         {
-          (this.state.event && !canceled) && this.renderEvent(this.state.event)
+          (!this.state.loadingEvent && !canceled) && this.renderEvent(this.state)
         }
         {
           this.state.error &&
@@ -334,6 +359,13 @@ var EventScheduler = React.createClass({
         }
         {buttons}
     </div>;
+  },
+
+  /**
+   * Render the header, "Plan an event" or "Update an event"
+   */
+  renderHeader: function () {
+    return <h1>{this.state.updateId ? 'Update' : 'Plan'} an event</h1>;
   },
 
   /**
@@ -401,7 +433,8 @@ var EventScheduler = React.createClass({
     // reset all form input values
     this.setStore(this.DEFAULT);
     this.setState(this.DEFAULT);
-    hash.remove('id'); // event id from deleting or updating a calendar event
+    hash.remove('update'); // event id for updating a calendar event
+    hash.remove('cancel'); // event id for deleting a calendar event
 
     // go to the first step (form), and reset the inputs
     this.setState({step: this.STEPS[0]});
@@ -556,13 +589,24 @@ var EventScheduler = React.createClass({
 
     ajax.get('/calendar/' + calendarId + '/' + eventId)
         .then(function (googleEvent) {
-          console.log('event to cancel', googleEvent);
+          console.log('event loaded', googleEvent);
 
           var start = googleEvent.start.dateTime || googleEvent.start.date;
           var end = googleEvent.end.dateTime || googleEvent.end.date;
-          var attendees = googleEvent.attendees ? googleEvent.attendees.map(function (attendee) {
-            return attendee.email;
-          }).join(',') : googleEvent.organizer.email;
+          var attendees;
+          if (googleEvent.extendedProperties &&
+              googleEvent.extendedProperties.shared &&
+              googleEvent.extendedProperties.shared.attendees) {
+            attendees = googleEvent.extendedProperties.shared.attendees;
+          }
+          else if (Array.isArray(googleEvent.attendees)) {
+            attendees = googleEvent.attendees.map(function (attendee) {
+              return attendee.email;
+            }).join(',')
+          }
+          else {
+            attendees = googleEvent.organizer.email;
+          }
           var duration = juration.stringify((moment(end) - moment(start)) / 1000); //seconds
 
           var event = {
@@ -576,10 +620,8 @@ var EventScheduler = React.createClass({
             status: googleEvent.status
           };
 
-          this.setState({
-            loadingEvent: false,
-            event: event
-          });
+          this.setStore(event);
+          this.setState(_.extend({loadingEvent: false}, event));
         }.bind(this))
         .catch(function (err) {
           console.log(err);
@@ -592,11 +634,10 @@ var EventScheduler = React.createClass({
 
   cancelEvent: function () {
     var calendarId = this.props.user.email;
-    var eventId = hash.get('id');
 
     this.setState({deletingEvent: true});
 
-    ajax.del('/calendar/' + calendarId + '/' + eventId)
+    ajax.del('/calendar/' + calendarId + '/' + this.state.cancelId)
         .then(function () {
           this.setState({
             deletingEvent: false,
@@ -611,6 +652,95 @@ var EventScheduler = React.createClass({
             error: err
           });
         }.bind(this));
+  },
+
+  // the moment supreme: create the event
+  createEvent: function () {
+    this.setState({
+      creating: true,
+      error: null
+    });
+
+    var calendarId = this.props.user.email;
+    var event = this.generateEvent();
+    console.log('event', event);
+
+    var method = ''
+
+    var redirectTo = location.origin + location.pathname; // like "https://server.com/index.html"
+    ajax.post('/calendar/' + calendarId + '?redirectTo=' + redirectTo, event)
+        .then(function (response) {
+          console.log('event created', response);
+
+          this.setState({
+            creating: false,
+            step: 'done'
+          });
+        }.bind(this))
+        .catch(function (err) {
+          console.log(err);
+          this.setState({
+            error: err,
+            creating: false
+          });
+        }.bind(this));
+  },
+
+  // update an existing event
+  updateEvent: function () {
+    this.setState({
+      creating: true,
+      error: null
+    });
+
+    console.log('STATE',this.state)
+
+    var calendarId = this.props.user.email;
+    var event = this.generateEvent();
+    var eventId = this.state.updateId;
+    event.id = eventId;
+    console.log('event', event);
+
+    var redirectTo = location.origin + location.pathname; // like "https://server.com/index.html"
+    ajax.put('/calendar/' + calendarId + '/' + eventId + '?redirectTo=' + redirectTo, event)
+        .then(function (response) {
+          console.log('event updated', response);
+
+          this.setState({
+            creating: false,
+            step: 'done'
+          });
+        }.bind(this))
+        .catch(function (err) {
+          console.log(err);
+          this.setState({
+            error: err,
+            creating: false
+          });
+        }.bind(this));
+  },
+
+  // build an event from the state of the EventScheduler
+  generateEvent: function () {
+    return {
+      attendees: this.state.attendees.split(',').map(function (email) {
+        var contact = this.getContact(email);
+        return {
+          email: contact.email,
+          displayName: contact.name
+        };
+      }.bind(this)),
+      summary: this.state.summary,
+      location: this.state.location,
+      description: this.state.description,
+      start: {dateTime: this.state.start},
+      end: {dateTime: this.state.end},
+      extendedProperties: {
+        shared: {
+          attendees: this.state.attendees // contains the original attendees (including teams)
+        }
+      }
+    };
   },
 
   /**
@@ -645,49 +775,6 @@ var EventScheduler = React.createClass({
     }
 
     return contacts;
-  },
-
-  // the moment supreme: create the event
-  createEvent: function () {
-    this.setState({
-      creating: true,
-      error: null
-    });
-
-    var calendarId = this.props.user.email;
-    var event = {
-      attendees: this.state.attendees.split(',').map(function (email) {
-        var contact = this.getContact(email);
-        return {
-          email: contact.email,
-          displayName: contact.name
-        };
-      }.bind(this)),
-      summary: this.state.summary,
-      location: this.state.location,
-      description: this.state.description,
-      start: {dateTime: this.state.start},
-      end: {dateTime: this.state.end}
-    };
-    console.log('event', event);
-
-    var redirectTo = location.origin + location.pathname; // like "https://server.com/index.html"
-    ajax.put('/calendar/' + calendarId + '?redirectTo=' + redirectTo, event)
-        .then(function (response) {
-          console.log('event created', response);
-
-          this.setState({
-            creating: false,
-            step: 'done'
-          });
-        }.bind(this))
-        .catch(function (err) {
-          console.log(err);
-          this.setState({
-            error: err,
-            creating: false
-          });
-        }.bind(this));
   },
 
   componentDidMount: function() {
@@ -730,9 +817,12 @@ var EventScheduler = React.createClass({
       this.findTimeslots(timeMin, timeMax);
     }
 
-    if (this.state.step == 'cancel') {
-      var eventId = hash.get('id');
-      this.loadEvent(eventId);
+    if (this.state.step == 'cancel' && this.state.cancelId) {
+      this.loadEvent(this.state.cancelId);
+    }
+
+    if (this.state.updateId && this.state.step == 'form') {
+      this.loadEvent(this.state.updateId);
     }
   },
 

@@ -171,11 +171,23 @@ To the the code, run:
     -   `timeMin` ISO date string with the start of a time interval.
     -   `timeMax` ISO date string with the end of a time interval.
 
--   `PUT /calendar/:calendarId`
+-   `POST /calendar/:calendarId`
 
     Insert a new calendar event. The event must be a valid [Event resource](https://developers.google.com/google-apps/calendar/v3/reference/events#resource),
     as described here:
     https://developers.google.com/google-apps/calendar/v3/reference/events/insert
+
+    Query parameters:
+    -   `redirectTo` Optional url where to redirect the update and cancel links
+        which are added as a footer to the event description.
+        Default is 'https://smartplanner.herokuapp.com'.
+
+-   `PUT /calendar/:calendarId/:eventId`
+
+    Update an existing calendar event. The event must be a valid [Event resource](https://developers.google.com/google-apps/calendar/v3/reference/events#resource),
+    as described here:
+    https://developers.google.com/google-apps/calendar/v3/reference/events/insert.
+    The `id` in the event resource must match the `:eventId` parameter in the url.
 
     Query parameters:
     -   `redirectTo` Optional url where to redirect the update and cancel links
