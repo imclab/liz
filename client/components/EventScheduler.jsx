@@ -345,7 +345,7 @@ var EventScheduler = React.createClass({
             <p>Do you want to cancel the following event&#63;</p>
         }
         {
-          this.state.eventLoading && <p className="loading">Loading event details <img src="img/ajax-loader.gif" /></p>
+          this.state.loadingEvent && <p className="loading">Loading event details <img src="img/ajax-loader.gif" /></p>
         }
         {
           (!this.state.loadingEvent && !canceled) && this.renderEvent(this.state)
