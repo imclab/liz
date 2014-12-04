@@ -214,7 +214,7 @@ var SettingsPage = React.createClass({
       // Strategies is still mockup
       var strategies = [
         {
-          text: 'Randomly select a free member',
+          text: 'Randomly selection',
           value: 'random'
         }
       ];
@@ -233,7 +233,11 @@ var SettingsPage = React.createClass({
                     <td>{group.members.join(', ')}</td>
                   </tr>
                   <tr>
-                    <th>Strategy</th>
+                    <th>
+                    Strategy {
+                        this.renderPopover('Strategy', 'Select a strategy on how new events are distributed over available team members.')
+                    }
+                    </th>
                     <td>
                       <div className="strategy">
                         <Selectize
@@ -246,7 +250,7 @@ var SettingsPage = React.createClass({
                 </tbody>
               </table>
             </div>
-          });
+          }.bind(this));
     }
     else {
       content = <div>(no teams)</div>
