@@ -214,7 +214,7 @@ var SettingsPage = React.createClass({
       // Strategies is still mockup
       var strategies = [
         {
-          text: 'Randomly selection',
+          text: 'Random selection',
           value: 'random'
         }
       ];
