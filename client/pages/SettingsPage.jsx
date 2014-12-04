@@ -99,6 +99,21 @@ var SettingsPage = React.createClass({
         ><span className="glyphicon glyphicon-plus"></span> Add</button>
       </div>
 
+      <h3>Availability events</h3>
+      <p>Automatically generate availability events in your calendar using a wizard:</p>
+      <p>
+        <button
+            className="btn btn-normal"
+            onClick={this.showEventGenerator}
+        >Show wizard</button>
+      </p>
+      <EventGenerator
+          ref="generator"
+          calendar={this.props.user.email}
+          calendars={this.getCalendarOptions()}
+          onCreate={this.handleEventsGenerated}
+      />
+
       <h2>Teams</h2>
       <p>Manage your teams.</p>
       {this.renderTeams()}
@@ -309,6 +324,17 @@ var SettingsPage = React.createClass({
   componentDidUpdate: function () {
     // initialize all popovers
     $('[data-toggle="popover"]').popover();
+  },
+
+  showEventGenerator: function () {
+    this.refs.generator.show();
+  },
+
+  handleEventsGenerated: function (events) {
+    // TODO: nicer looking alert
+    alert('The availability events are successfully generated');
+
+    this.refs.generator.hide();
   },
 
   addProfile: function () {

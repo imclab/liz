@@ -6,15 +6,21 @@
  *
  *   <EventGenerator
  *       calendars={Array}
- *       tag={string}
+ *       calendar={string}
  *       onCreate={function}
  *   />
  *
  * Where:
  *   - `calendars` is an Array with calendar objects having id, summary, ...
+ *   - `calendar` the initially selected calendar
  *   - `tag` is a string like '#available'
  *   - `onCreate` is an optional callback, called when the events have been
  *     generated.
+ *
+ * Methods:
+ *
+ * - `show()`  Show the generator
+ * - `hide()`  hide the generator
  *
  */
 var EventGenerator = React.createClass({
@@ -22,10 +28,11 @@ var EventGenerator = React.createClass({
 
   getInitialState: function () {
     var initialState = {
-      calendar: null,
+      calendar: this.props.calendar || null,
       tag: '#available',
       days: {},
-      creating: false
+      creating: false,
+      show: false
     };
 
     this.DAYS.forEach(function (day) {
@@ -92,7 +99,7 @@ var EventGenerator = React.createClass({
     var calendarSelect;
     if (calendars.length > 1) {
       calendarSelect = <p>
-        In which calendar do you want to create availability events&#63;
+        <p>In which calendar do you want to create availability events&#63;</p>
         <Selectize
             value={this.state.calendar}
             options={calendars}
@@ -107,27 +114,72 @@ var EventGenerator = React.createClass({
       </p>;
     }
     else {
-      calendarSelect = <p className="error">Error: no calendar selected</p>
+      calendarSelect = <p className="error">Error: no calendar available</p>
     }
 
-    return <div>
-      <p>When are you available&#63;</p>
-      <table className="availability"><tbody>
-      {days}
-      </tbody></table>
-      {calendarSelect}
+    var tagSelect = <div>
       <p>
-        <button
-            className="btn btn-success"
-            onClick={this.create}
-            disabled={this.state.creating}
-        >Generate events</button> {
-          this.state.creating ?
-              <span>creating <img className="loading" src="img/ajax-loader.gif" /></span> :
-              <span></span>
-        }
+      Which tag do you want to give the availability events&#63;&nbsp;
+      {
+          this.renderPopover('Tag', 'All events having the specified tag as title will be used to determine your availability (typically your working hours)')
+      }
       </p>
-    </div>
+      <input
+          type="text"
+          className="form-control"
+          title="Availability tag"
+          value={this.state.tag}
+          placeholder="Enter a tag like '#available'"
+          onChange={this.handleTagChange}
+      />
+    </div>;
+
+    return <div className="modal profile" ref="profile">
+      <div className="modal-dialog">
+        <div className="modal-content">
+          <div className="modal-header">
+            <button type="button" className="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            <h4 className="modal-title">Availability event generator</h4>
+          </div>
+          <div className="modal-body">
+            <div>
+              <p>When are you available&#63;</p>
+              <table className="availability"><tbody>
+              {days}
+              </tbody></table>
+              {calendarSelect}
+              {tagSelect}
+            </div>
+          </div>
+          <div className="modal-footer">
+              {
+                this.state.creating ?
+                  <span>creating <img className="loading" src="img/ajax-loader.gif" /></span> :
+                  <span></span>
+              } <
+             button type="button" className="btn btn-default" onClick={this.hide}>Cancel</button>
+            <button
+                className="btn btn-success"
+                onClick={this.create}
+                disabled={this.state.creating}
+            >Generate events</button>
+          </div>
+        </div>
+      </div>
+    </div>;
+  },
+
+  renderPopover: function (title, content, placement) {
+    return <a href="#" onClick={function (event) {event.preventDefault()}}>
+      <span
+          data-toggle="popover"
+          data-placement={placement || 'top'}
+          title={title}
+          data-content={content}
+          className="glyphicon glyphicon-info-sign"
+          aria-hidden="true"
+      ></span>
+    </a>
   },
 
   handleChange: function (day, field, value) {
@@ -136,6 +188,10 @@ var EventGenerator = React.createClass({
     state.days[day][field] = value;
 
     this.setState(state);
+  },
+
+  handleTagChange: function (event) {
+    this.setState({tag: event.target.value});
   },
 
   handleCalendarChange: function (value) {
@@ -151,6 +207,9 @@ var EventGenerator = React.createClass({
     if (!calendar) {
       return alert('Error: No calendar selected');
     }
+    if (!this.state.tag) {
+      return alert('Error: No tag entered');
+    }
 
     var days = Object.keys(this.state.days)
         .filter(function (day) {
@@ -161,7 +220,7 @@ var EventGenerator = React.createClass({
         }.bind(this));
 
     var body = {
-      "tag": this.props.tag,           // for example '#availability'
+      "tag": this.state.tag,           // for example '#availability'
       "calendar": calendar,
       //"createCalendar": NEW_CALENDAR_NAME,
       "zone": moment().zone(),       // for example -60 or '-01:00' or '+08:00'
@@ -186,5 +245,38 @@ var EventGenerator = React.createClass({
         console.log(err);
         alert(err);
       }.bind(this));
+  },
+
+  show: function () {
+    this.setState({show: true});
+  },
+
+  hide: function () {
+    this.setState({show: false});
+  },
+
+  componentDidMount: function () {
+    // initialize all popovers
+    $('[data-toggle="popover"]').popover();
+
+    this.updateVisibility();
+  },
+
+  componentDidUpdate: function () {
+    // initialize all popovers
+    $('[data-toggle="popover"]').popover();
+
+    this.updateVisibility();
+  },
+
+  updateVisibility: function () {
+    var elem = this.refs.profile.getDOMNode();
+
+    // prevent conflict with pressing ESC in dropdowns
+    $(elem).modal({keyboard: false});
+
+    // show/hide the modal
+    $(elem).modal(this.state.show ? 'show' : 'hide');
   }
+
 });

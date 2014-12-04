@@ -38,8 +38,7 @@ var Profile = React.createClass({
         tag: '',
         role: '',
         group: ''
-      },
-      showGenerator: false
+      }
     };
   },
 
@@ -87,24 +86,6 @@ var Profile = React.createClass({
                 onChange={this.handleTagChange}
             />
 
-            <h5>Generate availability events (optional)</h5>
-            <p>Do you want to generate availability events in your calendar&#63;&nbsp;
-            {
-              this.renderPopover('Availability events', 'Via the generator, you can generate recurring events in your calendar on your working hours. The generated events have the specified tag "' + (this.state.profile.tag || '') + '" as event title and mark when you are available.')
-            }
-            </p>
-            <p>
-            <button
-                className="btn btn-default"
-                onClick={this.state.showGenerator ? this.hideGenerator : this.showGenerator}
-            >{
-              this.state.showGenerator ? 'Hide generator' : 'Show generator'
-              }</button>
-            </p>
-            <div>
-              {this.state.showGenerator ? this.renderGenerator() : ''}
-            </div>
-
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-default" onClick={this.hide}>Cancel</button>
@@ -129,28 +110,6 @@ var Profile = React.createClass({
           placeholder="Select or create a team..."
           onChange={this.handleGroupChange}
       />
-    </div>;
-  },
-
-  renderGenerator: function () {
-    var selected = this.state.profile && this.state.profile.calendars &&
-        this.state.profile.calendars.split(',');
-    var calendars = this.props.calendars.filter(function (calendar) {
-      return selected.indexOf(calendar.value) != -1;
-    });
-
-    return <div className="panel panel-primary">
-      <div className="panel-heading">
-        <h5 classNameclass="panel-title">Availability event generator</h5>
-      </div>
-      <div className="panel-body">
-        <EventGenerator
-            ref="generator"
-            tag={this.state.profile.tag}
-            calendars={calendars}
-            onCreate={this.handleCreate}
-        />
-      </div>
     </div>;
   },
 
@@ -216,33 +175,16 @@ var Profile = React.createClass({
     this.setState({profile: profile});
   },
 
-  handleCreate: function (events) {
-    // TODO: nicer looking alert
-    alert('The availability events are successfully generated');
-
-    this.hideGenerator();
-  },
-
   show: function (profile) {
     this.setState({
       profile: profile,
-      show: true,
-      showGenerator: false
+      show: true
     });
-  },
-
-  showGenerator: function () {
-    this.setState({showGenerator: true});
-  },
-
-  hideGenerator: function () {
-    this.setState({showGenerator: false});
   },
 
   hide: function () {
     this.setState({
-      show: false,
-      showGenerator: false
+      show: false
     });
   },
 
