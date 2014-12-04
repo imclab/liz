@@ -7,7 +7,9 @@ Dynamic planning application
 
 To start the server locally:
 
-    node server.js --clientID CLIENT_ID --clientSecret CLIENT_SECRET
+    node server.js --GOOGLE_CLIENT_ID id --GOOGLE_CLIENT_SECRET secret --NOREPLY_EMAIL email --NOREPLY_PASSWORD password
+
+Here NOREPLY_EMAIL and NOREPLY_PASSWORD must be the credentials of a gmail account.
 
 Note that CLIENT_ID and CLIENT_SECRET must be retrieved from the 
 [Google Developers Console](https://console.developers.google.com/). You will have to:
@@ -52,6 +54,8 @@ Set the following environment variables:
 
     heroku config:set GOOGLE_CLIENT_ID=<your client id>
     heroku config:set GOOGLE_CLIENT_SECRET=<your client secret>
+    heroku config:set NOREPLY_EMAIL=<your google email>
+    heroku config:set NOREPLY_PASSWORD=<your google email password>
     heroku config:set NODE_ENV=production
 
 Alternatively, the variables can be set via the Heroku dashboard at the apps settings.
@@ -177,23 +181,12 @@ To the the code, run:
     as described here:
     https://developers.google.com/google-apps/calendar/v3/reference/events/insert
 
-    Query parameters:
-    -   `redirectTo` Optional url where to redirect the update and cancel links
-        which are added as a footer to the event description.
-        Default is 'https://smartplanner.herokuapp.com'.
-
 -   `PUT /calendar/:calendarId/:eventId`
 
     Update an existing calendar event. The event must be a valid [Event resource](https://developers.google.com/google-apps/calendar/v3/reference/events#resource),
     as described here:
     https://developers.google.com/google-apps/calendar/v3/reference/events/insert.
     The `id` in the event resource must match the `:eventId` parameter in the url.
-
-    Query parameters:
-    -   `redirectTo` Optional url where to redirect the update and cancel links
-        which are added as a footer to the event description.
-        Default is 'https://smartplanner.herokuapp.com'.
-
 
 -   `DELETE /calendar/:calendarId/:eventId`
 

@@ -191,7 +191,7 @@ var EventScheduler = React.createClass({
                   className="form-control"
                   name="description"
                   ref="description"
-                  value={this.removeFooter(this.state.description)}
+                  value={this.state.description}
                   onChange={this.handleTextChange}
               ></textarea>
             </td>
@@ -441,7 +441,11 @@ var EventScheduler = React.createClass({
     hash.remove('cancel'); // event id for deleting a calendar event
 
     // go to the first step (form), and reset the inputs
-    this.setState({step: this.STEPS[0]});
+    this.setState({
+      step: this.STEPS[0],
+      updateId: null,
+      cancelId: null
+    });
   },
 
   handleSubmit: function (event) {
@@ -618,7 +622,7 @@ var EventScheduler = React.createClass({
             attendees: attendees,
             duration: duration,
             location: googleEvent.location,
-            description: googleEvent.description,
+            description: this.removeFooter(googleEvent.description),
             start: start,
             end: end,
             status: googleEvent.status
@@ -669,10 +673,7 @@ var EventScheduler = React.createClass({
     var event = this.generateEvent();
     console.log('event', event);
 
-    var method = ''
-
-    var redirectTo = location.origin + location.pathname; // like "https://server.com/index.html"
-    ajax.post('/calendar/' + calendarId + '?redirectTo=' + redirectTo, event)
+    ajax.post('/calendar/' + calendarId, event)
         .then(function (response) {
           console.log('event created', response);
 
@@ -705,8 +706,7 @@ var EventScheduler = React.createClass({
     event.id = eventId;
     console.log('event', event);
 
-    var redirectTo = location.origin + location.pathname; // like "https://server.com/index.html"
-    ajax.put('/calendar/' + calendarId + '/' + eventId + '?redirectTo=' + redirectTo, event)
+    ajax.put('/calendar/' + calendarId + '/' + eventId, event)
         .then(function (response) {
           console.log('event updated', response);
 

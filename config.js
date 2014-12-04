@@ -7,7 +7,18 @@ exports.PRODUCTION = (process.env.NODE_ENV == 'production');
 exports.PORT = argv.PORT || process.env.PORT || 8082;
 
 // server url (used for creating links in calendar items to update or cancel an event)
-exports.SERVER_URL = 'https://smartplanner.herokuapp.com';
+exports.SERVER_URL = argv.SERVER_URL || process.env.SERVER_URL || 'https://smartplanner.herokuapp.com';
+
+// email and password for sending confirmation emails
+exports.NOREPLY_EMAIL    = argv.NOREPLY_EMAIL    || process.env.NOREPLY_EMAIL;
+exports.NOREPLY_PASSWORD = argv.NOREPLY_PASSWORD || process.env.NOREPLY_PASSWORD;
+
+if (!exports.NOREPLY_EMAIL) {
+  console.warn('WARNING: No NOREPLY_EMAIL configured. Provide a NOREPLY_EMAIL via command line arguments or an environment variable');
+}
+if (!exports.NOREPLY_PASSWORD) {
+  console.warn('WARNING: No NOREPLY_PASSWORD configured. Provide a NOREPLY_PASSWORD via command line arguments or an environment variable');
+}
 
 // mongo
 exports.MONGO_URL = argv.MONGO_URL ||

@@ -48,7 +48,7 @@ var SettingsPage = React.createClass({
     return <div>
       <h1>Settings</h1>
 
-      <h2>Availability profiles</h2>
+      <h2>Availability</h2>
       <p>Create one or multiple profiles to specify when you are available and in what role.</p>
       {profiles}
 

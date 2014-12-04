@@ -16,6 +16,7 @@ var config = require('./config');
 var gutils = require('./lib/google-utils');
 var intervals = require('./shared/intervals');
 var authorization = require('./lib/authorization');
+var mail = require('./lib/mail');
 
 // create a connection to mongodb
 var db = require('./lib/db')(config.MONGO_URL + '/' + config.MONGO_DB);
@@ -311,7 +312,6 @@ app.get('/calendar/:calendarId/:eventId', function(req, res){
 // insert a new event
 app.post('/calendar/:calendarId', function(req, res){
   var calendarId = req.params.calendarId || req.session.email;
-  var redirectTo = req.query.redirectTo;
   var event = req.body;
 
   authorize(req.session.email, calendarId, function (err, accessToken, user) {
@@ -325,11 +325,15 @@ app.post('/calendar/:calendarId', function(req, res){
         if(err) return sendError(res, err);
 
         // add a footer to the event description enabling to update or cancel the meeting
-        appendFooter(createdEvent, redirectTo);
+        appendFooter(createdEvent);
 
         // update the description of the event
         gcal(accessToken).events.update(calendarId, createdEvent.id, createdEvent, function(err, updatedEvent) {
           if(err) return sendError(res, err);
+
+          // send a confirmation email
+          mail.confirmPlannedEvent(updatedEvent);
+
           return res.json(updatedEvent);
         });
       });
@@ -341,7 +345,6 @@ app.post('/calendar/:calendarId', function(req, res){
 app.put('/calendar/:calendarId/:eventId', function(req, res){
   var calendarId = req.params.calendarId || req.session.email;
   var eventId    = req.params.eventId;
-  var redirectTo = req.query.redirectTo;
   var event = req.body;
 
   if (eventId !== event.id) {
@@ -356,11 +359,15 @@ app.put('/calendar/:calendarId/:eventId', function(req, res){
       if(err) return sendError(res, err);
 
       // add a footer to the event description enabling to update or cancel the meeting
-      appendFooter(event, redirectTo);
+      appendFooter(event);
 
       // update the description of the event
       gcal(accessToken).events.update(calendarId, eventId, event, function(err, updatedEvent) {
         if(err) return sendError(res, err);
+
+        // send a confirmation email
+        mail.confirmUpdatedEvent(updatedEvent);
+
         return res.json(updatedEvent);
       });
     });
@@ -377,6 +384,13 @@ app.delete('/calendar/:calendarId/:eventId', function(req, res){
 
     gcal(accessToken).events.delete(calendarId, eventId, function(err, result) {
       if(err) return sendError(res, err);
+
+      // send a confirmation email
+      var options = {};
+      gcal(accessToken).events.get(calendarId, eventId, options, function(err, event) {
+        mail.confirmCanceledEvent(event);
+      });
+
       return res.json(result);
     });
   });
@@ -591,14 +605,12 @@ function sendError(res, err, status) {
  * Append a footer to the description of a calendar event. The footer
  * contains the message "created by liz" and an url to update or cancel the event.
  * @param {Object} event        A google Calendar event
- * @param {string} [serverUrl]  Optional server url to be used to create the
- *                              update and cancel urls.
  * @returns {Object} Returns the original (updated) event
  */
-function appendFooter(event, serverUrl) {
+function appendFooter(event) {
   var eventId = event.id;
-  var updateUrl = (serverUrl || config.SERVER_URL) + '#update=' + eventId;
-  var cancelUrl = (serverUrl || config.SERVER_URL) + '#cancel=' + eventId;
+  var updateUrl = config.SERVER_URL + '#update=' + eventId;
+  var cancelUrl = config.SERVER_URL + '#cancel=' + eventId;
   //var footer = '<p>This event is created by Liz. ' +
   //    '<a href="' + updateUrl + '">Update</a> or ' +
   //    '<a href="' + cancelUrl + '">Cancel</a> this event.</p>';
