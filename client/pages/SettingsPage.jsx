@@ -100,7 +100,7 @@ var SettingsPage = React.createClass({
       </div>
 
       <h3>Availability events</h3>
-      <p>Automatically generate availability events in your calendar using a wizard:</p>
+      <p>Use the following wizard to automatically generate availability events in your calendar:</p>
       <p>
         <button
             className="btn btn-normal"
