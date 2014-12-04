@@ -113,6 +113,11 @@ div.profile-entry table th {
   padding: 2px 5px;
 }
 
+div.profile-entry .strategy {
+  width: 260px;
+  max-width: 100%;
+}
+
 div.profile h5 {
   margin-top: 30px;
 }
@@ -219,4 +224,11 @@ p.error {
 
 .form-group {
   margin-bottom: 0;
+}
+
+div.access-request {
+  margin: 16px 0;
+  padding: 10px;
+  background-color: #ffdd87;
+  border-radius: 4px;
 }

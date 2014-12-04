@@ -8,6 +8,7 @@ var SettingsPage = React.createClass({
   getInitialState: function () {
     this.loadCalendarList();
     this.loadGroupsList();
+    this.loadUserGroupsList();
     this.loadProfiles();
     this.loadAccessRequests();
 
@@ -20,6 +21,7 @@ var SettingsPage = React.createClass({
       calendarListError: null,
       calendarListLoading: true,
       groupsList: [],
+      userGroupsList: null,
       accessRequests: null,
 
       showHelpAvailability: false,
@@ -42,10 +44,9 @@ var SettingsPage = React.createClass({
       profiles = this.renderProfiles();
     }
 
+    // TODO: replace loading all groups with smart auto completion, loading groups matching current search
     return <div>
       <h1>Settings</h1>
-
-      {this.renderAccessRequests()}
 
       <h2>Availability profiles</h2>
       <p>Create one or multiple profiles to specify when you are available and in what role.</p>
@@ -57,6 +58,8 @@ var SettingsPage = React.createClass({
           calendars={this.getCalendarOptions()}
           onChange={this.handleProfileChange}
       />
+
+      {this.renderGroups()}
 
       <h2>Sharing</h2>
       <p>Who is allowed to view your free/busy profile and plan events in your calendar via Liz&#63;</p>
@@ -169,8 +172,8 @@ var SettingsPage = React.createClass({
 
   renderAccessRequests: function () {
     if (this.state.accessRequests && this.state.accessRequests.length > 0) {
-      var requests = this.state.accessRequests.map(function (profile) {
-        return <div>
+      return this.state.accessRequests.map(function (profile) {
+        return <div className="access-request">
           User <b>{profile.user}</b> requests access to the team <b>{profile.group}</b> <div
               style={{display: 'inline-block'}}>
             <button
@@ -196,15 +199,64 @@ var SettingsPage = React.createClass({
           </div>
         </div>;
       }.bind(this));
-
-      return <div>
-        <h2>Team access requests</h2>
-        {requests}
-      </div>;
     }
     else {
-      return '';
+      return null;
     }
+  },
+
+  renderGroups: function () {
+    var content;
+    if (this.state.userGroupsList == null) {
+      content = <div>loading <img className="loading" src="img/ajax-loader.gif" /></div>;
+    }
+    else if (this.state.userGroupsList.length > 0) {
+      // Strategies is still mockup
+      var strategies = [
+        {
+          text: 'Randomly select a free member',
+          value: 'random'
+        }
+      ];
+
+      content = this.state.userGroupsList
+          .map(function (group) {
+            return <div key={group.name} className="profile-entry">
+              <table className="fill">
+                <tbody>
+                  <tr>
+                    <th>Team</th>
+                    <td>{group.name}</td>
+                  </tr>
+                  <tr>
+                    <th>Members</th>
+                    <td>{group.members.join(', ')}</td>
+                  </tr>
+                  <tr>
+                    <th>Strategy</th>
+                    <td>
+                      <div className="strategy">
+                        <Selectize
+                          options={strategies}
+                          value={strategies[0].value}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          });
+    }
+    else {
+      content = <div>(no teams)</div>
+    }
+
+    return <div>
+      <h2>Teams</h2>
+      {this.renderAccessRequests()}
+      {content}
+    </div>;
   },
 
   renderPopover: function (title, content, placement) {
@@ -262,6 +314,7 @@ var SettingsPage = React.createClass({
 
         ajax.del('/profiles/' + id)
             .then(function (profiles) {
+              this.loadUserGroupsList(); // refresh the teams list
             }.bind(this))
             .catch(function (err) {
               console.log(err);
@@ -303,7 +356,8 @@ var SettingsPage = React.createClass({
           .then(function (result) {
             // TODO: do something with the returned result?
             // FIXME: new profile is not updated
-            this.loadProfiles(); // reload the list with profiles
+            this.loadProfiles();        // reload the list with profiles
+            this.loadUserGroupsList();  // refresh the teams list
           }.bind(this))
           .catch(function (err) {
             console.log(err);
@@ -335,13 +389,6 @@ var SettingsPage = React.createClass({
 
     this.setState({profiles: profiles});
     this.saveProfile(profile);
-  },
-
-  handleCalendarSelection: function (selection) {
-    var user = this.state.user;
-    user.calendars = selection;
-
-    this.updateUser(user);
   },
 
   handleShareSelection: function (value) {
@@ -398,6 +445,19 @@ var SettingsPage = React.createClass({
         .then(function (groupsList) {
           console.log('groupsList', groupsList);
           this.setState({groupsList: groupsList});
+        }.bind(this))
+        .catch(function (err) {
+          console.log(err);
+          displayError(err);
+        }.bind(this));
+  },
+
+  // load all existing, aggregated groups of this user
+  loadUserGroupsList: function () {
+    ajax.get('/groups?member='+ this.props.user.email)
+        .then(function (userGroupsList) {
+          console.log('userGroupsList', userGroupsList);
+          this.setState({userGroupsList: userGroupsList});
         }.bind(this))
         .catch(function (err) {
           console.log(err);

@@ -289,6 +289,10 @@ To the the code, run:
     ]
     ```
 
+    Query parameters:
+    -   `member: string` Filter groups containing the specified member.
+        Must be the email address of a member.
+
 -   `GET /profiles`
 
     Get all profiles of the current users. Returns an Array with profiles like:

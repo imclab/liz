@@ -30,6 +30,7 @@
  */
 var Profile = React.createClass({
   getInitialState: function () {
+    // TODO: replace loading all groups with smart auto completion, loading groups matching current search
     return {
       profile: this.props.profile || {
         user: '',
