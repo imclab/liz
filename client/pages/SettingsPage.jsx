@@ -136,30 +136,12 @@ var SettingsPage = React.createClass({
       return <span title={calendarId}>{text}</span>;
     }.bind(this));
 
+    // add extra fields in case of team
     var trTeam = null;
-    var trMembers = null;
-    var trStrategy = null;
-
-    // add extra fields
     if (profile.role == 'group') {
       trTeam = <tr>
         <th>Team</th>
         <td>{profile.group}</td>
-      </tr>;
-
-      var group = this.state.userGroupsList && this.state.userGroupsList.filter(function (group) {
-        return group.name == profile.group;
-      })[0];
-
-      trMembers = <tr>
-        <th>Members</th>
-        <td>{group ? group.members.join(', ') : null}</td>
-      </tr>;
-
-      // TODO: Strategies is still mockup
-      trStrategy = <tr>
-        <th>Strategy</th>
-        <td title="Randomly select an available team member">Random selection</td>
       </tr>;
     }
 
@@ -167,8 +149,6 @@ var SettingsPage = React.createClass({
       <table>
         <tbody>
           {trTeam}
-          {trMembers}
-          {trStrategy}
           <tr>
             <th>Calendars</th>
             <td>{calendars}</td>
