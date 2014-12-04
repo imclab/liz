@@ -30,27 +30,36 @@ var SettingsPage = React.createClass({
   },
 
   render: function () {
-    var profiles;
+    var profilesSelf;
+    var profilesTeam;
+
+    // TODO: this is some ugly doubled code
     if (this.state.loading) {
-      profiles = <div>
+      profilesSelf = <div>
+        <h1>Settings</h1>
+        <div>loading <img className="loading" src="img/ajax-loader.gif" /></div>
+      </div>;
+      profilesTeam = <div>
         <h1>Settings</h1>
         <div>loading <img className="loading" src="img/ajax-loader.gif" /></div>
       </div>;
     }
     else if (this.state.profilesError) {
-      profiles = <p className="error">{this.state.profilesError.toString()}</p>
+      profilesSelf = <p className="error">{this.state.profilesError.toString()}</p>
+      profilesTeam = <p className="error">{this.state.profilesError.toString()}</p>
     }
     else {
-      profiles = this.renderProfiles();
+      profilesSelf = this.state.profiles.filter(function (profile) {
+        return profile.role !== 'group';
+      }).map(this.renderProfile);
+      profilesTeam = this.state.profiles.filter(function (profile) {
+        return profile.role === 'group';
+      }).map(this.renderProfile);
     }
 
     // TODO: replace loading all groups with smart auto completion, loading groups matching current search
     return <div>
       <h1>Settings</h1>
-
-      <h2>Availability</h2>
-      <p>Create one or multiple profiles to specify when you are available and in what role.</p>
-      {profiles}
 
       <Profile
           ref="profile"
@@ -59,7 +68,40 @@ var SettingsPage = React.createClass({
           onChange={this.handleProfileChange}
       />
 
-      {this.renderGroups()}
+      <h2>Availability</h2>
+      <h3>Individual</h3>
+      <p>Create a profile to specify when you are available as individual.</p>
+
+      {profilesSelf}
+      {
+          (profilesSelf.length === 0) ?
+              <div>
+                <button
+                    onClick={this.addProfile}
+                    className="btn btn-normal"
+                    title="Add a new profile"
+                >
+                  <span className="glyphicon glyphicon-plus"></span>
+                Add</button>
+              </div> :
+              null
+      }
+
+      <h3>Team member</h3>
+      <p>Create one or multiple profiles to specify your availability as team member.</p>
+
+      {profilesTeam}
+      <div>
+        <button
+            onClick={this.addTeamProfile}
+            className="btn btn-normal"
+            title="Add a new team profile"
+        ><span className="glyphicon glyphicon-plus"></span> Add</button>
+      </div>
+
+      <h2>Teams</h2>
+      <p>Manage your teams.</p>
+      {this.renderTeams()}
 
       <h2>Sharing</h2>
       <p>Who is allowed to view your free/busy profile and plan events in your calendar via Liz&#63;</p>
@@ -72,22 +114,6 @@ var SettingsPage = React.createClass({
       <h2>Account</h2>
       <p>Remove your account at Liz.</p>
       <p><button onClick={this.deleteAccount} className="btn btn-danger">Delete account</button></p>
-    </div>;
-  },
-
-  renderProfiles: function () {
-    var profiles = this.state.profiles || [];
-    var rows = profiles.map(this.renderProfile);
-
-    return <div>
-      {rows}
-      <div>
-        <button
-            onClick={this.addProfile}
-            className="btn btn-normal"
-            title="Add a new profile"
-        ><span className="glyphicon glyphicon-plus"></span> Add</button>
-      </div>
     </div>;
   },
 
@@ -110,20 +136,39 @@ var SettingsPage = React.createClass({
       return <span title={calendarId}>{text}</span>;
     }.bind(this));
 
+    var trTeam = null;
+    var trMembers = null;
+    var trStrategy = null;
+
+    // add extra fields
+    if (profile.role == 'group') {
+      trTeam = <tr>
+        <th>Team</th>
+        <td>{profile.group}</td>
+      </tr>;
+
+      var group = this.state.userGroupsList && this.state.userGroupsList.filter(function (group) {
+        return group.name == profile.group;
+      })[0];
+
+      trMembers = <tr>
+        <th>Members</th>
+        <td>{group ? group.members.join(', ') : null}</td>
+      </tr>;
+
+      // TODO: Strategies is still mockup
+      trStrategy = <tr>
+        <th>Strategy</th>
+        <td title="Randomly select an available team member">Random selection</td>
+      </tr>;
+    }
+
     return <div key={profile._id} className="profile-entry">
       <table>
         <tbody>
-          <tr>
-            <th>Role</th>
-            <td>{(profile.role == 'group') ? 'Team member' : 'Individual'}</td>
-          </tr>
-                {
-                    (profile.role == 'group') ?
-                        <tr>
-                          <th>Team</th>
-                          <td>{profile.group}</td>
-                        </tr> : ''
-                    }
+          {trTeam}
+          {trMembers}
+          {trStrategy}
           <tr>
             <th>Calendars</th>
             <td>{calendars}</td>
@@ -205,7 +250,8 @@ var SettingsPage = React.createClass({
     }
   },
 
-  renderGroups: function () {
+  // TODO: cleanup renderTeams
+  renderTeams: function () {
     var content;
     if (this.state.userGroupsList == null) {
       content = <div>loading <img className="loading" src="img/ajax-loader.gif" /></div>;
@@ -257,7 +303,6 @@ var SettingsPage = React.createClass({
     }
 
     return <div>
-      <h2>Teams</h2>
       {this.renderAccessRequests()}
       {content}
     </div>;
@@ -292,6 +337,18 @@ var SettingsPage = React.createClass({
       calendars: this.props.user.email || '',
       tag: '#available',
       role: 'individual',
+      access: null
+    };
+
+    this.refs.profile.show(profile);
+  },
+
+  addTeamProfile: function () {
+    var profile = {
+      user: this.props.user.email,
+      calendars: this.props.user.email || '',
+      tag: '#available',
+      role: 'group',
       access: null
     };
 

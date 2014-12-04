@@ -16,6 +16,7 @@ h2 {
 
 h3 {
   font-size: 1em;
+  color: #ff7c02;
 }
 
 h1, h2, h3 {
@@ -110,7 +111,7 @@ div.profile-entry .menu {
 div.profile-entry table td,
 div.profile-entry table th {
   vertical-align: middle;
-  padding: 2px 5px;
+  padding: 3px 5px;
 }
 
 div.profile-entry .strategy {

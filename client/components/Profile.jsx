@@ -52,56 +52,9 @@ var Profile = React.createClass({
             <h4 className="modal-title">Availability profile</h4>
           </div>
           <div className="modal-body">
-            <p>Configure an availability profile.</p>
-            <h5>Role</h5>
-            <p>
-            In which role do you want to be available&#63; You can create new teams.&nbsp;
-            {
-              this.renderPopover('Role', 'Select whether you want to define your availability as an individual or as a team member. You can create new teams like "Consultant".', 'left')
-            }
+            <p>Configure an availability profile {this.state.profile.role === 'group' ? 'as team member' : 'as individual'}.</p>
 
-            </p>
-
-            <table className='role'>
-              <colgroup>
-                <col width="130px" />
-              </colgroup>
-              <tbody>
-                <tr>
-                  <td>
-                    <label><input
-                        type="radio"
-                        checked={this.state.profile.role != 'group'}
-                        onChange={function () {
-                          this.handleRoleChange('individual');
-                        }.bind(this)}
-                    /> Individual</label>
-                  </td>
-                  <td></td>
-                </tr>
-                <tr>
-                  <td>
-                    <label><input
-                        type="radio"
-                        checked={this.state.profile.role == 'group'}
-                        onChange={function () {
-                          this.handleRoleChange('group');
-                        }.bind(this)}
-                    /> Team member</label>
-                  </td>
-                  <td>
-                    <Selectize
-                        value={this.state.profile.group || ''}
-                        options={this.props.groups}
-                        create={true}
-                        createOnBlur={true}
-                        placeholder="Select or create a team..."
-                        onChange={this.handleGroupChange}
-                    />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            {(this.state.profile.role === 'group') ? this.renderTeam() : null}
 
             <h5>Calendars</h5>
             <p>
@@ -159,6 +112,32 @@ var Profile = React.createClass({
           </div>
         </div>
       </div>
+    </div>;
+  },
+
+  renderTeam: function () {
+    // Strategies is still mockup
+    // TODO: implement team strategies
+    var strategies = [
+      {
+        text: 'Random selection',
+        value: 'random'
+      }
+    ];
+
+    return <div>
+      <h5>Team</h5>
+      <p>
+        Select an existing team or create a new team.
+      </p>
+      <Selectize
+          value={this.state.profile.group || ''}
+          options={this.props.groups}
+          create={true}
+          createOnBlur={true}
+          placeholder="Select or create a team..."
+          onChange={this.handleGroupChange}
+      />
     </div>;
   },
 
@@ -292,6 +271,11 @@ var Profile = React.createClass({
   },
 
   save: function () {
+    if (this.state.profile.role == 'group' && !this.state.profile.group) {
+      alert('Error: select a team first');
+      return;
+    }
+
     if (typeof this.props.onChange === 'function') {
       this.props.onChange(this.getProfile());
     }
