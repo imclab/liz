@@ -116,15 +116,6 @@ var Profile = React.createClass({
   },
 
   renderTeam: function () {
-    // Strategies is still mockup
-    // TODO: implement team strategies
-    var strategies = [
-      {
-        text: 'Random selection',
-        value: 'random'
-      }
-    ];
-
     return <div>
       <h5>Team</h5>
       <p>
