@@ -621,7 +621,7 @@ function appendFooter(event) {
 
   var description = event.description || '';
   if (description.indexOf(footer) === -1) {
-    event.description = (description.length > 0 ? '\n\n' : '') + footer;
+    event.description = description + (description.length > 0 ? '\n\n' : '') + footer;
   }
 
   return event;
