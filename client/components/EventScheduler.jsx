@@ -392,7 +392,7 @@ var EventScheduler = React.createClass({
         <th>Location</th><td>{event.location}</td>
       </tr>
       <tr>
-        <th>Description</th><td>{this.removeFooter(event.description)}</td>
+        <th>Description</th><td>{event.description}</td>
       </tr>
     </table>;
   },
@@ -931,6 +931,17 @@ var EventScheduler = React.createClass({
   // remove the Liz footer from an event description
   removeFooter: function (description) {
     var index = description.indexOf('This event is created by Liz');
-    return description.substring(0, index);
+    if (index != -1) {
+      var d = description.substring(0, index);
+
+      while (d.charAt(d.length - 1) == '\n') {
+        d = d.substring(0, d.length - 1);
+      }
+
+      return d;
+    }
+    else {
+      return description;
+    }
   }
 });
