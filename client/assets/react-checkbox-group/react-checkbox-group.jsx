@@ -2,6 +2,7 @@
 * @jsx React.DOM
 */
 // https://github.com/ziad-saab/react-checkbox-group.git
+// removed commonjs module stuff from the file
 
 var CheckboxGroup = React.createClass({
   getInitialState: function() {
