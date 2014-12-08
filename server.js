@@ -556,29 +556,52 @@ app.post('/profiles/grant', function (req, res) {
 // generate availability events
 app.post('/profiles/generate', function (req, res) {
   var email = req.session.email;
-  var calendarId = req.body.calendar || email;
 
   authorize(email, email, function (err, accessToken, user) {
     if(err) return sendError(res, err);
 
-    // get timeZone of the selected calendar
-    gutils.getTimeZone(calendarId, accessToken, function (err, timeZone) {
-      if (err) return sendError(res, err);
-
-      // generate events from the given profile
-      gutils.generateAvailabilityEvents(req.body, timeZone, function (err, events) {
+    function createEvents (calendarId, params) {
+      // get timeZone of the selected calendar
+      gutils.getTimeZone(calendarId, accessToken, function (err, timeZone) {
         if (err) return sendError(res, err);
 
-        // create the events in the calendar
-        async.map(events, function (event, callback) {
-          gcal(accessToken).events.insert(calendarId, event, callback);
-        }, function (err, createdEvents) {
-          if(err) return sendError(res, err);
-          return res.json(createdEvents);
+        // generate events from the given profile
+        gutils.generateAvailabilityEvents(params, timeZone, function (err, events) {
+          if (err) return sendError(res, err);
+
+          // create the events in the calendar
+          async.map(events, function (event, callback) {
+            gcal(accessToken).events.insert(calendarId, event, callback);
+          }, function (err, createdEvents) {
+            if(err) return sendError(res, err);
+            return res.json(createdEvents);
+          });
         });
       });
+    }
 
-    });
+    var params = req.body;
+    if (params.createCalendar) {
+      // create a new calendar
+      var calendar = {summary: params.createCalendar};
+      gcal(accessToken).calendars.insert(calendar, function (err, createdCalendar) {
+        if (err) return sendError(res, err);
+
+        // I've had once that creating events failed because the calendar was
+        // not yet found after creating it. Not sure if this setTimeout is needed
+        // or useful, needs more testing.
+        setTimeout(function () {
+          var calendarId = createdCalendar.id;
+          var newParams = _.extend({calendar: calendarId}, params);
+          createEvents(calendarId, newParams);
+        }, 100);
+      });
+    }
+    else {
+      // use existing calendar
+      var calendarId = req.body.calendar || email;
+      createEvents(calendarId, params);
+    }
   });
 });
 

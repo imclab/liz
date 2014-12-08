@@ -28,7 +28,9 @@ var EventGenerator = React.createClass({
 
   getInitialState: function () {
     var initialState = {
-      calendar: this.props.calendar || null,
+      existingCalendar: this.props.calendar || null,
+      newCalendar: 'Availability',
+      createCalendar: false,
       tag: '#available',
       days: {},
       creating: false,
@@ -100,12 +102,54 @@ var EventGenerator = React.createClass({
     if (calendars.length > 1) {
       calendarSelect = <p>
         <p>In which calendar do you want to create availability events&#63;</p>
-        <Selectize
-            value={this.state.calendar}
-            options={calendars}
-            placeholder="Select a calendar..."
-            onChange={this.handleCalendarChange}
-        />
+
+        <table className='calendar-selection'>
+          <colgroup>
+            <col width="150px" />
+          </colgroup>
+          <tbody>
+            <tr>
+              <td>
+                <label><input
+                    type="radio"
+                    checked={this.state.createCalendar == true}
+                    onChange={function () {
+                      this.setState({createCalendar: true});
+                    }.bind(this)}
+                />&nbsp;New&nbsp;calendar</label>
+              </td>
+              <td>
+                <input
+                    type="text"
+                    className="form-control"
+                    value={this.state.newCalendar}
+                    onChange={this.handleNewCalendarChange}
+                />
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <label><input
+                    type="radio"
+                    checked={this.state.createCalendar == false}
+                    onChange={function () {
+                      this.setState({createCalendar: false});
+                    }.bind(this)}
+                />&nbsp;Existing&nbsp;calendar</label>
+              </td>
+              <td>
+                <Selectize
+                    value={this.state.existingCalendar}
+                    options={calendars}
+                    placeholder="Select a calendar..."
+                    onChange={this.handleCalendarChange}
+                />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+
       </p>;
     }
     else if (calendars.length == 1) {
@@ -196,13 +240,28 @@ var EventGenerator = React.createClass({
 
   handleCalendarChange: function (value) {
     this.setState({
-      calendar: value
+      existingCalendar: value,
+      createCalendar: false
+    });
+  },
+
+  handleNewCalendarChange: function (event) {
+    this.setState({
+      newCalendar: event.target.value,
+      createCalendar: true
     });
   },
 
   create: function () {
     var calendars = this.props.calendars || [];
-    var calendar = calendars.length == 1 ? calendars[0].value : this.state.calendar;
+    var calendar;
+
+    if (this.state.createCalendar) {
+      calendar = this.state.newCalendar;
+    }
+    else {
+      calendar = (calendars.length == 1) ? calendars[0].value : this.state.existingCalendar;
+    }
 
     if (!calendar) {
       return alert('Error: No calendar selected');
@@ -221,11 +280,16 @@ var EventGenerator = React.createClass({
 
     var body = {
       "tag": this.state.tag,           // for example '#availability'
-      "calendar": calendar,
-      //"createCalendar": NEW_CALENDAR_NAME,
       "zone": moment().zone(),       // for example -60 or '-01:00' or '+08:00'
       "days": days
     };
+
+    if (this.state.createCalendar) {
+      body.createCalendar = calendar;
+    }
+    else {
+      body.calendar = calendar;
+    }
 
     // send request to the server
     this.setState({creating: true});

@@ -185,6 +185,14 @@ table.role {
   width: 100%;
 }
 
+table.calendar-selection {
+  width: 100%;
+}
+
+table.calendar-selection td {
+  padding: 5px;
+}
+
 .panel-body {
   background-color: #f5f5f5;
 }
