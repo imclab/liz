@@ -9,9 +9,9 @@ To start the server locally:
 
     node server.js --GOOGLE_CLIENT_ID id --GOOGLE_CLIENT_SECRET secret --NOREPLY_EMAIL email --NOREPLY_PASSWORD password
 
-Here NOREPLY_EMAIL and NOREPLY_PASSWORD must be the credentials of a gmail account.
+The arguments NOREPLY_EMAIL and NOREPLY_PASSWORD are optional, and are the credentials of a gmail account. If provided, this account is used to send confirmation emails on behalv of Liz.
 
-Note that CLIENT_ID and CLIENT_SECRET must be retrieved from the 
+The arguments CLIENT_ID and CLIENT_SECRET are required. They have to be retrieved from the 
 [Google Developers Console](https://console.developers.google.com/). You will have to:
 
 - Create a project there.
