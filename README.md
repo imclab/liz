@@ -248,7 +248,7 @@ To the the code, run:
 
     If `raw == false` (default), returns:
 
-    ```json
+    ```js
     [
       {
         "name": "User Name",
@@ -268,7 +268,7 @@ To the the code, run:
     Get a list with all groups (aggregated result from all profiles).
     Returns an Array structured like:
 
-    ```json
+    ```js
     [
       {
         "id": "group:Developer",
@@ -290,7 +290,7 @@ To the the code, run:
 
     Get all profiles of the current users. Returns an Array with profiles like:
 
-    ```json
+    ```js
     [
       {
         "_id": "6a409334-72a5-4304-98ac-26318348cb18",
@@ -309,7 +309,7 @@ To the the code, run:
     Create or update the profile of current user. Request body must contain a
     profile like:
 
-    ```json
+    ```js
     {
       "_id": "6a409334-72a5-4304-98ac-26318348cb18",
       "user": "jos@almende.org",
@@ -333,7 +333,7 @@ To the the code, run:
 
     Returns an Array like:
 
-    ```json
+    ```js
     [
       {
         "_id": "6a409334-72a5-4304-98ac-26318348cb18",
@@ -352,7 +352,7 @@ To the the code, run:
     Grant access for a new user to an existing group. Request body must contain
     a JSON object like:
 
-    ```json
+    ```js
     {
       "user": "jos@almende.org",
       "group": "Consultant",
@@ -367,7 +367,7 @@ To the the code, run:
 
     Generate availability events. Expects a request body with a JSON object like:
 
-    ```json
+    ```js
     {
       "tag": STRING           // for example '#availability'
       "calendar": CALENDAR_ID,
