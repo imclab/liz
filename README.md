@@ -7,20 +7,24 @@ Dynamic planning application
 
 To start the server locally:
 
-    node server.js --GOOGLE_CLIENT_ID id --GOOGLE_CLIENT_SECRET secret --NOREPLY_EMAIL email --NOREPLY_PASSWORD password
+    node server.js [options]
 
-The arguments NOREPLY_EMAIL and NOREPLY_PASSWORD are optional, and are the credentials of a gmail account. If provided, this account is used to send confirmation emails on behalv of Liz.
+The following options are available:
 
-The arguments CLIENT_ID and CLIENT_SECRET are required. They have to be retrieved from the 
-[Google Developers Console](https://console.developers.google.com/). You will have to:
+Name                   | Required | Description
+---------------------- | -------- | -------------------------------------------------------
+GOOGLE_CLIENT_ID<br>GOOGLE_CLIENT_SECRET | Yes | The google cliend id and secret for the application, required for oauth2. See section "Google client id and secret".
+NOREPLY_EMAIL<br>NOREPLY_PASSWORD | No | The credentials of a gmail account. If provided, this account is used to send confirmation emails on behalv of Liz.
+NODE_ENV             | No | Can be "production" (default) or "development".
+PORT                 | No | Port number for the server, 8082 by default.
+SERVER_URL           | No | Public url of the server, by default https://smartplanner.herokuapp.com when in production and http://localhost:PORT when in development environment.
+MONGO_URL            | No | Url of the mongo database. Defaults to mongodb://127.0.0.1:27017
+MONGOHQ_URL          | No | Alias of `--MONGO_URL`
+MONGO_DB             | No | Name of the Mongo collection to be used by Liz, "smartplanner" by default.
 
-- Create a project there.
-- Enable the *Calendar API* and *Contacts API* on the page "APIs".
-- Create a CLIENT ID for web application on the page "Credentials".
-  Click button "Create new Client ID", select "Web application", 
-  leave authorized JavaScript origins empty, Fill out an Authorized Redirect URI,
-  for example "http://localhost:8082/auth/callback" when running the app locally.
-- Optionally, fill in a product name, url, and logo on the page "Consent screen".
+Example: 
+
+    node server.js --GOOGLE_CLIENT_ID <your client id> --GOOGLE_CLIENT_SECRET <your client secret>
 
 Then open the development web interface in your browser:
  
@@ -32,6 +36,20 @@ To load the production web interface:
 
 The production interface uses bundled javascript and css file, generated when
 running `gulp`.
+
+
+# Google client id and secret
+
+Configuration of GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET is required, this is needed for authorization using oauth2. 
+They have to be retrieved from the[Google Developers Console](https://console.developers.google.com/). You will have to:
+
+- Create a project there.
+- Enable the *Calendar API* and *Contacts API* on the page "APIs".
+- Create a CLIENT ID for web application on the page "Credentials".
+  Click button "Create new Client ID", select "Web application", 
+  leave authorized JavaScript origins empty, Fill out an Authorized Redirect URI,
+  for example "http://localhost:8082/auth/callback" when running the app locally.
+- Optionally, fill in a product name, url, and logo on the page "Consent screen".
 
 
 # Deploy

@@ -18,6 +18,8 @@ var intervals = require('./shared/intervals');
 var authorization = require('./lib/authorization');
 var mail = require('./lib/mail');
 
+console.log('Configuration:', config);
+
 // create a connection to mongodb
 var db = require('./lib/db')(config.MONGO_URL + '/' + config.MONGO_DB);
 
@@ -44,7 +46,6 @@ app.use('/', express.static(__dirname + '/client'));
 app.use('/node_modules/', express.static(__dirname + '/node_modules'));
 app.use('/shared/', express.static(__dirname + '/shared'));
 app.use('/fonts/', express.static(__dirname + '/node_modules/bootflat/fonts'));
-
 app.listen(config.PORT);
 console.log('Server listening at http://localhost:' + config.PORT);
 
@@ -102,7 +103,7 @@ app.get('/auth/callback',
           expires: new Date(Date.now() + expires_in).toISOString()
         }
       }, function (err, user) {
-        if (err) sendError(res, err);
+        if (err) return sendError(res, err);
 
         function done() {
           var redirectTo = req.session.redirectTo || '/';
@@ -127,7 +128,7 @@ app.get('/auth/callback',
             db.users.update(userData, function (err, user) {
               if(err) return sendError(res, err);
               done();
-            })
+            });
           });
         }
         else {
@@ -144,7 +145,7 @@ app.get('/auth/signin', function(req, res, next) {
 app.get('/auth/signout', function(req, res, next) {
   req.session.destroy(function(err) {
     res.redirect(req.query.redirectTo || '/');
-  })
+  });
 });
 
 function auth(req, res, next) {

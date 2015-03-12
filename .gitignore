@@ -29,3 +29,6 @@ node_modules
 
 # WebStorm config
 .idea
+
+# Cloud9 config
+.c9
