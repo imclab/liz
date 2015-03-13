@@ -30,6 +30,48 @@ var SettingsPage = React.createClass({
   },
 
   render: function () {
+
+    // TODO: replace loading all groups with smart auto completion, loading groups matching current search
+    return <div>
+      <h1>Settings</h1>
+
+      {this.props.user.advancedSettings ? this.renderAdvandedSettings() : this.renderSimpleSettings()}
+
+      <h2>Sharing</h2>
+      <p>Who is allowed to view your free/busy profile and plan events in your calendar via Liz&#63;</p>
+      <Selectize
+          value={this.state.user.share}
+          options={this.SHARE}
+          onChange={this.handleShareSelection}
+      />
+
+      <h2>Account</h2>
+      <p>Remove your account at Liz.</p>
+      <p><button onClick={this.deleteAccount} className="btn btn-danger">Delete account</button></p>
+      
+      <h2>Advanced</h2>
+      <p>
+        <label for="advanced">
+          <input 
+              type="checkbox" 
+              id="advanced" 
+              ref="advanced" 
+              onChange={this.toggleAdvanced} 
+              checked={this.props.user.advancedSettings} 
+          /> Show advanced settings
+        </label>
+      </p>
+      
+    </div>;
+  },
+
+  renderSimpleSettings: function () {
+    return <div>
+        <h2>Availability</h2>
+      </div>;
+  },
+
+  renderAdvandedSettings: function () {
     var profilesSelf;
     var profilesTeam;
 
@@ -45,8 +87,8 @@ var SettingsPage = React.createClass({
       </div>;
     }
     else if (this.state.profilesError) {
-      profilesSelf = <p className="error">{this.state.profilesError.toString()}</p>
-      profilesTeam = <p className="error">{this.state.profilesError.toString()}</p>
+      profilesSelf = <p className="error">{this.state.profilesError.toString()}</p>;
+      profilesTeam = <p className="error">{this.state.profilesError.toString()}</p>;
     }
     else {
       profilesSelf = this.state.profiles.filter(function (profile) {
@@ -57,10 +99,7 @@ var SettingsPage = React.createClass({
       }).map(this.renderProfile);
     }
 
-    // TODO: replace loading all groups with smart auto completion, loading groups matching current search
     return <div>
-      <h1>Settings</h1>
-
       <Profile
           ref="profile"
           groups={this.getGroupOptions()}
@@ -117,19 +156,7 @@ var SettingsPage = React.createClass({
       <h2>Teams</h2>
       <p>Manage your teams.</p>
       {this.renderTeams()}
-
-      <h2>Sharing</h2>
-      <p>Who is allowed to view your free/busy profile and plan events in your calendar via Liz&#63;</p>
-      <Selectize
-          value={this.state.user.share}
-          options={this.SHARE}
-          onChange={this.handleShareSelection}
-      />
-
-      <h2>Account</h2>
-      <p>Remove your account at Liz.</p>
-      <p><button onClick={this.deleteAccount} className="btn btn-danger">Delete account</button></p>
-    </div>;
+    </div>
   },
 
   renderProfile: function (profile) {
@@ -620,6 +647,13 @@ var SettingsPage = React.createClass({
             displayError(err);
           })
     }
+  },
+
+  toggleAdvanced: function () {
+    var user = this.state.user;
+    user.advancedSettings = this.refs.advanced.getDOMNode().checked;
+    
+    this.updateUser(user);
   },
 
   showHelpBusy: function (event) {
