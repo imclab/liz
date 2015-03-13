@@ -37,19 +37,6 @@ var SettingsPage = React.createClass({
 
       {this.props.user.advancedSettings ? this.renderAdvandedSettings() : this.renderSimpleSettings()}
 
-      <h2>Sharing</h2>
-      <p>Who is allowed to view your free/busy profile and plan events in your calendar via Liz&#63;</p>
-      <Selectize
-          value={this.state.user.share}
-          options={this.SHARE}
-          onChange={this.handleShareSelection}
-      />
-
-      <h2>Account</h2>
-      <p>Remove your account at Liz.</p>
-      <p><button onClick={this.deleteAccount} className="btn btn-danger">Delete account</button></p>
-      
-      <h2>Advanced</h2>
       <p>
         <label for="advanced">
           <input 
@@ -61,7 +48,19 @@ var SettingsPage = React.createClass({
           /> Show advanced settings
         </label>
       </p>
-      
+
+      <h2>Sharing</h2>
+      <p>Who is allowed to view your free/busy profile and plan events in your calendar via Liz&#63;</p>
+      <Selectize
+          value={this.state.user.share}
+          options={this.SHARE}
+          onChange={this.handleShareSelection}
+      />
+
+      <h2>Account</h2>
+      <p>Remove your account at Liz.</p>
+      <p><button onClick={this.deleteAccount} className="btn btn-danger">Delete account</button></p>
+
     </div>;
   },
 
