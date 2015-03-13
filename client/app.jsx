@@ -3,8 +3,8 @@ function init() {
   window.onresize = function () {
     var width = document.body.clientWidth;
 
-    var page = document.getElementById('page');
-    page.className = (width < 700) ? 'small-screen' : 'normal';
+    var body = document.getElementsByTagName("body")[0];
+    body.className = (width < 700) ? 'small-screen' : 'normal';
   };
   window.onresize();
 
