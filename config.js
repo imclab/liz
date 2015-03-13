@@ -2,14 +2,13 @@ var argv = require('yargs').argv;
 
 // environment
 exports.NODE_ENV = (argv.NODE_ENV || process.env.NODE_ENV || 'production');
-exports.PRODUCTION = (exports.NODE_ENV == 'production');
 
 // express
 exports.PORT = argv.PORT || process.env.PORT || 8082;
 
 // server url (used for creating links in calendar items to update or cancel an event)
 exports.SERVER_URL = argv.SERVER_URL || process.env.SERVER_URL || 
-  (exports.PRODUCTION ? 'https://smartplanner.herokuapp.com' : ('http://localhost:' + exports.PORT));
+  (exports.NODE_ENV === 'production' ? 'https://smartplanner.herokuapp.com' : ('http://localhost:' + exports.PORT));
 
 // email and password for sending confirmation emails
 exports.NOREPLY_EMAIL    = argv.NOREPLY_EMAIL    || process.env.NOREPLY_EMAIL;
@@ -32,11 +31,10 @@ exports.MONGO_DB = argv.MONGO_DB || process.env.MONGO_DB || 'smartplanner';
 // google authentication
 exports.GOOGLE_CLIENT_ID = argv.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
 exports.GOOGLE_CLIENT_SECRET = argv.GOOGLE_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET;
-exports.CALLBACK_URL = exports.SERVER_URL + '/auth/callback';
 
 if (!exports.GOOGLE_CLIENT_ID) {
-  throw new Error('No GOOGLE_CLIENT_ID configured. Provide a GOOGLE_CLIENT_ID via command line arguments or an environment variable');
+  throw new Error('No GOOGLE_CLIENT_ID configured. If email notifications are required, provide a GOOGLE_CLIENT_ID via command line arguments or an environment variable');
 }
 if (!exports.GOOGLE_CLIENT_SECRET) {
-  throw new Error('No GOOGLE_CLIENT_SECRET configured. Provide a GOOGLE_CLIENT_SECRET via command line arguments or an environment variable');
+  throw new Error('No GOOGLE_CLIENT_SECRET configured. If email notifications are required, provide a GOOGLE_CLIENT_SECRET via command line arguments or an environment variable');
 }

@@ -53,7 +53,7 @@ console.log('Server listening at http://localhost:' + config.PORT);
 passport.use(new GoogleStrategy({
       clientID: config.GOOGLE_CLIENT_ID,
       clientSecret: config.GOOGLE_CLIENT_SECRET,
-      callbackURL: config.CALLBACK_URL,
+      callbackURL: config.SERVER_URL + '/auth/callback',
       scope: [
         'profile',
         'email',
@@ -169,12 +169,7 @@ app.get('/user', function(req, res, next) {
 
       if (user) {
         // sanitize the user object before sending it to the client
-        user.loggedIn = true;
-        delete user.auth; // remove authentication data
-        delete user.seq;
-        delete user.updated;
-        delete user._id;
-        return res.json(user);
+        return res.json(sanitizeUser(user));
       }
       else {
         // logged in but no user profile
@@ -199,7 +194,9 @@ app.put('/user', function(req, res, next) {
 
     db.users.update(user, function (err, user) {
       if(err) return sendError(res, err);
-      return res.json(user);
+
+      // sanitize the user object before sending it to the client
+      return res.json(sanitizeUser(user));
     });
   }
   else {
@@ -1011,6 +1008,21 @@ function createProfileError(err) {
     busy: [],
     errors: [stringifyError(err)]
   };
+}
+
+/**
+ * Sanitize a user object, remove sensitive data like authorization tokens
+ * @param {Object} user
+ * @return {Object} Retuns the original object
+ */
+function sanitizeUser (user) {
+  user.loggedIn = true;
+  delete user.auth; // remove authentication data
+  delete user.seq;
+  delete user.updated;
+  delete user._id;
+  
+  return user;
 }
 
 /**
