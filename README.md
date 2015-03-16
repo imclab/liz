@@ -306,7 +306,14 @@ To the the code, run:
 
 -   `GET /profiles`
 
-    Get all profiles of the current users. Returns an Array with profiles like:
+    Get all profiles of the current users.
+
+    Query parameters:
+    - `validate: boolean` If true, the profiles will be validated. The validator
+      will check whether the configured calendars contain availability events.
+      Default value is false.
+
+    Returns an Array with profiles like:
 
     ```js
     [
@@ -318,6 +325,29 @@ To the the code, run:
         "role": "group" | "individual",
         "group": "Consultant" | null,
         "access": "pending" | "granted" | "denied"
+      }
+    ]
+    ```
+
+    When `validate=true`, the returned profiles contain an extra property
+    `issues`, like:
+
+    ```js
+    [
+      {
+        "_id": "6a409334-72a5-4304-98ac-26318348cb18",
+        "user": "jos@almende.org",
+        "calendars": "calendarIdA, calendarIdB",
+        "tag": "#consultancy",
+        "role": "group" | "individual",
+        "group": "Consultant" | null,
+        "access": "pending" | "granted" | "denied",
+        "issues": [
+          {
+            "type": "availability"
+            "message": "The configured calendars do not contain availability events."
+          }
+        ]
       }
     ]
     ```

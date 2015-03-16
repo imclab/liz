@@ -397,7 +397,8 @@ app.delete('/calendar/:calendarId/:eventId', function(req, res){
 app.get('/freeBusy*', auth);
 app.get('/freeBusy/:calendarId?', function(req, res) {
   var email = req.session.email;
-  var calendarIds = req.params.calendarId ? [req.params.calendarId] :
+  var calendarIds = req.params.calendarId ?
+      [req.params.calendarId] :
       req.query.calendars ? splitIt(req.query.calendars) : [email];
 
   var now = new Date();
@@ -498,11 +499,42 @@ app.get('/profiles*', auth);
 // get all profiles of current user
 app.get('/profiles', function(req, res){
   var userId = req.session.email;
+  var validate = !!req.query.validate; // parse string into boolean
 
-  db.profiles.list(userId, function (err, profiles) {
-    if (err) return sendError(res, err);
-    return res.json(profiles);
-  });
+  if (validate) {
+    authorize(userId, userId, function (err, accessToken, user) {
+      if(err) return sendError(res, err);
+
+      db.profiles.list(userId, function (err, profiles) {
+        if (err) return sendError(res, err);
+
+        if (validate) {
+          function validateProfile (profile, callback) {
+            gutils.validateProfile(profile, accessToken, function (err, issues) {
+              if (issues) {
+                profile.issues = issues;
+              }
+              callback(err, profile);
+            });
+          }
+
+          async.map(profiles, validateProfile, function (err, profiles) {
+            if (err) return sendError(res, err);
+            return res.json(profiles);
+          });
+        }
+        else {
+          return res.json(profiles);
+        }
+      });
+    });
+  }
+  else {
+    db.profiles.list(userId, function (err, profiles) {
+      if (err) return sendError(res, err);
+      return res.json(profiles);
+    });
+  }
 });
 
 // create or update a profile of a user
@@ -855,7 +887,7 @@ function getFreeBusyVia(user, calendarId, query, callback) {
  * @param {{timeMin: string, timeMax: string}} query
  * @param {string[]} allTags
  * @param {string[]} filteredTags
- * @returns {{free: *, busy: Array.<Object>, errors: Array}}
+ * @returns {{free: Array.<Object>, busy: Array.<Object>, errors: Array}}
  */
 function mergeEvents(events, query, allTags, filteredTags) {
   var notAvailable = []; // intervals from events of the user (busy)

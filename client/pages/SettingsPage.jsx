@@ -38,7 +38,7 @@ var SettingsPage = React.createClass({
       {this.props.user.advancedSettings ? this.renderAdvandedSettings() : this.renderSimpleSettings()}
 
       <p>
-        <label for="advanced">
+        <label forHtml="advanced">
           <input 
               type="checkbox" 
               id="advanced" 
@@ -174,7 +174,7 @@ var SettingsPage = React.createClass({
         text += ', ';
       }
 
-      return <span title={calendarId}>{text}</span>;
+      return <span title={calendarId} key={calendarId}>{text}</span>;
     }.bind(this));
 
     // add extra fields in case of team
@@ -200,21 +200,43 @@ var SettingsPage = React.createClass({
           </tr>
                 {
                     (profile.access == 'pending') ?
-                        <tr>
+                        <tr key={profile._id}>
                           <th>Access</th>
                           <td><b style={{color: 'orange'}}>pending</b> {
                               this.renderPopover('Access', 'Your request to join the team "' + profile.group + '" awaits approval of one of the team members.')
                               }</td>
                         </tr> :
                         (profile.access == 'denied') ?
-                            <tr>
+                            <tr key={profile._id}>
                               <th>Access</th>
                               <td><b style={{color: 'red'}}>denied</b> {
                                   this.renderPopover('Access', 'Your request to join the team "' + profile.group + '" is denied by one of the team members.')
                                   }</td>
                             </tr> :
                             ''
+                }
+                <tr key={'issues'}>
+                    <th></th>
+                    <td>
+                    {
+                      profile.issues && profile.issues.map(function (issue, index) {
+                        return <p key={'issue' + index} className="error">
+                          <span className="glyphicon glyphicon-warning-sign"></span> {issue.message} {
+                            issue.type === 'availability' ?
+                                <div style={{color: 'red'}}>Possible causes:
+                                  <ul>
+                                    <li>There are no availability events created yet.</li>
+                                    <li>The calendar containing availability events is not selected.</li>
+                                    <li>The entered tag does not match that of the availability events.</li>
+                                  </ul>
+                                </div>
+                                : null
+                          }
+                        </p>
+                      }.bind(this))
                     }
+                    </td>
+                </tr>
         </tbody>
       </table>
       <div className="menu">
@@ -493,7 +515,7 @@ var SettingsPage = React.createClass({
 
   // load the profiles of the user
   loadProfiles: function () {
-    ajax.get('/profiles')
+    ajax.get('/profiles?validate=true')
         .then(function (profiles) {
           console.log('profiles', profiles);
           this.setState({
