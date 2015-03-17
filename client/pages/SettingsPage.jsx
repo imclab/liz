@@ -99,12 +99,7 @@ var SettingsPage = React.createClass({
     }
 
     return <div>
-      <Profile
-          ref="profile"
-          groups={this.getGroupOptions()}
-          calendars={this.getCalendarOptions()}
-          onChange={this.handleProfileChange}
-      />
+      <Profile ref="profile" />
 
       <h2>Availability</h2>
       <h3>Individual</h3>
@@ -115,7 +110,7 @@ var SettingsPage = React.createClass({
           (profilesSelf.length === 0) ?
               <div>
                 <button
-                    onClick={this.addProfile}
+                    onClick={this.addIndividualProfile}
                     className="btn btn-normal"
                     title="Add a new profile"
                 >
@@ -220,10 +215,10 @@ var SettingsPage = React.createClass({
                     <td>
                     {
                       profile.issues && profile.issues.map(function (issue, index) {
-                        return <p key={'issue' + index} className="error">
+                        return <div key={'issue' + index} className="error">
                           <span className="glyphicon glyphicon-warning-sign"></span> {issue.message} {
                             issue.type === 'availability' ?
-                                <div style={{color: 'red'}}>Possible causes:
+                                <div>Possible causes:
                                   <ul>
                                     <li>There are no availability events created yet.</li>
                                     <li>The calendar containing availability events is not selected.</li>
@@ -232,7 +227,7 @@ var SettingsPage = React.createClass({
                                 </div>
                                 : null
                           }
-                        </p>
+                        </div>
                       }.bind(this))
                     }
                     </td>
@@ -385,7 +380,7 @@ var SettingsPage = React.createClass({
     this.refs.generator.hide();
   },
 
-  addProfile: function () {
+  addIndividualProfile: function () {
     var profile = {
       user: this.props.user.email,
       calendars: this.props.user.email || '',
@@ -394,7 +389,7 @@ var SettingsPage = React.createClass({
       access: null
     };
 
-    this.refs.profile.show(profile);
+    this.showProfile(profile);
   },
 
   addTeamProfile: function () {
@@ -406,14 +401,58 @@ var SettingsPage = React.createClass({
       access: null
     };
 
-    this.refs.profile.show(profile);
+    this.showProfile(profile);
   },
 
   editProfile: function (id) {
     var profile = this.findProfile(id);
     if (profile) {
-      this.refs.profile.show(profile);
+      this.showProfile(profile);
     }
+  },
+
+  showProfile: function (profile) {
+    this.refs.profile.show({
+      profile: profile,
+      groups: this.getGroupOptions(),
+      calendars: this.getCalendarOptions(),
+
+      save: function (profile) {
+        var found = false;
+        var profiles = this.state.profiles.map(function (p) {
+          if (p._id == profile._id) {
+            found = true;
+            return profile;
+          }
+          else {
+            return p;
+          }
+        });
+
+        if (!found) {
+          // a new profile
+          // push a clone, else we get issues with the new item not being updated
+          // when retrieved again from the server (with new access status).
+          profiles.push(_.extend({}, profile));
+        }
+
+        this.setState({profiles: profiles});
+
+        this.refs.profile.saving(true);
+        this.saveProfile(profile, function (err, savedProfile) {
+          this.refs.profile.hide();
+
+          if (savedProfile && savedProfile.issues.length > 0) {
+            if (confirm('The configured calendars do not contain availability events. ' +
+            'Do you want to open a wizard to generate availability events?')) {
+              alert('wizard...')
+              // TODO: open wizard
+            }
+          }
+
+        }.bind(this));
+      }.bind(this)
+    });
   },
 
   removeProfile: function (id) {
@@ -452,58 +491,31 @@ var SettingsPage = React.createClass({
   },
 
   // save a changed profile after a delay
-  saveProfile: function (profile) {
-    var id = profile._id;
-    if (id === undefined) {
-      id = UUID();
-      profile._id = id;
-    }
-    if (this.timers[id]) {
-      clearTimeout(this.timers[id]);
-    }
+  saveProfile: function (profile, callback) {
+    console.log('saving profile...', profile);
 
-    var delay = 300; // ms
-    this.timers[id] = setTimeout(function () {
-      delete this.timers[id];
-      console.log('saving profile...', profile);
+    ajax.put('/profiles', profile)
+        .then(function (result) {
+          // refresh the teams list
+          this.loadUserGroupsList();
 
-      ajax.put('/profiles', profile)
-          .then(function (result) {
-            // TODO: do something with the returned result?
-            // FIXME: new profile is not updated
-            this.loadProfiles();        // reload the list with profiles
-            this.loadUserGroupsList();  // refresh the teams list
-          }.bind(this))
-          .catch(function (err) {
-            console.log(err);
-            displayError(err);
-          }.bind(this));
-    }.bind(this), delay);
-  },
-  timers: {},
+          // reload the list with profiles
+          this.loadProfiles(function (err, profiles) {
+            var savedProfile = profiles.filter(function (p){
+              return p._id === profile._id;
+            })[0];
 
-  handleProfileChange: function (profile) {
-    console.log('profile changed', profile);
-    var found = false;
-    var profiles = this.state.profiles.map(function (p) {
-      if (p._id == profile._id) {
-        found = true;
-        return profile;
-      }
-      else {
-        return p;
-      }
-    });
+            console.log('savedProfile', savedProfile, profiles)
 
-    if (!found) {
-      // a new profile
-      // push a clone, else we get issues with the new item not being updated
-      // when retrieved again from the server (with new access status).
-      profiles.push(_.extend({}, profile));
-    }
+            callback(null, savedProfile);
+          });
+        }.bind(this))
+        .catch(function (err) {
+          console.log(err);
+          displayError(err);
 
-    this.setState({profiles: profiles});
-    this.saveProfile(profile);
+          callback(err);
+        }.bind(this));
   },
 
   handleShareSelection: function (value) {
@@ -514,7 +526,7 @@ var SettingsPage = React.createClass({
   },
 
   // load the profiles of the user
-  loadProfiles: function () {
+  loadProfiles: function (callback) {
     ajax.get('/profiles?validate=true')
         .then(function (profiles) {
           console.log('profiles', profiles);
@@ -522,6 +534,8 @@ var SettingsPage = React.createClass({
             loading: false,
             profiles: profiles
           });
+
+          callback && callback(null, profiles);
         }.bind(this))
         .catch(function (err) {
           this.setState({
@@ -530,6 +544,8 @@ var SettingsPage = React.createClass({
           });
           console.log(err);
           displayError(err);
+
+          callback && callback(err);
         }.bind(this));
   },
 

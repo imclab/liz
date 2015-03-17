@@ -3,12 +3,7 @@
  *
  * Create:
  *
- *   <Profile
- *      ref="profile"
- *      groups={Array}
- *      calendars={Array}
- *      onChange={function}
- *   />
+ *   <Profile ref="profile" />
  *
  * Where:
  *
@@ -20,11 +15,17 @@
  * Use:
  *
  *   profile.show({
- *     user: ...,
- *     calendars: ...,
- *     tag: ...,
- *     role: 'group' | 'individual',
- *     group: ...
+ *     profile: {
+ *       user: ...,
+ *       calendars: ...,
+ *       tag: ...,
+ *       role: 'group' | 'individual',
+ *       group: ...
+ *     },
+ *     groups=[...],
+ *     calendars=[...]
+ *     save: function
+ *     cancel: function (optional)
  *   });
  *
  */
@@ -32,13 +33,22 @@ var Profile = React.createClass({
   getInitialState: function () {
     // TODO: replace loading all groups with smart auto completion, loading groups matching current search
     return {
-      profile: this.props.profile || {
+      visible: false,
+      saving: false,
+
+      save: null,   // callback function
+      cancel: null, // callback function
+
+      profile: {
         user: '',
         calendars: '',
         tag: '',
         role: '',
         group: ''
-      }
+      },
+
+      groups: [],
+      calendars: []
     };
   },
 
@@ -64,10 +74,11 @@ var Profile = React.createClass({
             </p>
             <Selectize
                 value={this.state.profile.calendars || ''}
-                options={this.props.calendars}
+                options={this.state.calendars}
                 multiple="true"
                 placeholder="Select a calendar..."
                 onChange={this.handleCalendarsChange}
+                disabled={this.state.saving}
             />
 
             <h5>Tag</h5>
@@ -84,12 +95,15 @@ var Profile = React.createClass({
                 value={this.state.profile.tag || ''}
                 placeholder="Enter a tag like '#available'"
                 onChange={this.handleTagChange}
+                disabled={this.state.saving}
             />
 
           </div>
           <div className="modal-footer">
-            <button type="button" className="btn btn-default" onClick={this.hide}>Cancel</button>
-            <button type="button" className="btn btn-success" onClick={this.save}>Save</button>
+            <button type="button" className="btn btn-default" onClick={this.cancel}>Cancel</button>
+            <button type="button" className="btn btn-success" onClick={this.save} disabled={this.state.saving}>
+              {this.state.saving ? 'Saving...' : 'Save'}
+            </button>
           </div>
         </div>
       </div>
@@ -104,11 +118,12 @@ var Profile = React.createClass({
       </p>
       <Selectize
           value={this.state.profile.group || ''}
-          options={this.props.groups}
+          options={this.state.groups}
           create={true}
           createOnBlur={true}
           placeholder="Select or create a team..."
           onChange={this.handleGroupChange}
+          disabled={this.state.saving}
       />
     </div>;
   },
@@ -147,13 +162,7 @@ var Profile = React.createClass({
     $(elem).modal({keyboard: false});
 
     // show/hide the modal
-    $(elem).modal(this.state.show ? 'show' : 'hide');
-  },
-
-  handleRoleChange: function (value) {
-    var profile = _.extend({}, this.state.profile);
-    profile.role = value;
-    this.setState({profile: profile});
+    $(elem).modal(this.state.visible ? 'show' : 'hide');
   },
 
   handleGroupChange: function (value) {
@@ -175,21 +184,33 @@ var Profile = React.createClass({
     this.setState({profile: profile});
   },
 
-  show: function (profile) {
+  show: function (options) {
     this.setState({
-      profile: profile,
-      show: true
+      // data
+      profile:    options.profile,
+      groups:     options.groups || [],
+      calendars:  options.calendars || [],
+
+      // callbacks
+      save:   options.save,
+      cancel: options.cancel,
+
+      // state
+      saving: false,
+      visible: true
     });
   },
 
   hide: function () {
     this.setState({
-      show: false
+      visible: false
     });
   },
 
-  setProfile: function (profile) {
-    this.setState({profile: profile});
+  saving: function (saving) {
+    this.setState({
+      saving: saving
+    });
   },
 
   getProfile: function () {
@@ -209,13 +230,20 @@ var Profile = React.createClass({
       return;
     }
 
-    if (typeof this.props.onChange === 'function') {
-      this.props.onChange(this.getProfile());
+    if (typeof this.state.save === 'function') {
+      this.state.save(this.getProfile());
     }
     else {
-      throw new Error('onChange handler missing');
+      throw new Error('save callback missing');
     }
+  },
 
+  // FIXME: cancel is not fired when clicking outside of the modal
+  cancel: function () {
     this.hide();
+
+    if (typeof this.state.cancel === 'function') {
+      this.state.cancel();
+    }
   }
 });

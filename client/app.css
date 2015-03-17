@@ -230,6 +230,7 @@ div.scheduler ul {
   list-style-type: none;
 }
 
+div.error,
 p.error {
   color: red;
 }

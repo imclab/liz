@@ -8,6 +8,7 @@
  *
  *   <Selectize value={this.state.value} options={this.state.options} onChange={this.handleChange} />
  *   <Selectize value={this.state.value} options={this.state.options} onChange={this.handleChange} multiple="true" />
+ *   <Selectize value={this.state.value} options={this.state.options} onChange={this.handleChange} disabled="true" />
  *
  * Where:
  *
@@ -77,6 +78,8 @@ var Selectize = React.createClass({
     }
     this.selectize.refreshItems();
     this.selectize.refreshOptions(false);
+
+    this.props.disabled ? this.selectize.disable() : this.selectize.enable();
   },
 
   destroy: function () {
