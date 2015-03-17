@@ -44,7 +44,7 @@
     "passport": "^0.2.1",
     "passport-google-oauth": "^0.1.5",
     "promise-js": "0.0.4",
-    "react": "^0.12.0",
+    "react": "^0.13.0",
     "react-checkbox-group": "^0.1.5",
     "request": "^2.44.0",
     "selectize": "brianreavis/selectize.js",
@@ -60,7 +60,7 @@
     "gulp-replace": "^0.4.0",
     "gulp-uglify": "^1.0.1",
     "mocha": "^1.21.4",
-    "react-tools": "^0.11.2"
+    "react-tools": "^0.13.0"
   },
   "engines": {
     "node": "0.10.x"
