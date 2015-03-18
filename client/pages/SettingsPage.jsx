@@ -35,19 +35,7 @@ var SettingsPage = React.createClass({
     return <div>
       <h1>Settings</h1>
 
-      {this.props.user.advancedSettings ? this.renderAdvandedSettings() : this.renderSimpleSettings()}
-
-      <p>
-        <label forHtml="advanced">
-          <input 
-              type="checkbox" 
-              id="advanced" 
-              ref="advanced" 
-              onChange={this.toggleAdvanced} 
-              checked={this.props.user.advancedSettings} 
-          /> Show advanced settings
-        </label>
-      </p>
+      {this.renderAvailability()}
 
       <h2>Sharing</h2>
       <p>Who is allowed to view your free/busy profile and plan events in your calendar via Liz&#63;</p>
@@ -64,13 +52,7 @@ var SettingsPage = React.createClass({
     </div>;
   },
 
-  renderSimpleSettings: function () {
-    return <div>
-        <h2>Availability</h2>
-      </div>;
-  },
-
-  renderAdvandedSettings: function () {
+  renderAvailability: function () {
     var profilesSelf;
     var profilesTeam;
 
@@ -100,6 +82,7 @@ var SettingsPage = React.createClass({
 
     return <div>
       <Profile ref="profile" />
+      <EventGenerator ref="generator" />
 
       <h2>Availability</h2>
       <h3>Individual</h3>
@@ -132,23 +115,6 @@ var SettingsPage = React.createClass({
         ><span className="glyphicon glyphicon-plus"></span> Add</button>
       </div>
 
-      <h3>Availability events</h3>
-      <p>Use the following wizard to automatically generate availability events in your calendar:</p>
-      <p>
-        <button
-            className="btn btn-normal"
-            onClick={this.showEventGenerator}
-        >Show wizard</button>
-      </p>
-      <EventGenerator
-          ref="generator"
-          calendar={this.props.user.email}
-          calendars={this.getCalendarOptions()}
-          onCreate={this.handleEventsGenerated}
-      />
-
-      <h2>Teams</h2>
-      <p>Manage your teams.</p>
       {this.renderTeams()}
     </div>
   },
@@ -291,10 +257,11 @@ var SettingsPage = React.createClass({
   // TODO: cleanup renderTeams
   renderTeams: function () {
     var content;
-    if (this.state.userGroupsList == null) {
-      content = <div>loading <img className="loading" src="img/ajax-loader.gif" /></div>;
-    }
-    else if (this.state.userGroupsList.length > 0) {
+    var hasTeams = this.state.profiles && this.state.profiles.some(function (profile) {
+      return profile.role === 'group';
+    });
+
+    if (this.state.userGroupsList && this.state.userGroupsList.length > 0) {
       // Strategies is still mockup
       var strategies = [
         {
@@ -336,14 +303,19 @@ var SettingsPage = React.createClass({
             </div>
           }.bind(this));
     }
+    else if (!this.state.userGroupsList && hasTeams) {
+      content = <div>loading <img className="loading" src="img/ajax-loader.gif" /></div>;
+    }
     else {
-      content = <div>(no teams)</div>
+      content = null;
     }
 
-    return <div>
-      {this.renderAccessRequests()}
-      {content}
-    </div>;
+    return content ? <div>
+      <h2>Teams</h2>
+      <p>Manage your teams.</p>
+        {this.renderAccessRequests()}
+        {content}
+    </div> : null;
   },
 
   renderPopover: function (title, content, placement) {
@@ -369,15 +341,38 @@ var SettingsPage = React.createClass({
     $('[data-toggle="popover"]').popover();
   },
 
-  showEventGenerator: function () {
-    this.refs.generator.show();
-  },
+  showEventGenerator: function (profile) {
+    this.refs.generator.show({
+      calendars: this.getCalendarOptions(), // FIXME: it's possible that that calendarList isn't yet loaded...
+      calendar:  profile.calendars.split(',')[0] || this.props.user.email,
+      tag: profile.tag,
 
-  handleEventsGenerated: function (events) {
-    // TODO: nicer looking alert
-    alert('The availability events are successfully generated');
+      created:   function (params) {
+        this.refs.generator.hide();
 
-    this.refs.generator.hide();
+        alert('The availability events are successfully generated');
+
+        var changed = false;
+
+        var calendarIds = profile.calendars.split(',');
+        if (calendarIds.indexOf(params.calendar) === -1) {
+          calendarIds.push(params.calendar);
+          profile.calendars = calendarIds.join(',');
+          changed = true;
+          console.log('Added calendar ' + params.calendar + ' to the profile');
+        }
+
+        if(params.tag !== profile.tag) {
+          profile.tag = params.tag;
+          changed = true;
+          console.log('Change the tag of the profile to "' + params.tag + '"');
+        }
+
+        if (changed) {
+          this.saveProfile(profile);
+        }
+      }.bind(this)
+    });
   },
 
   addIndividualProfile: function () {
@@ -442,14 +437,13 @@ var SettingsPage = React.createClass({
         this.saveProfile(profile, function (err, savedProfile) {
           this.refs.profile.hide();
 
+          // FIXME: doesn't work in case of newly created profiles
           if (savedProfile && savedProfile.issues.length > 0) {
             if (confirm('The configured calendars do not contain availability events. ' +
             'Do you want to open a wizard to generate availability events?')) {
-              alert('wizard...')
-              // TODO: open wizard
+              this.showEventGenerator(profile);
             }
           }
-
         }.bind(this));
       }.bind(this)
     });
@@ -492,6 +486,12 @@ var SettingsPage = React.createClass({
 
   // save a changed profile after a delay
   saveProfile: function (profile, callback) {
+    var id = profile._id;
+    if (id === undefined) {
+      id = UUID();
+      profile._id = id;
+    }
+
     console.log('saving profile...', profile);
 
     ajax.put('/profiles', profile)
@@ -684,13 +684,6 @@ var SettingsPage = React.createClass({
             displayError(err);
           })
     }
-  },
-
-  toggleAdvanced: function () {
-    var user = this.state.user;
-    user.advancedSettings = this.refs.advanced.getDOMNode().checked;
-    
-    this.updateUser(user);
   },
 
   showHelpBusy: function (event) {

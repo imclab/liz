@@ -10,31 +10,47 @@
  *       onCreate={function}
  *   />
  *
+ * Usage:
+ *
+ *   generator.show({
+ *     calendars: [...],
+ *     calendar: '...',
+ *     created: function (props) {
+ *       // props contains:
+ *       //   props.calendar: string
+ *       //   props.tag: string
+ *       //   props.newCalendar: boolean
+ *
+ *       generator.hide();
+ *     },
+ *     cancel: function  (optional)
+ *   });
+ *
+ *   generator.hide();
+ *
  * Where:
  *   - `calendars` is an Array with calendar objects having id, summary, ...
  *   - `calendar` the initially selected calendar
  *   - `tag` is a string like '#available'
  *   - `onCreate` is an optional callback, called when the events have been
  *     generated.
- *
- * Methods:
- *
- * - `show()`  Show the generator
- * - `hide()`  hide the generator
- *
  */
 var EventGenerator = React.createClass({
   DAYS: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
 
   getInitialState: function () {
     var initialState = {
-      existingCalendar: this.props.calendar || null,
+      existingCalendar: '',
       newCalendar: 'Availability',
       createCalendar: false,
       tag: '#available',
       days: {},
+
       creating: false,
-      show: false
+      visible: false,
+
+      created: null, // callback function
+      cancel: null   // callback function
     };
 
     this.DAYS.forEach(function (day) {
@@ -58,49 +74,43 @@ var EventGenerator = React.createClass({
   },
 
   render: function () {
-    var days = this.DAYS.map(function (day) {
-      return <tr key={day}>
-          <td>
-            <label><input
-                type="checkbox"
-                checked={this.state.days[day].enabled}
-                onChange={function (event) {
-                  this.handleChange(day, 'enabled', event.target.checked)
-                }.bind(this)}
-            /> {day}</label>
-          </td>
-        <td>
-          <input
-              type="text"
-              className="form-control"
-              title="Start time"
-              value={this.state.days[day].start}
-              disabled={!this.state.days[day].enabled}
-              onChange={function (event) {
-                this.handleChange(day, 'start', event.target.value)
-              }.bind(this)}
-          />
-        </td>
-        <td>
-          <input
-              type="text"
-              className="form-control"
-              title="End time"
-              value={this.state.days[day].end}
-              disabled={!this.state.days[day].enabled}
-              onChange={function (event) {
-                this.handleChange(day, 'end', event.target.value)
-              }.bind(this)}
-          />
-        </td>
-      </tr>
-    }.bind(this));
+    return <div className="modal profile" ref="profile">
+      <div className="modal-dialog">
+        <div className="modal-content">
+          <div className="modal-header">
+            <button type="button" className="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            <h4 className="modal-title">Availability event generator</h4>
+          </div>
+          <div className="modal-body">
+            <div>
+              {this.renderCalenderSelection()}
+              {this.renderDaySelection()}
+              {this.renderTagSelection()}
+            </div>
+          </div>
+          <div className="modal-footer">
+              {
+                this.state.creating ?
+                  <span>creating <img className="loading" src="img/ajax-loader.gif" /></span> :
+                  <span></span>
+              } <
+             button type="button" className="btn btn-default" onClick={this.cancel}>Cancel</button>
+            <button
+                className="btn btn-success"
+                onClick={this.create}
+                disabled={this.state.creating}
+            >Generate events</button>
+          </div>
+        </div>
+      </div>
+    </div>;
+  },
 
-    var calendars = this.props.calendars || [];
+  renderCalenderSelection: function () {
+    var calendars = this.state.calendars || [];
 
-    var calendarSelect;
     if (calendars.length > 1) {
-      calendarSelect = <p>
+      return <p>
         <p>In which calendar do you want to create availability events&#63;</p>
 
         <table className='calendar-selection'>
@@ -153,20 +163,69 @@ var EventGenerator = React.createClass({
       </p>;
     }
     else if (calendars.length == 1) {
-      calendarSelect = <p>
+      return <p>
         The events will be generated in calendar <b title={calendars[0].value}>{calendars[0].text}</b>
       </p>;
     }
     else {
-      calendarSelect = <p className="error">Error: no calendar available</p>
+      return <p className="error">Error: no calendar available</p>
     }
+  },
 
-    var tagSelect = <div>
+  renderDaySelection: function () {
+    var days = this.DAYS.map(function (day) {
+      return <tr key={day}>
+        <td>
+          <label><input
+              type="checkbox"
+              checked={this.state.days[day].enabled}
+              onChange={function (event) {
+                this.handleChange(day, 'enabled', event.target.checked)
+              }.bind(this)}
+          /> {day}</label>
+        </td>
+        <td>
+          <input
+              type="text"
+              className="form-control"
+              title="Start time"
+              value={this.state.days[day].start}
+              disabled={!this.state.days[day].enabled}
+              onChange={function (event) {
+                this.handleChange(day, 'start', event.target.value)
+              }.bind(this)}
+          />
+        </td>
+        <td>
+          <input
+              type="text"
+              className="form-control"
+              title="End time"
+              value={this.state.days[day].end}
+              disabled={!this.state.days[day].enabled}
+              onChange={function (event) {
+                this.handleChange(day, 'end', event.target.value)
+              }.bind(this)}
+          />
+        </td>
+      </tr>
+    }.bind(this));
+
+    return <div>
+      <p>When are you available&#63;</p>
+      <table className="availability"><tbody>
+      {days}
+      </tbody></table>
+    </div>;
+  },
+
+  renderTagSelection: function () {
+    return <div>
       <p>
-      Which tag do you want to give the availability events&#63;&nbsp;
+        Which tag do you want to give the availability events&#63;&nbsp;
       {
           this.renderPopover('Tag', 'All events having the specified tag as title will be used to determine your availability (typically your working hours)')
-      }
+          }
       </p>
       <input
           type="text"
@@ -176,40 +235,6 @@ var EventGenerator = React.createClass({
           placeholder="Enter a tag like '#available'"
           onChange={this.handleTagChange}
       />
-    </div>;
-
-    return <div className="modal profile" ref="profile">
-      <div className="modal-dialog">
-        <div className="modal-content">
-          <div className="modal-header">
-            <button type="button" className="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-            <h4 className="modal-title">Availability event generator</h4>
-          </div>
-          <div className="modal-body">
-            <div>
-              <p>When are you available&#63;</p>
-              <table className="availability"><tbody>
-              {days}
-              </tbody></table>
-              {calendarSelect}
-              {tagSelect}
-            </div>
-          </div>
-          <div className="modal-footer">
-              {
-                this.state.creating ?
-                  <span>creating <img className="loading" src="img/ajax-loader.gif" /></span> :
-                  <span></span>
-              } <
-             button type="button" className="btn btn-default" onClick={this.hide}>Cancel</button>
-            <button
-                className="btn btn-success"
-                onClick={this.create}
-                disabled={this.state.creating}
-            >Generate events</button>
-          </div>
-        </div>
-      </div>
     </div>;
   },
 
@@ -253,7 +278,7 @@ var EventGenerator = React.createClass({
   },
 
   create: function () {
-    var calendars = this.props.calendars || [];
+    var calendars = this.state.calendars || [];
     var calendar;
 
     if (this.state.createCalendar) {
@@ -299,8 +324,12 @@ var EventGenerator = React.createClass({
 
         this.setState({creating: false});
 
-        if (typeof this.props.onCreate == 'function') {
-          this.props.onCreate(events);
+        if (typeof this.state.created == 'function') {
+          this.state.created({
+            calendar: calendar,
+            newCalendar: this.state.createCalendar,
+            tag: this.state.tag
+          });
         }
       }.bind(this))
       .catch(function (err) {
@@ -311,12 +340,27 @@ var EventGenerator = React.createClass({
       }.bind(this));
   },
 
-  show: function () {
-    this.setState({show: true});
+  show: function (options) {
+    this.setState({
+      calendars: options.calendars,
+      existingCalendar: options.calendar,
+      tag: options.tag || '#available',
+      created: options.created,
+      cancel: options.cancel,
+      visible: true
+    });
   },
 
   hide: function () {
-    this.setState({show: false});
+    this.setState({visible: false});
+  },
+
+  cancel: function () {
+    this.hide();
+
+    if (typeof this.state.cancel === 'function') {
+      this.state.cancel();
+    }
   },
 
   componentDidMount: function () {
@@ -334,13 +378,29 @@ var EventGenerator = React.createClass({
   },
 
   updateVisibility: function () {
-    var elem = this.refs.profile.getDOMNode();
-
-    // prevent conflict with pressing ESC in dropdowns
-    $(elem).modal({keyboard: false});
+    if (this._modal == null) {
+      this._modal = this._createModal();
+    }
 
     // show/hide the modal
-    $(elem).modal(this.state.show ? 'show' : 'hide');
-  }
+    this._modal.modal(this.state.visible ? 'show' : 'hide');
+  },
 
+  _modal: null, // bootstrap modal thingy
+
+  _createModal: function () {
+    var elem = this.refs.profile.getDOMNode();
+
+    return $(elem)
+
+        // prevent conflict with pressing ESC in dropdowns
+        .modal({keyboard: false})
+
+        // attach listener on hide
+        .on('hide.bs.modal', function (error) {
+          if (this.state.visible) {
+            this.cancel();
+          }
+        }.bind(this));
+  }
 });

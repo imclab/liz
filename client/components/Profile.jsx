@@ -5,13 +5,6 @@
  *
  *   <Profile ref="profile" />
  *
- * Where:
- *
- *   - `groups` is an Array<{text: string, value: string}> with the available groups
- *   - `calendars` is an Array<{text: string, value: string}> with the available calendars
- *   - `onChange` is a function, called when the profile is changed, with
- *     the profile as first argument.
- *
  * Use:
  *
  *   profile.show({
@@ -24,9 +17,16 @@
  *     },
  *     groups=[...],
  *     calendars=[...]
- *     save: function
+ *     save: function(profile: Object)
  *     cancel: function (optional)
  *   });
+ *
+ *   profile.hide();
+ *
+ * Where:
+ *
+ *   - `groups` is an Array<{text: string, value: string}> with the available groups
+ *   - `calendars` is an Array<{text: string, value: string}> with the available calendars
  *
  */
 var Profile = React.createClass({
@@ -83,7 +83,7 @@ var Profile = React.createClass({
 
             <h5>Tag</h5>
             <p>
-            Which tag do you want to give the availability events&#63;&nbsp;
+            Which tag do you want to use for availability events&#63;&nbsp;
             {
               this.renderPopover('Tag', 'All events having the specified tag as title will be used to determine your availability (typically your working hours)')
             }
@@ -158,11 +158,30 @@ var Profile = React.createClass({
   updateVisibility: function () {
     var elem = this.refs.profile.getDOMNode();
 
-    // prevent conflict with pressing ESC in dropdowns
-    $(elem).modal({keyboard: false});
+    if (!this._modal) {
+      this._modal = this._createModal();
+    }
 
     // show/hide the modal
-    $(elem).modal(this.state.visible ? 'show' : 'hide');
+    this._modal.modal(this.state.visible ? 'show' : 'hide');
+  },
+
+  _modal: null, // bootstrap modal thingy
+
+  _createModal: function () {
+    var elem = this.refs.profile.getDOMNode();
+
+    return $(elem)
+
+        // prevent conflict with pressing ESC in dropdowns
+        .modal({keyboard: false})
+
+        // attach listener on hide
+        .on('hide.bs.modal', function (error) {
+          if (this.state.visible) {
+            this.cancel();
+          }
+        }.bind(this));
   },
 
   handleGroupChange: function (value) {
@@ -238,7 +257,6 @@ var Profile = React.createClass({
     }
   },
 
-  // FIXME: cancel is not fired when clicking outside of the modal
   cancel: function () {
     this.hide();
 
