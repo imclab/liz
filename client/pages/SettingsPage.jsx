@@ -81,7 +81,7 @@ var SettingsPage = React.createClass({
     }
 
     return <div>
-      <Profile ref="profile" />
+      <Profile ref="profile" generator={this.refs.generator} />
       <EventGenerator ref="generator" />
 
       <h2>Availability</h2>
@@ -97,8 +97,7 @@ var SettingsPage = React.createClass({
                     className="btn btn-normal"
                     title="Add a new profile"
                 >
-                  <span className="glyphicon glyphicon-plus"></span>
-                Add</button>
+                  <span className="glyphicon glyphicon-plus"></span> Add</button>
               </div> :
               null
       }
@@ -123,12 +122,10 @@ var SettingsPage = React.createClass({
     // TODO: for both selectize controls, utilize dynamic loading via query,
     //       retrieve filtered profiles from the server
 
-    var calendarsArray = profile.calendars && profile.calendars.split(',') || [];
+    var calendarsArray = profile.busy && profile.busy.split(',') || [];
     var calendars = calendarsArray.map(function (calendarId, index) {
       calendarId = calendarId.trim();
-      var calendar = this.state.calendarList.filter(function (c) {
-        return c.id == calendarId;
-      })[0];
+      var calendar = this.findCalendar(calendarId);
 
       var text = (calendar !== undefined) ? calendar.summary : calendarId;
       if (index != calendarsArray.length - 1) {
@@ -147,7 +144,7 @@ var SettingsPage = React.createClass({
       </tr>;
     }
 
-    return <div key={profile._id} className="profile-entry">
+    return <div key={profile._id} className="card">
       <table>
         <tbody>
           {trTeam}
@@ -155,49 +152,57 @@ var SettingsPage = React.createClass({
             <th>Calendars</th>
             <td>{calendars}</td>
           </tr>
-          <tr>
-            <th>Tag</th>
-            <td>{profile.tag}</td>
+          {
+              (profile.access == 'pending') ?
+                  <tr key={profile._id}>
+                    <th>Access</th>
+                    <td><b style={{color: 'orange'}}>pending</b> {
+                        this.renderPopover('Access', 'Your request to join the team "' + profile.group + '" awaits approval of one of the team members.')
+                        }</td>
+                  </tr> :
+                  (profile.access == 'denied') ?
+                      <tr key={profile._id}>
+                        <th>Access</th>
+                        <td><b style={{color: 'red'}}>denied</b> {
+                            this.renderPopover('Access', 'Your request to join the team "' + profile.group + '" is denied by one of the team members.')
+                            }</td>
+                      </tr> :
+                      ''
+          }
+          <tr key={'Availability'}>
+            <th>Availability</th>
+            <td>
+              Calendar:&nbsp;{this.calendarName(profile.available)}
+            </td>
           </tr>
-                {
-                    (profile.access == 'pending') ?
-                        <tr key={profile._id}>
-                          <th>Access</th>
-                          <td><b style={{color: 'orange'}}>pending</b> {
-                              this.renderPopover('Access', 'Your request to join the team "' + profile.group + '" awaits approval of one of the team members.')
-                              }</td>
-                        </tr> :
-                        (profile.access == 'denied') ?
-                            <tr key={profile._id}>
-                              <th>Access</th>
-                              <td><b style={{color: 'red'}}>denied</b> {
-                                  this.renderPopover('Access', 'Your request to join the team "' + profile.group + '" is denied by one of the team members.')
-                                  }</td>
-                            </tr> :
-                            ''
-                }
-                <tr key={'issues'}>
-                    <th></th>
-                    <td>
-                    {
-                      profile.issues && profile.issues.map(function (issue, index) {
-                        return <div key={'issue' + index} className="error">
-                          <span className="glyphicon glyphicon-warning-sign"></span> {issue.message} {
-                            issue.type === 'availability' ?
-                                <div>Possible causes:
-                                  <ul>
-                                    <li>There are no availability events created yet.</li>
-                                    <li>The calendar containing availability events is not selected.</li>
-                                    <li>The entered tag does not match that of the availability events.</li>
-                                  </ul>
-                                </div>
-                                : null
-                          }
+          <tr key={'Tag'}>
+            <th></th>
+            <td>
+              Tag: {profile.tag}
+            </td>
+          </tr>
+          <tr key={'issues'}>
+            <th></th>
+            <td>
+            {
+              profile.issues && profile.issues.map(function (issue, index) {
+                return <div key={'issue' + index} className="error">
+                  <span className="glyphicon glyphicon-warning-sign"></span> {issue.message} {
+                    issue.type === 'availability' ?
+                        <div>Possible causes:
+                          <ul>
+                            <li>There are no availability events created yet.</li>
+                            <li>The calendar containing availability events is not selected.</li>
+                            <li>The entered tag does not match that of the availability events.</li>
+                          </ul>
                         </div>
-                      }.bind(this))
-                    }
-                    </td>
-                </tr>
+                        : null
+                  }
+                </div>
+              }.bind(this))
+            }
+            </td>
+          </tr>
         </tbody>
       </table>
       <div className="menu">
@@ -272,7 +277,7 @@ var SettingsPage = React.createClass({
 
       content = this.state.userGroupsList
           .map(function (group) {
-            return <div key={group.name} className="profile-entry">
+            return <div key={group.name} className="card">
               <table className="fill">
                 <tbody>
                   <tr>
@@ -341,44 +346,11 @@ var SettingsPage = React.createClass({
     $('[data-toggle="popover"]').popover();
   },
 
-  showEventGenerator: function (profile) {
-    this.refs.generator.show({
-      calendars: this.getCalendarOptions(), // FIXME: it's possible that that calendarList isn't yet loaded...
-      calendar:  profile.calendars.split(',')[0] || this.props.user.email,
-      tag: profile.tag,
-
-      created:   function (params) {
-        this.refs.generator.hide();
-
-        alert('The availability events are successfully generated');
-
-        var changed = false;
-
-        var calendarIds = profile.calendars.split(',');
-        if (calendarIds.indexOf(params.calendar) === -1) {
-          calendarIds.push(params.calendar);
-          profile.calendars = calendarIds.join(',');
-          changed = true;
-          console.log('Added calendar ' + params.calendar + ' to the profile');
-        }
-
-        if(params.tag !== profile.tag) {
-          profile.tag = params.tag;
-          changed = true;
-          console.log('Change the tag of the profile to "' + params.tag + '"');
-        }
-
-        if (changed) {
-          this.saveProfile(profile);
-        }
-      }.bind(this)
-    });
-  },
-
   addIndividualProfile: function () {
     var profile = {
       user: this.props.user.email,
-      calendars: this.props.user.email || '',
+      busy: this.props.user.email || '',
+      available: '',
       tag: '#available',
       role: 'individual',
       access: null
@@ -390,7 +362,8 @@ var SettingsPage = React.createClass({
   addTeamProfile: function () {
     var profile = {
       user: this.props.user.email,
-      calendars: this.props.user.email || '',
+      busy: this.props.user.email || '',
+      available: '',
       tag: '#available',
       role: 'group',
       access: null
@@ -436,14 +409,6 @@ var SettingsPage = React.createClass({
         this.refs.profile.saving(true);
         this.saveProfile(profile, function (err, savedProfile) {
           this.refs.profile.hide();
-
-          // FIXME: doesn't work in case of newly created profiles
-          if (savedProfile && savedProfile.issues.length > 0) {
-            if (confirm('The configured calendars do not contain availability events. ' +
-            'Do you want to open a wizard to generate availability events?')) {
-              this.showEventGenerator(profile);
-            }
-          }
         }.bind(this));
       }.bind(this)
     });
@@ -631,10 +596,7 @@ var SettingsPage = React.createClass({
       if (profile.calendars) {
         profile.calendars.split(',')
             .forEach(function (calendarId) {
-              var calendarExists = calendarList.some(function (calendar) {
-                return calendar.id == calendarId ;
-              });
-              if (!calendarExists) {
+              if (!this.calendarExists(calendarId)) {
                 calendarList.push({id: calendarId});
               }
             });
@@ -696,5 +658,22 @@ var SettingsPage = React.createClass({
     event.preventDefault();
 
     this.setState({showHelpAvailability: true});
+  },
+
+  calendarExists: function (calendarId) {
+    return this.state.calendarList.some(function (calendar) {
+      return calendar.id == calendarId ;
+    });
+  },
+
+  findCalendar: function (calendarId) {
+    return this.state.calendarList.filter(function (calendar) {
+      return calendar.id == calendarId ;
+    })[0];
+  },
+
+  calendarName: function (calendarId) {
+    var calendar = this.findCalendar(calendarId);
+    return calendar && calendar.summary || calendarId;
   }
 });

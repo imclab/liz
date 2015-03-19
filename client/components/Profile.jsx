@@ -3,7 +3,11 @@
  *
  * Create:
  *
- *   <Profile ref="profile" />
+ *   <Profile ref="profile" generator={...} />
+ *
+ * Where:
+ *
+ *   - `generator` is a reference to an EventGenerator
  *
  * Use:
  *
@@ -41,7 +45,9 @@ var Profile = React.createClass({
 
       profile: {
         user: '',
-        calendars: '',
+        calendars: '', // TODO: remove
+        busy: '',       // calendar id's for busy events
+        available: '',  // calendar id for availability events
         tag: '',
         role: '',
         group: ''
@@ -65,45 +71,98 @@ var Profile = React.createClass({
 
             {(this.state.profile.role === 'group') ? this.renderTeam() : null}
 
-            <h5>Calendars</h5>
+            <h5>Busy</h5>
             <p>
-              Which calendars do you want to take into account to determine your availability&#63;&nbsp;
+              Which calendars do you want to take into account to determine when you are busy&#63;&nbsp;
               {
-                this.renderPopover('Calendars', 'Select one or multiple calendars to determine your availability. These calendars will be used to determine (a) when you are busy, and (b) when you are availability by filtering tagged events.', 'left')
+                this.renderPopover('Busy', 'You will be considered busy during all events found in the selected calendars.', 'left')
               }
             </p>
             <Selectize
-                value={this.state.profile.calendars || ''}
+                value={this.state.profile.busy || ''}
                 options={this.state.calendars}
                 multiple="true"
                 placeholder="Select a calendar..."
-                onChange={this.handleCalendarsChange}
+                onChange={this.handleBusyChange}
                 disabled={this.state.saving}
             />
 
-            <h5>Tag</h5>
+            <h5>Available</h5>
             <p>
-            Which tag do you want to use for availability events&#63;&nbsp;
-            {
-              this.renderPopover('Tag', 'All events having the specified tag as title will be used to determine your availability (typically your working hours)')
-            }
+              Which calendar do you want to use to determine when you are available&#63;&nbsp;
+              {
+                  this.renderPopover('Available', 'All events in the selected calendar having the specified tag as title will be used to determine when you are availability (typically your working hours).', 'left')
+              }
             </p>
-            <input
-                type="text"
-                className="form-control"
-                title="Availability tag"
-                value={this.state.profile.tag || ''}
-                placeholder="Enter a tag like '#available'"
-                onChange={this.handleTagChange}
-                disabled={this.state.saving}
-            />
-
+            <div className="card">
+              <table className="available">
+                <tbody>
+                  <tr>
+                    <th>Calendar</th>
+                    <td>
+                      <Selectize
+                          value={this.state.profile.available || ''}
+                          options={this.getAvailableCalendars()}
+                          placeholder="Select a calendar..."
+                          onChange={this.handleAvailableChange}
+                          disabled={this.state.saving}
+                          className="form-control"
+                      />
+                    </td>
+                    <td>
+                      <button
+                          className="btn btn-normal"
+                          title="Open a wizard to create a new calendar with availability events"
+                          onClick={this.handleNewCalendar}
+                      ><span className="glyphicon glyphicon-plus"></span></button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>Tag</th>
+                    <td>
+                      <input
+                          type="text"
+                          className="form-control"
+                          title="Availability tag"
+                          value={this.state.profile.tag || ''}
+                          placeholder="Enter a tag like '#available'"
+                          onChange={this.handleTagChange}
+                          disabled={this.state.saving}
+                      />
+                    </td>
+                    <td>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>Profile</th>
+                    <td className="profile">
+                        (no events found)
+                    </td>
+                    <td>
+                      <button
+                          className="btn btn-normal"
+                          title="Open a wizard to generate availability events"
+                          onClick={this.showEventGenerator}
+                      ><span className="glyphicon glyphicon-plus"></span></button>
+                      &nbsp;
+                      <button
+                          className="btn btn-danger"
+                          title="Delete all availability events"
+                          onClick={this.deleteAvailabilityEvents}
+                      ><span className="glyphicon glyphicon-remove"></span></button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
           <div className="modal-footer">
-            <button type="button" className="btn btn-default" onClick={this.cancel}>Cancel</button>
-            <button type="button" className="btn btn-success" onClick={this.save} disabled={this.state.saving}>
-              {this.state.saving ? 'Saving...' : 'Save'}
-            </button>
+            {
+              this.state.saving ?
+                  <span>saving <img className="loading" src="img/ajax-loader.gif" /></span> :
+                  <span></span>
+            } <button className="btn btn-default" onClick={this.cancel}>Cancel</button>
+            <button className="btn btn-success" onClick={this.save} disabled={this.state.saving}>Save</button>
           </div>
         </div>
       </div>
@@ -185,22 +244,83 @@ var Profile = React.createClass({
   },
 
   handleGroupChange: function (value) {
-    var profile = _.extend({}, this.state.profile);
-    profile.group = value;
-    profile.role = 'group';
+    var profile = _.extend({}, this.state.profile, {
+      group: value,
+      role: 'group'
+    });
     this.setState({profile: profile});
   },
 
-  handleCalendarsChange: function (value) {
-    var profile = _.extend({}, this.state.profile);
-    profile.calendars = value;
+  handleBusyChange: function (value) {
+    var profile = _.extend({}, this.state.profile, {busy: value});
+    this.setState({profile: profile});
+  },
+
+  handleAvailableChange: function (value) {
+    var profile = _.extend({}, this.state.profile, {available: value});
     this.setState({profile: profile});
   },
 
   handleTagChange: function (event) {
-    var profile = _.extend({}, this.state.profile);
-    profile.tag = event.target.value;
+    var profile = _.extend({}, this.state.profile, {tag: event.target.value});
     this.setState({profile: profile});
+  },
+
+  handleNewCalendar: function () {
+    this.showEventGenerator({
+      createCalendar: true,
+      newCalendar: 'Available'
+    });
+  },
+
+  showEventGenerator: function (options) {
+    var generator = this.props.generator;
+    if (!generator) {
+      throw new Error('No EventGenerator configured');
+    }
+
+    var _options = _.extend({}, {
+      createCalendar: false,
+      existingCalendar: this.state.profile.available,
+
+      calendars: this.getAvailableCalendars(),
+
+      save: function (props) {
+        generator.hide();
+
+        var profile = _.extend({}, this.state.profile, {
+          available: props.calendar,
+          tag: props.tag
+        });
+
+        this.setState({
+          profile: profile,
+          visible: true
+        });
+      }.bind(this),
+
+      cancel: function () {
+        this.setState({visible: true});
+      }.bind(this)
+    }, options);
+
+    this.setState({visible: false});
+    generator.show(_options);
+  },
+
+  /**
+   * Return the list with calendars allowed a availability calendar,
+   * filters out the users main calendar
+   */
+  getAvailableCalendars: function () {
+    return this.state.calendars.filter(function (calendar) {
+      return calendar.value !== this.state.profile.user;
+    }.bind(this));
+  },
+
+  deleteAvailabilityEvents: function () {
+    // TODO: implement deletion of availability events
+    alert('Sorry, not yet implemented...')
   },
 
   show: function (options) {

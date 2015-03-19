@@ -15,7 +15,7 @@
  *   generator.show({
  *     calendars: [...],
  *     calendar: '...',
- *     created: function (props) {
+ *     save: function (props) {
  *       // props contains:
  *       //   props.calendar: string
  *       //   props.tag: string
@@ -46,10 +46,10 @@ var EventGenerator = React.createClass({
       tag: '#available',
       days: {},
 
-      creating: false,
+      saving: false,
       visible: false,
 
-      created: null, // callback function
+      save: null,    // callback function
       cancel: null   // callback function
     };
 
@@ -78,7 +78,7 @@ var EventGenerator = React.createClass({
       <div className="modal-dialog">
         <div className="modal-content">
           <div className="modal-header">
-            <button type="button" className="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            <button className="close" data-dismiss="modal" aria-hidden="true">&times;</button>
             <h4 className="modal-title">Availability event generator</h4>
           </div>
           <div className="modal-body">
@@ -90,15 +90,15 @@ var EventGenerator = React.createClass({
           </div>
           <div className="modal-footer">
               {
-                this.state.creating ?
+                this.state.saving ?
                   <span>creating <img className="loading" src="img/ajax-loader.gif" /></span> :
                   <span></span>
               } <
-             button type="button" className="btn btn-default" onClick={this.cancel}>Cancel</button>
+             button className="btn btn-default" onClick={this.cancel}>Cancel</button>
             <button
                 className="btn btn-success"
                 onClick={this.create}
-                disabled={this.state.creating}
+                disabled={this.state.saving}
             >Generate events</button>
           </div>
         </div>
@@ -123,6 +123,7 @@ var EventGenerator = React.createClass({
                 <label><input
                     type="radio"
                     checked={this.state.createCalendar == true}
+                    disabled={this.state.saving}
                     onChange={function () {
                       this.setState({createCalendar: true});
                     }.bind(this)}
@@ -131,6 +132,7 @@ var EventGenerator = React.createClass({
               <td>
                 <input
                     type="text"
+                    disabled={this.state.saving}
                     className="form-control"
                     value={this.state.newCalendar}
                     onChange={this.handleNewCalendarChange}
@@ -142,6 +144,7 @@ var EventGenerator = React.createClass({
                 <label><input
                     type="radio"
                     checked={this.state.createCalendar == false}
+                    disabled={this.state.saving}
                     onChange={function () {
                       this.setState({createCalendar: false});
                     }.bind(this)}
@@ -150,6 +153,7 @@ var EventGenerator = React.createClass({
               <td>
                 <Selectize
                     value={this.state.existingCalendar}
+                    disabled={this.state.saving}
                     options={calendars}
                     placeholder="Select a calendar..."
                     onChange={this.handleCalendarChange}
@@ -179,6 +183,7 @@ var EventGenerator = React.createClass({
           <label><input
               type="checkbox"
               checked={this.state.days[day].enabled}
+              disabled={this.state.saving}
               onChange={function (event) {
                 this.handleChange(day, 'enabled', event.target.checked)
               }.bind(this)}
@@ -190,7 +195,7 @@ var EventGenerator = React.createClass({
               className="form-control"
               title="Start time"
               value={this.state.days[day].start}
-              disabled={!this.state.days[day].enabled}
+              disabled={!this.state.days[day].enabled || this.state.saving}
               onChange={function (event) {
                 this.handleChange(day, 'start', event.target.value)
               }.bind(this)}
@@ -202,7 +207,7 @@ var EventGenerator = React.createClass({
               className="form-control"
               title="End time"
               value={this.state.days[day].end}
-              disabled={!this.state.days[day].enabled}
+              disabled={!this.state.days[day].enabled || this.state.saving}
               onChange={function (event) {
                 this.handleChange(day, 'end', event.target.value)
               }.bind(this)}
@@ -213,7 +218,7 @@ var EventGenerator = React.createClass({
 
     return <div>
       <p>When are you available&#63;</p>
-      <table className="availability"><tbody>
+      <table className="days"><tbody>
       {days}
       </tbody></table>
     </div>;
@@ -229,6 +234,7 @@ var EventGenerator = React.createClass({
       </p>
       <input
           type="text"
+          disabled={this.state.saving}
           className="form-control"
           title="Availability tag"
           value={this.state.tag}
@@ -317,23 +323,23 @@ var EventGenerator = React.createClass({
     }
 
     // send request to the server
-    this.setState({creating: true});
+    this.setState({saving: true});
     ajax.post('/profiles/generate', body)
       .then(function (events) {
         console.log('availability events generated', events);
 
-        this.setState({creating: false});
+        this.setState({saving: false});
 
-        if (typeof this.state.created == 'function') {
-          this.state.created({
+        if (typeof this.state.save == 'function') {
+          this.state.save({
             calendar: calendar,
-            newCalendar: this.state.createCalendar,
-            tag: this.state.tag
+            tag: this.state.tag,
+            events: events
           });
         }
       }.bind(this))
       .catch(function (err) {
-        this.setState({creating: false});
+        this.setState({saving: false});
 
         console.log(err);
         alert(err);
@@ -341,14 +347,7 @@ var EventGenerator = React.createClass({
   },
 
   show: function (options) {
-    this.setState({
-      calendars: options.calendars,
-      existingCalendar: options.calendar,
-      tag: options.tag || '#available',
-      created: options.created,
-      cancel: options.cancel,
-      visible: true
-    });
+    this.setState(_.extend({visible: true}, options));
   },
 
   hide: function () {
