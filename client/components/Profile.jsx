@@ -169,6 +169,10 @@ var Profile = React.createClass({
                     <td>
                     </td>
                   </tr>
+                  <tr>
+                    <td colSpan="3" style={{fontStyle: 'italic'}}>You can edit your availability events straigt in <a href="https://www.google.com/calendar/" target="_blank">Google Calendar</a>.
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>

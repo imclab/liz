@@ -65,13 +65,14 @@ var AvailabilityEventList = React.createClass({
   // load events after a timeout of 500ms
   delayedLoadEvents: function () {
     clearTimeout(this._loadEventsTimeout);
-    this._loadEventsTimeout = setTimeout(this.loadEvents.bind(this), 1000);
+    this._loadEventsTimeout = setTimeout(function () {
+      this.loadEvents();
+    }.bind(this), 1000);
   },
   _loadEventsTimeout: null,
 
   loadEvents: function () {
-    if (!this.props.calendar) {
-      console.log('Cannot load availability events, no calendar provided');
+    if (!this.props.calendar || !this.props.tag) {
       return;
     }
 
@@ -84,20 +85,9 @@ var AvailabilityEventList = React.createClass({
 
     ajax.get('/calendar/' + this.props.calendar)
         .then(function (events) {
-
-          var sevenDays = moment().add(7, 'day');
-          var filtered = events.items && (events.items || events.events)
-              .filter(function (event) {
-                return (event.summary.trim().toLowerCase() === this.props.tag.toLowerCase())
-                    && (moment(event.start.dateTime) < sevenDays);
-              }.bind(this))
-              .slice(0, 10); // max ten items
-
-          console.log('availability events', filtered);
-
           this.setState({
             loading: false,
-            events: filtered
+            events: this._filterEvents(events.items || events.events)
           });
 
         }.bind(this))
@@ -108,6 +98,16 @@ var AvailabilityEventList = React.createClass({
           });
           console.log(err);
         }.bind(this));
+  },
+
+  // filter availability events from a list with raw calendar events
+  _filterEvents: function (events) {
+    var sevenDays = moment().add(7, 'day');
+    return events.filter(function (event) {
+          return (event.summary.trim().toLowerCase() === this.props.tag.toLowerCase())
+              && (moment(event.start.dateTime) < sevenDays);
+        }.bind(this))
+        .slice(0, 10); // max ten items
   },
 
   retry: function (event) {

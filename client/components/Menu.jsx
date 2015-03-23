@@ -21,17 +21,6 @@ var Menu = React.createClass({
     var isHome = (isCalendar == null && isSettings == null) ? 'active' : null;
     // <img src={user.picture} className="user-icon"></img>
 
-    var _setPage = function (page) {
-      if (typeof this.props.onPage === 'function') {
-        this.props.onPage(page);
-      }
-    }.bind(this);
-
-    // TODO: this is a little bit stupid repeating code
-    var goHome     = function () {_setPage('home'); return false;};
-    var goCalendar = function () {_setPage('calendar'); return false;};
-    var goSettings = function () {_setPage('settings'); return false;};
-
     return <nav className="navbar navbar-default" role="navigation">
       <div className="container-fluid">
         <div className="navbar-header">
@@ -45,9 +34,9 @@ var Menu = React.createClass({
 
         <div className="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
           <ul className="nav navbar-nav">
-            <li className={isHome}><a href="#" onClick={goHome}>Home</a></li>
-            <li className={isCalendar}><a href="#" onClick={goCalendar}>Calendar</a></li>
-            <li className={isSettings}><a href="#" onClick={goSettings}>Settings</a></li>
+            <li className={isHome}><a href="#" onClick={this.goHome}>Home</a></li>
+            <li className={isCalendar}><a href="#" onClick={this.goCalendar}>Calendar</a></li>
+            <li className={isSettings}><a href="#" onClick={this.goSettings}>Settings</a></li>
           </ul>
           {this.renderLogin()}
         </div>
@@ -88,5 +77,33 @@ var Menu = React.createClass({
         </li>
       </ul>;
     }
+  },
+
+  _setPage: function (page) {
+    if (typeof this.props.onPage === 'function') {
+      this.props.onPage(page);
+    }
+  },
+
+  // TODO: this is a little bit stupid repeating code
+  goHome: function (event) {
+    this._setPage('home');
+
+    event.stopPropagation();
+    event.preventDefault();
+  },
+
+  goCalendar: function (event) {
+    this._setPage('calendar');
+
+    event.stopPropagation();
+    event.preventDefault();
+  },
+
+  goSettings: function (event) {
+    this._setPage('settings');
+
+    event.stopPropagation();
+    event.preventDefault();
   }
 });

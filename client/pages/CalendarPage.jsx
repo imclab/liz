@@ -34,7 +34,7 @@ var CalendarPage = React.createClass({
   },
 
   loadEvents: function (calendarId) {
-    return ajax.get('/calendar/' + calendarId)
+    ajax.get('/calendar/' + calendarId)
         .then(function (events) {
           console.log('events', events);
           this.setState({
