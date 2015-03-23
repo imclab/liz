@@ -114,11 +114,15 @@ var Profile = React.createClass({
                           className="btn btn-normal"
                           title="Open a wizard to create a new calendar with availability events"
                           onClick={this.handleNewCalendar}
-                      ><span className="glyphicon glyphicon-plus"></span></button>
+                      ><span className="glyphicon glyphicon-plus"></span> Create</button>
                     </td>
                   </tr>
                   <tr>
-                    <th>Tag</th>
+                    <th>
+                      Tag {
+                        this.renderPopover('Tag', 'All events in the selected calendar having the specified tag as title will be used to determine when you are availability (typically your working hours).', 'top')
+                      }
+                    </th>
                     <td>
                       <input
                           type="text"
@@ -135,20 +139,22 @@ var Profile = React.createClass({
                   </tr>
                   <tr>
                     <th>Profile</th>
-                    <td className="profile">
-                        (no events found)
+                    <td className="text">
+                      {this.renderEvents(this.state.profile.events)}
                     </td>
                     <td>
                       <button
                           className="btn btn-normal"
                           title="Open a wizard to generate availability events"
                           onClick={this.showEventGenerator}
-                      ><span className="glyphicon glyphicon-plus"></span></button>
+                          disabled={this.state.saving || !this.state.profile.available}
+                      ><span className="glyphicon glyphicon-plus"></span> Generate</button>
                       &nbsp;
                       <button
                           className="btn btn-danger"
                           title="Delete all availability events"
                           onClick={this.deleteAvailabilityEvents}
+                          disabled={this.state.saving || !this.state.profile.available}
                       ><span className="glyphicon glyphicon-remove"></span></button>
                     </td>
                   </tr>
@@ -198,6 +204,31 @@ var Profile = React.createClass({
           aria-hidden="true"
       ></span>
     </a>
+  },
+
+  /**
+   * Render availability events of a profile
+   * @param {Array} events
+   */
+  renderEvents: function (events) {
+    if (events && events.length > 0) {
+      var rows = events.map(function (event) {
+        return <tr key={event.id}>
+          <td>{moment(event.start.dateTime).format('ddd')}</td>
+          <td>{formatTime(event.start.dateTime)} &ndash; {formatTime(event.end.dateTime)}</td>
+        </tr>;
+      });
+
+      return <table className="days">
+        <tbody>
+        {rows}
+          <tr><td>...</td><td></td></tr>
+        </tbody>
+      </table>;
+    }
+    else {
+      return <span className="warning"><span className="glyphicon glyphicon-warning-sign"></span> no availability events found</span>;
+    }
   },
 
   componentDidMount: function () {
@@ -288,20 +319,37 @@ var Profile = React.createClass({
       save: function (props) {
         generator.hide();
 
+        console.log('props', props); // TODO: cleanup
+
         var profile = _.extend({}, this.state.profile, {
           available: props.calendar,
           tag: props.tag
         });
 
-        this.setState({
+        var updatedState = {
           profile: profile,
           visible: true
+        };
+
+        var isNew = !this.state.calendars.some(function (entry) {
+          return entry.value === props.calendar;
         });
+        if (isNew) {
+          var calendars = this.state.calendars.slice(0);
+          calendars.push({
+            value: props.calendar,
+            text: props.name || props.calendar
+          });
+          updatedState.calendars = calendars;
+        }
+
+        this.setState(updatedState);
       }.bind(this),
 
       cancel: function () {
         this.setState({visible: true});
       }.bind(this)
+
     }, options);
 
     this.setState({visible: false});

@@ -150,7 +150,7 @@ var SettingsPage = React.createClass({
           {trTeam}
           <tr>
             <th>Calendars</th>
-            <td>{calendars}</td>
+            <td colSpan="2">{calendars}</td>
           </tr>
           {
               (profile.access == 'pending') ?
@@ -171,36 +171,18 @@ var SettingsPage = React.createClass({
           }
           <tr key={'Availability'}>
             <th>Availability</th>
-            <td>
-              Calendar:&nbsp;{this.calendarName(profile.available)}
-            </td>
+            <td>Calendar:</td>
+            <td>{this.calendarName(profile.available)}</td>
           </tr>
           <tr key={'Tag'}>
             <th></th>
-            <td>
-              Tag: {profile.tag}
-            </td>
+            <td>Tag:</td>
+            <td>{profile.tag}</td>
           </tr>
-          <tr key={'issues'}>
+          <tr key={'profile'}>
             <th></th>
-            <td>
-            {
-              profile.issues && profile.issues.map(function (issue, index) {
-                return <div key={'issue' + index} className="error">
-                  <span className="glyphicon glyphicon-warning-sign"></span> {issue.message} {
-                    issue.type === 'availability' ?
-                        <div>Possible causes:
-                          <ul>
-                            <li>There are no availability events created yet.</li>
-                            <li>The calendar containing availability events is not selected.</li>
-                            <li>The entered tag does not match that of the availability events.</li>
-                          </ul>
-                        </div>
-                        : null
-                  }
-                </div>
-              }.bind(this))
-            }
+            <td>Upcoming:</td>
+            <td>{this.refs.profile.renderEvents(profile.events)}
             </td>
           </tr>
         </tbody>
@@ -461,8 +443,11 @@ var SettingsPage = React.createClass({
 
     ajax.put('/profiles', profile)
         .then(function (result) {
-          // refresh the teams list
+          // reload the teams list
           this.loadUserGroupsList();
+
+          // reload calendar list
+          this.loadCalendarList();
 
           // reload the list with profiles
           this.loadProfiles(function (err, profiles) {
@@ -599,7 +584,7 @@ var SettingsPage = React.createClass({
               if (!this.calendarExists(calendarId)) {
                 calendarList.push({id: calendarId});
               }
-            });
+            }.bind(this));
       }
     }.bind(this));
 

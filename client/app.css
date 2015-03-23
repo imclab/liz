@@ -139,7 +139,7 @@ div.card div.menu {
 
 div.card table td,
 div.card table th {
-  vertical-align: middle;
+  vertical-align: top;
   padding: 3px 5px;
 }
 
@@ -154,15 +154,24 @@ div.card table.available td {
 }
 
 div.card table.available th,
-div.card table.available td.profile {
+div.card table.available td.text {
   padding-top: 8px;
 }
 
-div.profile h5 {
+div.card table.days {
+  margin: 0;
+}
+
+div.card table.days th,
+div.card table.days td {
+  padding: 0 5px;
+}
+
+div.card h5 {
   margin-top: 30px;
 }
 
-div.profile .panel-heading h5 {
+div.card .panel-heading h5 {
   margin: 0;
 }
 
@@ -243,6 +252,12 @@ div.scheduler ul {
 div.error,
 p.error {
   color: red;
+}
+
+div.warning,
+span.warning,
+p.warning {
+  color: darkorange;
 }
 
 

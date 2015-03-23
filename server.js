@@ -508,24 +508,20 @@ app.get('/profiles', function(req, res){
       db.profiles.list(userId, function (err, profiles) {
         if (err) return sendError(res, err);
 
-        if (validate) {
-          function validateProfile (profile, callback) {
-            gutils.validateProfile(profile, accessToken, function (err, issues) {
-              if (issues) {
-                profile.issues = issues;
-              }
-              callback(err, profile);
-            });
-          }
-
-          async.map(profiles, validateProfile, function (err, profiles) {
-            if (err) return sendError(res, err);
-            return res.json(profiles);
+        function validateProfile (profile, callback) {
+          gutils.getAvailabilityEvents(profile, accessToken, function (err, events) {
+            if (events) {
+              profile.events = events;
+            }
+            // ignore errors
+            callback(null, profile);
           });
         }
-        else {
+
+        async.map(profiles, validateProfile, function (err, profiles) {
+          if (err) return sendError(res, err);
           return res.json(profiles);
-        }
+        });
       });
     });
   }
@@ -604,7 +600,10 @@ app.post('/profiles/generate', function (req, res) {
             gcal(accessToken).events.insert(calendarId, event, callback);
           }, function (err, createdEvents) {
             if(err) return sendError(res, err);
-            return res.json(createdEvents);
+            return res.json({
+              calendar: params.calendar,
+              events: createdEvents
+            });
           });
         });
       });

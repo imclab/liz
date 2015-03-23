@@ -325,16 +325,17 @@ var EventGenerator = React.createClass({
     // send request to the server
     this.setState({saving: true});
     ajax.post('/profiles/generate', body)
-      .then(function (events) {
-        console.log('availability events generated', events);
+      .then(function (response) {
+        console.log('availability events generated', response);
 
         this.setState({saving: false});
 
         if (typeof this.state.save == 'function') {
           this.state.save({
-            calendar: calendar,
+            calendar: response.calendar, // calendarId
+            name: calendar,              // calendar name (or id)
             tag: this.state.tag,
-            events: events
+            events: response.events
           });
         }
       }.bind(this))
