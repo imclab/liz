@@ -23,7 +23,7 @@ var ajax = (function () {
                 }
               }
               else {
-                reject(new Error(xhr.responseText));
+                reject(new Error(xhr.responseText.replace(/Error: /, '')));
               }
             }
           }

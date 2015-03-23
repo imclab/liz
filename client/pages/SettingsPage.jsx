@@ -182,7 +182,7 @@ var SettingsPage = React.createClass({
           <tr key={'profile'}>
             <th></th>
             <td>Upcoming:</td>
-            <td>{this.refs.profile.renderEvents(profile.events)}
+            <td><AvailabilityEventList calendar={profile.available} tag={profile.tag} />
             </td>
           </tr>
         </tbody>
@@ -477,7 +477,7 @@ var SettingsPage = React.createClass({
 
   // load the profiles of the user
   loadProfiles: function (callback) {
-    ajax.get('/profiles?validate=true')
+    ajax.get('/profiles')
         .then(function (profiles) {
           console.log('profiles', profiles);
           this.setState({

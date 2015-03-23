@@ -111,7 +111,9 @@ var EventGenerator = React.createClass({
 
     if (calendars.length > 1) {
       return <p>
-        <p>In which calendar do you want to create availability events&#63;</p>
+        <p>In which calendar do you want to create availability events&#63; {
+            this.renderPopover('Availability events', 'Availability events are events with a specific tag (like #available) as title. They are used to determine your availability, typically your working hours.', 'bottom')
+        }</p>
 
         <table className='calendar-selection'>
           <colgroup>

@@ -136,9 +136,6 @@ To the the code, run:
       "email": "email@example.com",
       "name": "User Name",
       "picture": "url_to_picture",
-      "calendars": [
-        "email@example.com"
-      ],
       "share": "calendar"
     }
     ```
@@ -308,11 +305,6 @@ To the the code, run:
 
     Get all profiles of the current users.
 
-    Query parameters:
-    - `validate: boolean` If true, the profiles will be validated. The validator
-      will check whether the configured calendars contain availability events.
-      Default value is false.
-
     Returns an Array with profiles like:
 
     ```js
@@ -320,7 +312,10 @@ To the the code, run:
       {
         "_id": "6a409334-72a5-4304-98ac-26318348cb18",
         "user": "jos@almende.org",
-        "calendars": "calendarIdA, calendarIdB",
+        "calendars": {
+        "busy": "calendarIdA,calendarIdB",
+        "available": "calendarIdC",
+        },
         "tag": "#consultancy",
         "role": "group" | "individual",
         "group": "Consultant" | null,
@@ -337,7 +332,8 @@ To the the code, run:
       {
         "_id": "6a409334-72a5-4304-98ac-26318348cb18",
         "user": "jos@almende.org",
-        "calendars": "calendarIdA, calendarIdB",
+        "busy": "calendarIdA,calendarIdB",
+        "available": "calendarIdC",
         "tag": "#consultancy",
         "role": "group" | "individual",
         "group": "Consultant" | null,
@@ -361,7 +357,8 @@ To the the code, run:
     {
       "_id": "6a409334-72a5-4304-98ac-26318348cb18",
       "user": "jos@almende.org",
-      "calendars": "calendarIdA, calendarIdB",
+      "busy": "calendarIdA,calendarIdB",
+      "available": "calendarIdC",
       "tag": "#consultancy",
       "role": "group" | "individual",
       "group": "Consultant" | null
@@ -386,7 +383,8 @@ To the the code, run:
       {
         "_id": "6a409334-72a5-4304-98ac-26318348cb18",
         "user": "jos@almende.org",
-        "calendars": "calendarIdA, calendarIdB",
+        "busy": "calendarIdA,calendarIdB",
+        "available": "calendarIdC",
         "tag": "#consultancy",
         "role": "group" | "individual",
         "group": "Consultant" | null,

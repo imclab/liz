@@ -138,10 +138,11 @@ var Profile = React.createClass({
                     </td>
                   </tr>
                   <tr>
-                    <th>Profile</th>
-                    <td className="text">
-                      {this.renderEvents(this.state.profile.events)}
-                    </td>
+                    <th>
+                      Events {
+                        this.renderPopover('Availability events', 'Availability events are events with a specific tag (like #available) as title. They are used to determine your availability, typically your working hours.', 'top')
+                      }
+                    </th>
                     <td>
                       <button
                           className="btn btn-normal"
@@ -155,7 +156,17 @@ var Profile = React.createClass({
                           title="Delete all availability events"
                           onClick={this.deleteAvailabilityEvents}
                           disabled={this.state.saving || !this.state.profile.available}
-                      ><span className="glyphicon glyphicon-remove"></span></button>
+                      ><span className="glyphicon glyphicon-remove"> Delete</span></button>
+                    </td>
+                    <td>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>Upcoming</th>
+                    <td className="text">
+                      <AvailabilityEventList calendar={this.state.profile.available} tag={this.state.profile.tag} />
+                    </td>
+                    <td>
                     </td>
                   </tr>
                 </tbody>

@@ -255,13 +255,7 @@ app.get('/calendar', function(req, res){
 app.get('/calendar/:calendarId', function(req, res){
   var calendarId = req.params.calendarId || req.session.email;
 
-  // only user itself has access here
-  // TODO: this is a hacky solution, authorization module with a certain scope for this
-  if (calendarId != req.session.email) {
-    return sendError(res, new Error('Unauthorized'));
-  }
-
-  authorize(req.session.email, calendarId, function (err, accessToken, user) {
+  authorize(req.session.email, req.session.email, function (err, accessToken, user) {
     if(err) return sendError(res, err);
 
     var now = new Date();
@@ -499,38 +493,10 @@ app.get('/profiles*', auth);
 // get all profiles of current user
 app.get('/profiles', function(req, res){
   var userId = req.session.email;
-  var validate = !!req.query.validate; // parse string into boolean
-
-  if (validate) {
-    authorize(userId, userId, function (err, accessToken, user) {
-      if(err) return sendError(res, err);
-
-      db.profiles.list(userId, function (err, profiles) {
-        if (err) return sendError(res, err);
-
-        function validateProfile (profile, callback) {
-          gutils.getAvailabilityEvents(profile, accessToken, function (err, events) {
-            if (events) {
-              profile.events = events;
-            }
-            // ignore errors
-            callback(null, profile);
-          });
-        }
-
-        async.map(profiles, validateProfile, function (err, profiles) {
-          if (err) return sendError(res, err);
-          return res.json(profiles);
-        });
-      });
-    });
-  }
-  else {
-    db.profiles.list(userId, function (err, profiles) {
-      if (err) return sendError(res, err);
-      return res.json(profiles);
-    });
-  }
+  db.profiles.list(userId, function (err, profiles) {
+    if (err) return sendError(res, err);
+    return res.json(profiles);
+  });
 });
 
 // create or update a profile of a user
