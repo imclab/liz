@@ -278,6 +278,7 @@ p.warning {
   width: 400px;
   margin: 10px auto;
   box-shadow: 2px 2px 10px rgba(128, 128, 128, 0.4);
+  z-index: 99999;
 }
 
 /** Override some bootflat styles */
