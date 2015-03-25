@@ -10,7 +10,6 @@ var SettingsPage = React.createClass({
     this.loadGroupsList();
     this.loadUserGroupsList();
     this.loadProfiles();
-    this.loadAccessRequests();
 
     return {
       loading: true,
@@ -22,7 +21,6 @@ var SettingsPage = React.createClass({
       calendarListLoading: true,
       groupsList: [],
       userGroupsList: null,
-      accessRequests: null,
 
       showHelpAvailability: false,
       showHelpBusy: false
@@ -206,41 +204,6 @@ var SettingsPage = React.createClass({
     </div>;
   },
 
-  renderAccessRequests: function () {
-    if (this.state.accessRequests && this.state.accessRequests.length > 0) {
-      return this.state.accessRequests.map(function (profile) {
-        return <div className="access-request">
-          User <b>{profile.user}</b> requests access to the team <b>{profile.group}</b> <div
-              style={{display: 'inline-block'}}>
-            <button
-                className="btn btn-primary"
-                onClick={function () {
-                  this.grantAccess({
-                    user: profile.user,
-                    group: profile.group,
-                    access: 'granted'
-                  });
-                }.bind(this)}
-            >Accept</button>&nbsp;
-            <button
-                className="btn btn-danger"
-                onClick={function () {
-                  this.grantAccess({
-                    user: profile.user,
-                    group: profile.group,
-                    access: 'denied'
-                  });
-                }.bind(this)}
-            >Deny</button>
-          </div>
-        </div>;
-      }.bind(this));
-    }
-    else {
-      return null;
-    }
-  },
-
   // TODO: cleanup renderTeams
   renderTeams: function () {
     var content;
@@ -300,8 +263,7 @@ var SettingsPage = React.createClass({
     return content ? <div>
       <h2>Teams</h2>
       <p>Manage your teams.</p>
-        {this.renderAccessRequests()}
-        {content}
+      {content}
     </div> : null;
   },
 
@@ -543,32 +505,6 @@ var SettingsPage = React.createClass({
         .catch(function (err) {
           console.log(err);
           displayError(err);
-        }.bind(this));
-  },
-
-  // load all pending requests for access to a team
-  loadAccessRequests: function () {
-    ajax.get('/profiles/pending')
-        .then(function (accessRequests) {
-          console.log('accessRequests', accessRequests);
-          this.setState({accessRequests: accessRequests});
-        }.bind(this))
-        .catch(function (err) {
-          console.log(err);
-          displayError(err);
-        }.bind(this));
-  },
-
-  grantAccess: function (profile) {
-    ajax.post('/profiles/grant', profile)
-        .then(function (result) {
-          console.log('result', result);
-          this.loadAccessRequests();
-        }.bind(this))
-        .catch(function (err) {
-          console.log(err);
-          displayError(err);
-          this.loadAccessRequests();
         }.bind(this));
   },
 

@@ -43,6 +43,7 @@ var App = React.createClass({
 
     return <div>
         {menu}
+        <AccessRequests />
         {page}
     </div>;
   },
