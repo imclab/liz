@@ -19,19 +19,11 @@
  *       role: 'group' | 'individual',
  *       group: ...
  *     },
- *     groups=[...],
- *     calendars=[...]
  *     save: function(profile: Object)
  *     cancel: function (optional)
  *   });
  *
  *   profile.hide();
- *
- * Where:
- *
- *   - `groups` is an Array<{text: string, value: string}> with the available groups
- *   - `calendars` is an Array<{text: string, value: string}> with the available calendars
- *
  */
 var Profile = React.createClass({
   getInitialState: function () {
@@ -53,8 +45,8 @@ var Profile = React.createClass({
         group: ''
       },
 
-      groups: [],
-      calendars: []
+      calendarList: [],
+      groupsList: []
     };
   },
 
@@ -80,7 +72,7 @@ var Profile = React.createClass({
             </p>
             <Selectize
                 value={this.state.profile.busy || ''}
-                options={this.state.calendars}
+                options={this.getCalendarOptions()}
                 multiple="true"
                 placeholder="Select a calendar..."
                 onChange={this.handleBusyChange}
@@ -102,7 +94,7 @@ var Profile = React.createClass({
                     <td>
                       <Selectize
                           value={this.state.profile.available || ''}
-                          options={this.getAvailableCalendars()}
+                          options={this.getCalendarOptions({filterPrimary: true})}
                           placeholder="Select a calendar..."
                           onChange={this.handleAvailableChange}
                           disabled={this.state.saving}
@@ -198,7 +190,7 @@ var Profile = React.createClass({
       </p>
       <Selectize
           value={this.state.profile.group || ''}
-          options={this.state.groups}
+          options={this.getGroupOptions()}
           create={true}
           createOnBlur={true}
           placeholder="Select or create a team..."
@@ -329,8 +321,6 @@ var Profile = React.createClass({
       createCalendar: false,
       existingCalendar: this.state.profile.available,
 
-      calendars: this.getAvailableCalendars(),
-
       save: function (props) {
         generator.hide();
 
@@ -346,16 +336,16 @@ var Profile = React.createClass({
           visible: true
         };
 
-        var isNew = !this.state.calendars.some(function (entry) {
-          return entry.value === props.calendar;
+        var isNew = !this.state.calendarList.some(function (calendar) {
+          return calendar.id === props.calendar;
         });
         if (isNew) {
-          var calendars = this.state.calendars.slice(0);
-          calendars.push({
-            value: props.calendar,
-            text: props.name || props.calendar
+          var calendarList = this.state.calendarList.slice(0);
+          calendarList.push({
+            id: props.calendar,
+            summary: props.name || props.calendar
           });
-          updatedState.calendars = calendars;
+          updatedState.calendarList = calendarList;
         }
 
         this.setState(updatedState);
@@ -371,14 +361,86 @@ var Profile = React.createClass({
     generator.show(_options);
   },
 
+  // TODO: there is duplicate code in EventGenerator.jsx and SettingsPage.jsx
   /**
-   * Return the list with calendars allowed a availability calendar,
-   * filters out the users main calendar
+   * get calendar options for a select box
+   * @param {{filterPrimary: boolean}} [options]
+   * @returns {Array.<{value: string, text:string}>}
    */
-  getAvailableCalendars: function () {
-    return this.state.calendars.filter(function (calendar) {
-      return calendar.value !== this.state.profile.user;
+  getCalendarOptions: function (options) {
+    var calendarList = this.state.calendarList.concat([]);
+
+    // add calendarId's from the currently selected profile
+    if (this.state.busy) {
+      splitIt(this.state.busy).forEach(function (calendarId) {
+        if (!this.calendarExists(calendarId)) {
+          calendarList.push({id: calendarId});
+        }
+      }.bind(this));
+    }
+    if (this.state.available && !this.calendarExists(calendarId)) {
+      calendarList.push({id: this.state.available});
+    }
+
+    // generate calendar options
+    return calendarList
+        // filter calendars owned by the user,
+        // Optionally, filter the users primary calendar
+        .filter(function (calendar) {
+          return calendar.accessRole === 'owner' && (!options || !options.filterPrimary || !calendar.primary);
+        }.bind(this))
+
+        .map(function (calendar) {
+          var text = calendar.summary || calendar.id;
+          if (text.length > 30) {
+            text = text.substring(0, 30) + '...';
+          }
+          return {
+            value: calendar.id,
+            text: text
+          }
+        });
+  },
+
+  getGroupOptions: function () {
+    return this.state.groupsList.map(function (entry) {
+      return {
+        value: entry.name,
+        text: entry.name
+      }
     }.bind(this));
+  },
+
+  calendarExists: function (calendarId) {
+    return this.state.calendarList.some(function (calendar) {
+      return calendar.id == calendarId ;
+    });
+  },
+
+  // load the list with calendars
+  loadCalendarList: function () {
+    ajax.get('/calendar/')
+        .then(function (calendarList) {
+          console.log('Profile, loaded calendarList', calendarList);
+          this.setState({calendarList: calendarList.items || []});
+        }.bind(this))
+        .catch(function (err) {
+          console.log(err);
+          displayError(err);
+        }.bind(this));
+  },
+
+  // load all existing, aggregated groups
+  loadGroupsList: function () {
+    ajax.get('/groups')
+        .then(function (groupsList) {
+          console.log('groupsList', groupsList);
+          this.setState({groupsList: groupsList});
+        }.bind(this))
+        .catch(function (err) {
+          console.log(err);
+          displayError(err);
+        }.bind(this));
   },
 
   deleteAvailabilityEvents: function () {
@@ -387,11 +449,13 @@ var Profile = React.createClass({
   },
 
   show: function (options) {
+    this.loadCalendarList();
+    this.loadGroupsList();
+
     this.setState({
       // data
       profile:    options.profile,
       groups:     options.groups || [],
-      calendars:  options.calendars || [],
 
       // callbacks
       save:   options.save,

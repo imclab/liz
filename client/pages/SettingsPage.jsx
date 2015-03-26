@@ -7,7 +7,6 @@ var SettingsPage = React.createClass({
 
   getInitialState: function () {
     this.loadCalendarList();
-    this.loadGroupsList();
     this.loadUserGroupsList();
     this.loadProfiles();
 
@@ -17,13 +16,7 @@ var SettingsPage = React.createClass({
       profiles: null,
       profilesError: null,
       calendarList: [],
-      calendarListError: null,
-      calendarListLoading: true,
-      groupsList: [],
-      userGroupsList: null,
-
-      showHelpAvailability: false,
-      showHelpBusy: false
+      userGroupsList: null
     };
   },
 
@@ -326,8 +319,6 @@ var SettingsPage = React.createClass({
   showProfile: function (profile) {
     this.refs.profile.show({
       profile: profile,
-      groups: this.getGroupOptions(),
-      calendars: this.getCalendarOptions(),
 
       save: function (profile) {
         var found = false;
@@ -462,32 +453,14 @@ var SettingsPage = React.createClass({
   },
 
   // load the list with calendars
+  // TODO: duplicate code in EventGenerator.jsx and SettingsPage.jsx
   loadCalendarList: function () {
     ajax.get('/calendar/')
         .then(function (calendarList) {
           console.log('calendarList', calendarList);
           this.setState({
-            calendarList: calendarList.items || [],
-            calendarListLoading: false,
-            calendarListError: null
+            calendarList: calendarList.items || []
           });
-        }.bind(this))
-        .catch(function (err) {
-          this.setState({
-            calendarListLoading: false,
-            calendarListError: err
-          });
-          console.log(err);
-          displayError(err);
-        }.bind(this));
-  },
-
-  // load all existing, aggregated groups
-  loadGroupsList: function () {
-    ajax.get('/groups')
-        .then(function (groupsList) {
-          console.log('groupsList', groupsList);
-          this.setState({groupsList: groupsList});
         }.bind(this))
         .catch(function (err) {
           console.log(err);
@@ -506,44 +479,6 @@ var SettingsPage = React.createClass({
           console.log(err);
           displayError(err);
         }.bind(this));
-  },
-
-  getCalendarOptions: function () {
-    var calendarList = this.state.calendarList.concat([]);
-
-    // add missing options to the calendar options and profile options
-    var profiles = this.state.profiles || [];
-    profiles.forEach(function (profile) {
-      if (profile.calendars) {
-        profile.calendars.split(',')
-            .forEach(function (calendarId) {
-              if (!this.calendarExists(calendarId)) {
-                calendarList.push({id: calendarId});
-              }
-            }.bind(this));
-      }
-    }.bind(this));
-
-    // generate calendar options
-    return calendarList.map(function (calendar) {
-      var text = calendar.summary || calendar.id;
-      if (text.length > 30) {
-        text = text.substring(0, 30) + '...';
-      }
-      return {
-        value: calendar.id,
-        text: text
-      }
-    });
-  },
-
-  getGroupOptions: function () {
-    return this.state.groupsList.map(function (entry) {
-      return {
-        value: entry.name,
-        text: entry.name
-      }
-    }.bind(this));
   },
 
   updateUser: function (user) {
@@ -567,24 +502,6 @@ var SettingsPage = React.createClass({
             displayError(err);
           })
     }
-  },
-
-  showHelpBusy: function (event) {
-    event.preventDefault();
-
-    this.setState({showHelpBusy: true});
-  },
-
-  showHelpAvailability: function (event) {
-    event.preventDefault();
-
-    this.setState({showHelpAvailability: true});
-  },
-
-  calendarExists: function (calendarId) {
-    return this.state.calendarList.some(function (calendar) {
-      return calendar.id == calendarId ;
-    });
   },
 
   findCalendar: function (calendarId) {

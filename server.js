@@ -10,7 +10,7 @@ var MongoStore = require('connect-mongo')(session);
 var GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
 var _ = require('lodash');
 var async = require('async');
-var debug = require('debug')('server');
+var debug = require('debug')('liz:server');
 var UUID = require('uuid-v4.js');
 
 var config = require('./config');
@@ -95,7 +95,8 @@ app.get('/auth/callback',
       req.session.cookie.maxAge = maxAge;
 
       // store the auth in the users profile, so it can be used by others
-      // to access your freeBusy profile
+      // to access your freeBusy profile. If not existing (new user) the profile
+      // will be created.
       db.users.update({
         email: email,
         auth: {
@@ -111,28 +112,15 @@ app.get('/auth/callback',
           res.redirect(redirectTo);
         }
 
-        // TODO: move this code to db?
-        // add user information like name and picture to the user object
         if (user.name == null) {
-          // get user info from google
-          console.log('retrieving user info for ' + email+ '...');
-          gutils.getUserInfo(user.auth.accessToken, function (err, userData) {
+          // a new user
+          db.users.initialize(user, function (err) {
             if(err) return sendError(res, err);
-
-            // initialize some default settings when missing
-            if (user.share == undefined) {
-              // add field with default permissions
-              userData.share = 'calendar'; // 'me', 'calendar', 'contacts'
-            }
-
-            // store user in the database
-            db.users.update(userData, function (err, user) {
-              if(err) return sendError(res, err);
-              done();
-            });
+            done();
           });
         }
         else {
+          // existing user
           done();
         }
       });

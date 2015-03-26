@@ -20,7 +20,11 @@ var App = React.createClass({
     var menu = <Menu ref="menu" user={user} page={this.state.page} onPage={this.handlePageChange} />;
 
     var page;
-    if (user && user.loggedIn == true) {
+    if (!user) {
+      // loading
+      page = <div>loading <img className="loading" src="img/ajax-loader.gif" /></div>;
+    }
+    else if (user && user.loggedIn) {
       // logged in
       switch(this.state.page) {
         case 'settings':  page = <SettingsPage ref="page" user={this.state.user} onChange={this.handleUserChange} />; break;
@@ -28,7 +32,7 @@ var App = React.createClass({
         default:          page = <HomePage ref="page" user={this.state.user} />; break;
       }
     }
-    else if (user && user.loggedIn == false) {
+    else if (user && !user.loggedIn) {
       // not logged in
       page = <div>
         <h1>Sign in to get started...</h1>
@@ -36,14 +40,18 @@ var App = React.createClass({
         </p>
       </div>
     }
-    else {
-      // loading
-      page = <div>loading <img className="loading" src="img/ajax-loader.gif" /></div>;
+
+    var notifications;
+    if (user && user.loggedIn) {
+      notifications = <div>
+        <SettingsValidator />
+        <AccessRequests />
+      </div>;
     }
 
     return <div>
         {menu}
-        <AccessRequests />
+        {notifications}
         {page}
     </div>;
   },

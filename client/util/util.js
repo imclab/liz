@@ -90,3 +90,20 @@ function findIndex(array, callback) {
   }
   return -1;
 }
+
+// test whether some raw google calendar event is an availability event
+function isAvailabilityEvent(event, tag) {
+  return event.summary.trim().toLowerCase() === tag.trim().toLowerCase();
+}
+
+/**
+ * Split a string
+ * @param {string} text
+ * @param {string} [delimiter=',']
+ * @return {string[]} Returns splitted and trimmed entries
+ */
+function splitIt(text, delimiter) {
+  return text.split(delimiter || ',').map(function (entry) {
+    return entry.trim();
+  });
+}

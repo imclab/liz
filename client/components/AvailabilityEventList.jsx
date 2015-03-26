@@ -106,7 +106,7 @@ var AvailabilityEventList = React.createClass({
   _filterEvents: function (events) {
     var sevenDays = moment().add(7, 'day');
     return events.filter(function (event) {
-          return (event.summary.trim().toLowerCase() === this.props.tag.toLowerCase())
+          return isAvailabilityEvent(event, this.props.tag)
               && (moment(event.start.dateTime) < sevenDays);
         }.bind(this))
         .slice(0, 10); // max ten items

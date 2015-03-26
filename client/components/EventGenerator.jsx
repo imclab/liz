@@ -4,17 +4,13 @@
  *
  * Usage:
  *
- *   <EventGenerator
- *       calendars={Array}
- *       calendar={string}
- *       onCreate={function}
- *   />
+ *   <EventGenerator/>
  *
  * Usage:
  *
  *   generator.show({
- *     calendars: [...],
  *     calendar: '...',
+ *     tag: '...',
  *     save: function (props) {
  *       // props contains:
  *       //   props.calendar: string
@@ -29,11 +25,11 @@
  *   generator.hide();
  *
  * Where:
- *   - `calendars` is an Array with calendar objects having id, summary, ...
  *   - `calendar` the initially selected calendar
- *   - `tag` is a string like '#available'
- *   - `onCreate` is an optional callback, called when the events have been
+ *   - `tag` the initially selected tag, a string like '#available'
+ *   - `save` is an optional callback, called when the events have been
  *     generated.
+ *   - `cancel` is an optional callback called when the modal is closed/canceled
  */
 var EventGenerator = React.createClass({
   DAYS: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
@@ -45,6 +41,8 @@ var EventGenerator = React.createClass({
       createCalendar: false,
       tag: '#available',
       days: {},
+
+      calendarList: [],
 
       saving: false,
       visible: false,
@@ -107,75 +105,65 @@ var EventGenerator = React.createClass({
   },
 
   renderCalenderSelection: function () {
-    var calendars = this.state.calendars || [];
+    var calendarOptions = this.getCalendarOptions();
 
-    if (calendars.length > 1) {
-      return <p>
-        <p>In which calendar do you want to create availability events&#63; {
-            this.renderPopover('Availability events', 'Availability events are events with a specific tag (like #available) as title. They are used to determine your availability, typically your working hours.', 'bottom')
-        }</p>
+    return <p>
+      <p>In which calendar do you want to create availability events&#63; {
+          this.renderPopover('Availability events', 'Availability events are events with a specific tag (like #available) as title. They are used to determine your availability, typically your working hours.', 'bottom')
+      }</p>
 
-        <table className='calendar-selection'>
-          <colgroup>
-            <col width="150px" />
-          </colgroup>
-          <tbody>
-            <tr>
-              <td>
-                <label><input
-                    type="radio"
-                    checked={this.state.createCalendar == true}
-                    disabled={this.state.saving}
-                    onChange={function () {
-                      this.setState({createCalendar: true});
-                    }.bind(this)}
-                />&nbsp;New&nbsp;calendar</label>
-              </td>
-              <td>
-                <input
-                    type="text"
-                    disabled={this.state.saving}
-                    className="form-control"
-                    value={this.state.newCalendar}
-                    onChange={this.handleNewCalendarChange}
-                />
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <label><input
-                    type="radio"
-                    checked={this.state.createCalendar == false}
-                    disabled={this.state.saving}
-                    onChange={function () {
-                      this.setState({createCalendar: false});
-                    }.bind(this)}
-                />&nbsp;Existing&nbsp;calendar</label>
-              </td>
-              <td>
-                <Selectize
-                    value={this.state.existingCalendar}
-                    disabled={this.state.saving}
-                    options={calendars}
-                    placeholder="Select a calendar..."
-                    onChange={this.handleCalendarChange}
-                />
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <table className='calendar-selection'>
+        <colgroup>
+          <col width="150px" />
+        </colgroup>
+        <tbody>
+          <tr>
+            <td>
+              <label><input
+                  type="radio"
+                  checked={this.state.createCalendar == true}
+                  disabled={this.state.saving}
+                  onChange={function () {
+                    this.setState({createCalendar: true});
+                  }.bind(this)}
+              />&nbsp;New&nbsp;calendar</label>
+            </td>
+            <td>
+              <input
+                  type="text"
+                  disabled={this.state.saving}
+                  className="form-control"
+                  value={this.state.newCalendar}
+                  onChange={this.handleNewCalendarChange}
+              />
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <label><input
+                  type="radio"
+                  checked={this.state.createCalendar == false}
+                  disabled={this.state.saving}
+                  onChange={function () {
+                    this.setState({createCalendar: false});
+                  }.bind(this)}
+              />&nbsp;Existing&nbsp;calendar</label>
+            </td>
+            <td>
+              <Selectize
+                  value={this.state.existingCalendar}
+                  disabled={this.state.saving}
+                  options={calendarOptions}
+                  placeholder="Select a calendar..."
+                  onChange={this.handleCalendarChange}
+              />
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
 
-      </p>;
-    }
-    else if (calendars.length == 1) {
-      return <p>
-        The events will be generated in calendar <b title={calendars[0].value}>{calendars[0].text}</b>
-      </p>;
-    }
-    else {
-      return <p className="error">Error: no calendar available</p>
-    }
+    </p>;
   },
 
   renderDaySelection: function () {
@@ -286,14 +274,14 @@ var EventGenerator = React.createClass({
   },
 
   create: function () {
-    var calendars = this.state.calendars || [];
+    var calendarOptions = this.getCalendarOptions();
     var calendar;
 
     if (this.state.createCalendar) {
       calendar = this.state.newCalendar;
     }
     else {
-      calendar = (calendars.length == 1) ? calendars[0].value : this.state.existingCalendar;
+      calendar = (calendarOptions.length == 1) ? calendarOptions[0].value : this.state.existingCalendar;
     }
 
     if (!calendar) {
@@ -350,7 +338,10 @@ var EventGenerator = React.createClass({
   },
 
   show: function (options) {
+    console.log('EventGenerator.show(', options, ')');
     this.setState(_.extend({visible: true}, options));
+
+    this.loadCalendarList();
   },
 
   hide: function () {
@@ -403,6 +394,49 @@ var EventGenerator = React.createClass({
           if (this.state.visible) {
             this.cancel();
           }
+        }.bind(this));
+  },
+
+  // TODO: use the auto load functionality of Selectize here
+  getCalendarOptions: function () {
+    var calendarList = this.state.calendarList.concat([]);
+
+    // generate calendar options
+    return calendarList
+        // filter calendars owned by the user, and do not allow to use the users
+        // primary calendar to generate availability events
+        .filter(function (calendar) {
+          return calendar.accessRole === 'owner' && !calendar.primary;
+        }.bind(this))
+
+        .map(function (calendar) {
+          var text = calendar.summary || calendar.id;
+          if (text.length > 30) {
+            text = text.substring(0, 30) + '...';
+          }
+          return {
+            value: calendar.id,
+            text: text
+          }
+        });
+  },
+
+  calendarExists: function (calendarId) {
+    return this.state.calendarList.some(function (calendar) {
+      return calendar.id == calendarId ;
+    });
+  },
+
+  // load the list with calendars
+  loadCalendarList: function () {
+    ajax.get('/calendar/')
+        .then(function (calendarList) {
+          console.log('calendarList', calendarList);
+          this.setState({calendarList: calendarList.items || []});
+        }.bind(this))
+        .catch(function (err) {
+          console.log(err);
+          displayError(err);
         }.bind(this));
   }
 });
