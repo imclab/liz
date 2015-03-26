@@ -31,7 +31,7 @@ var AccessRequests = React.createClass({
 
   render: function () {
     var requests = this.state.requests.map(function (profile, index) {
-      return <div key={index} className="access-request">
+      return <div key={index} className="notification">
         User <b>{profile.user}</b> requests access to the team <b>{profile.group}</b> <div
             style={{display: 'inline-block'}}>
           <button

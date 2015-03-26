@@ -551,50 +551,29 @@ app.post('/profiles/generate', function (req, res) {
   authorize(email, email, function (err, accessToken, user) {
     if(err) return sendError(res, err);
 
-    function createEvents (calendarId, params) {
-      // get timeZone of the selected calendar
-      gutils.getTimeZone(calendarId, accessToken, function (err, timeZone) {
-        if (err) return sendError(res, err);
-
-        // generate events from the given profile
-        gutils.generateAvailabilityEvents(params, timeZone, function (err, events) {
-          if (err) return sendError(res, err);
-
-          // create the events in the calendar
-          async.map(events, function (event, callback) {
-            gcal(accessToken).events.insert(calendarId, event, callback);
-          }, function (err, createdEvents) {
-            if(err) return sendError(res, err);
-            return res.json({
-              calendar: params.calendar,
-              events: createdEvents
-            });
-          });
-        });
-      });
-    }
-
     var params = req.body;
     if (params.createCalendar) {
       // create a new calendar
-      var calendar = {summary: params.createCalendar};
-      gcal(accessToken).calendars.insert(calendar, function (err, createdCalendar) {
+      gutils.createCalendar(params.createCalendar, accessToken, function (err, createdCalendar) {
         if (err) return sendError(res, err);
 
-        // I've had once that creating events failed because the calendar was
-        // not yet found after creating it. Not sure if this setTimeout is needed
-        // or useful, needs more testing.
-        setTimeout(function () {
-          var calendarId = createdCalendar.id;
-          var newParams = _.extend({calendar: calendarId}, params);
-          createEvents(calendarId, newParams);
-        }, 100);
+        var calendarId = createdCalendar.id;
+        var _params = _.extend({calendar: calendarId}, params);
+        gutils.createAvailabilityEvents(_params, accessToken, function (err, result) {
+          if (err) return sendError(res, err);
+          return res.json(result);
+        });
       });
     }
     else {
       // use existing calendar
       var calendarId = req.body.calendar || email;
-      createEvents(calendarId, params);
+      var _params = _.extend({calendar: calendarId}, params);
+      gutils.createAvailabilityEvents(_params, accessToken, function (err, result) {
+        if (err) return sendError(res, err);
+        return res.json(result);
+      });
+      // TODO: there is double code here. Once rewritten to Promises, this will be quite easy to make nicer
     }
   });
 });

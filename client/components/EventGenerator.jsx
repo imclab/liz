@@ -57,8 +57,8 @@ var EventGenerator = React.createClass({
       if (day == 'Saturday' || day == 'Sunday') {
         initialState.days[day] = {
           enabled: false,
-          start: '',
-          end: ''
+          start: '09:00',
+          end: '17:00'
         };
       }
       else {
