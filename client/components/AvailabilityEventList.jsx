@@ -73,6 +73,8 @@ var AvailabilityEventList = React.createClass({
 
   loadEvents: function () {
     if (!this.props.calendar || !this.props.tag) {
+      // clear events
+      this.setState({ events: [] });
       return;
     }
 
