@@ -274,6 +274,7 @@ var EventGenerator = React.createClass({
   },
 
   create: function () {
+    // TODO: rethink the naming of these variables calendar, newCalendar, createCalendar, existingCalendar. They are confusing.
     var calendarOptions = this.getCalendarOptions();
     var calendar;
 
@@ -310,8 +311,10 @@ var EventGenerator = React.createClass({
     }
     else {
       body.calendar = calendar;
-      if (!confirm('Are you sure you want to append new availability events in an existing calendar?')) {
-        return;
+      if (days.length > 0) {
+        if (!confirm('Are you sure you want to append new availability events in an existing calendar?')) {
+          return;
+        }
       }
     }
 

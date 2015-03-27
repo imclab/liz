@@ -320,18 +320,13 @@ var SettingsPage = React.createClass({
       profile: profile,
 
       save: function (profile) {
-        var found = false;
-        var profiles = this.state.profiles.map(function (p) {
-          if (p._id == profile._id) {
-            found = true;
-            return profile;
-          }
-          else {
-            return p;
-          }
-        });
-
-        if (!found) {
+        var profiles = this.state.profiles.slice(0);
+        var index = profiles.indexOf(profile);
+        if (index !== -1) {
+          // replace existing profile
+          profiles[index] = profile;
+        }
+        else {
           // a new profile
           // push a clone, else we get issues with the new item not being updated
           // when retrieved again from the server (with new access status).
@@ -384,7 +379,6 @@ var SettingsPage = React.createClass({
   },
 
   // save a changed profile after a delay
-  // TODO: move this method to Profile.jsx
   saveProfile: function (profile, callback) {
     var id = profile._id;
     if (id === undefined) {
