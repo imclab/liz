@@ -300,9 +300,9 @@ var EventGenerator = React.createClass({
         }.bind(this));
 
     var body = {
-      "tag": this.state.tag,           // for example '#availability'
-      "zone": moment().zone(),       // for example -60 or '-01:00' or '+08:00'
-      "days": days
+      tag: this.state.tag,           // for example '#availability'
+      zone: moment().zone(),       // for example -60 or '-01:00' or '+08:00'
+      days: days
     };
 
     if (this.state.createCalendar) {
@@ -310,6 +310,9 @@ var EventGenerator = React.createClass({
     }
     else {
       body.calendar = calendar;
+      if (!confirm('Are you sure you want to append new availability events in an existing calendar?')) {
+        return;
+      }
     }
 
     // send request to the server
@@ -333,7 +336,7 @@ var EventGenerator = React.createClass({
         this.setState({saving: false});
 
         console.log(err);
-        alert(err);
+        displayError(err);
       }.bind(this));
   },
 

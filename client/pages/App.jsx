@@ -44,7 +44,7 @@ var App = React.createClass({
     var notifications;
     if (user && user.loggedIn) {
       notifications = <div>
-        <SettingsValidator />
+        <SettingsValidator user={this.state.user} />
         <AccessRequests />
       </div>;
     }

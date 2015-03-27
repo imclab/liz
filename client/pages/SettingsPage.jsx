@@ -72,8 +72,7 @@ var SettingsPage = React.createClass({
     }
 
     return <div>
-      <Profile ref="profile" generator={this.refs.generator} />
-      <EventGenerator ref="generator" />
+      <Profile ref="profile" />
 
       <h2>Availability</h2>
       <h3>Individual</h3>
@@ -385,6 +384,7 @@ var SettingsPage = React.createClass({
   },
 
   // save a changed profile after a delay
+  // TODO: move this method to Profile.jsx
   saveProfile: function (profile, callback) {
     var id = profile._id;
     if (id === undefined) {
@@ -453,7 +453,7 @@ var SettingsPage = React.createClass({
   },
 
   // load the list with calendars
-  // TODO: duplicate code in EventGenerator.jsx and SettingsPage.jsx
+  // TODO: there is duplicate code in EventGenerator.jsx and SettingsPage.jsx
   loadCalendarList: function () {
     ajax.get('/calendar/')
         .then(function (calendarList) {

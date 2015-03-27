@@ -3,11 +3,7 @@
  *
  * Create:
  *
- *   <Profile ref="profile" generator={...} />
- *
- * Where:
- *
- *   - `generator` is a reference to an EventGenerator
+ *   <Profile ref="profile" />
  *
  * Use:
  *
@@ -51,131 +47,134 @@ var Profile = React.createClass({
   },
 
   render: function () {
-    return <div className="modal profile" ref="profile">
-      <div className="modal-dialog">
-        <div className="modal-content">
-          <div className="modal-header">
-            <button type="button" className="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-            <h4 className="modal-title">Availability profile</h4>
-          </div>
-          <div className="modal-body">
-            <p>Configure an availability profile {this.state.profile.role === 'group' ? 'as team member' : 'as individual'}.</p>
-
-            {(this.state.profile.role === 'group') ? this.renderTeam() : null}
-
-            <h5>Busy</h5>
-            <p>
-              Which calendars do you want to take into account to determine when you are busy&#63;&nbsp;
-              {
-                this.renderPopover('Busy', 'You will be considered busy during all events found in the selected calendars.', 'left')
-              }
-            </p>
-            <Selectize
-                value={this.state.profile.busy || ''}
-                options={this.getCalendarOptions()}
-                multiple="true"
-                placeholder="Select a calendar..."
-                onChange={this.handleBusyChange}
-                disabled={this.state.saving}
-            />
-
-            <h5>Available</h5>
-            <p>
-              Which calendar do you want to use to determine when you are available&#63;&nbsp;
-              {
-                  this.renderPopover('Available', 'All events in the selected calendar having the specified tag as title will be used to determine when you are availability (typically your working hours).', 'left')
-              }
-            </p>
-            <div className="card">
-              <table className="available">
-                <tbody>
-                  <tr>
-                    <th>Calendar</th>
-                    <td>
-                      <Selectize
-                          value={this.state.profile.available || ''}
-                          options={this.getCalendarOptions({filterPrimary: true})}
-                          placeholder="Select a calendar..."
-                          onChange={this.handleAvailableChange}
-                          disabled={this.state.saving}
-                          className="form-control"
-                      />
-                    </td>
-                    <td>
-                      <button
-                          className="btn btn-normal"
-                          title="Open a wizard to create a new calendar with availability events"
-                          onClick={this.handleNewCalendar}
-                      ><span className="glyphicon glyphicon-plus"></span> Create</button>
-                    </td>
-                  </tr>
-                  <tr>
-                    <th>
-                      Tag {
-                        this.renderPopover('Tag', 'All events in the selected calendar having the specified tag as title will be used to determine when you are availability (typically your working hours).', 'top')
-                      }
-                    </th>
-                    <td>
-                      <input
-                          type="text"
-                          className="form-control"
-                          title="Availability tag"
-                          value={this.state.profile.tag || ''}
-                          placeholder="Enter a tag like '#available'"
-                          onChange={this.handleTagChange}
-                          disabled={this.state.saving}
-                      />
-                    </td>
-                    <td>
-                    </td>
-                  </tr>
-                  <tr>
-                    <th>
-                      Events {
-                        this.renderPopover('Availability events', 'Availability events are events with a specific tag (like #available) as title. They are used to determine your availability, typically your working hours.', 'top')
-                      }
-                    </th>
-                    <td>
-                      <button
-                          className="btn btn-normal"
-                          title="Open a wizard to generate availability events"
-                          onClick={this.showEventGenerator}
-                          disabled={this.state.saving || !this.state.profile.available}
-                      ><span className="glyphicon glyphicon-plus"></span> Generate</button>
-                      &nbsp;
-                      <button
-                          className="btn btn-danger"
-                          title="Delete all availability events"
-                          onClick={this.deleteAvailabilityEvents}
-                          disabled={this.state.saving || !this.state.profile.available}
-                      ><span className="glyphicon glyphicon-remove"> Delete</span></button>
-                    </td>
-                    <td>
-                    </td>
-                  </tr>
-                  <tr>
-                    <th>Upcoming</th>
-                    <td className="text">
-                      <AvailabilityEventList calendar={this.state.profile.available} tag={this.state.profile.tag} />
-                    </td>
-                    <td>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td colSpan="3" style={{fontStyle: 'italic'}}>You can edit your availability events straigtaway in <a href="https://www.google.com/calendar/" target="_blank">Google Calendar</a>.
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+    return <div>
+      <EventGenerator ref="generator" />
+      <div className="modal profile" ref="profile">
+        <div className="modal-dialog">
+          <div className="modal-content">
+            <div className="modal-header">
+              <button type="button" className="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+              <h4 className="modal-title">Availability profile</h4>
             </div>
-          </div>
-          <div className="modal-footer">
-            {
-              this.state.saving ?
-                  <span>saving <img className="loading" src="img/ajax-loader.gif" /></span> :
-                  <span></span>
-            } <button className="btn btn-default" onClick={this.cancel}>Cancel</button>
-            <button className="btn btn-success" onClick={this.save} disabled={this.state.saving}>Save</button>
+            <div className="modal-body">
+              <p>Configure an availability profile {this.state.profile.role === 'group' ? 'as team member' : 'as individual'}.</p>
+
+              {(this.state.profile.role === 'group') ? this.renderTeam() : null}
+
+              <h5>Busy</h5>
+              <p>
+                Which calendars do you want to take into account to determine when you are busy&#63;&nbsp;
+                {
+                  this.renderPopover('Busy', 'You will be considered busy during all events found in the selected calendars.', 'left')
+                }
+              </p>
+              <Selectize
+                  value={this.state.profile.busy || ''}
+                  options={this.getCalendarOptions()}
+                  multiple="true"
+                  placeholder="Select a calendar..."
+                  onChange={this.handleBusyChange}
+                  disabled={this.state.saving}
+              />
+
+              <h5>Available</h5>
+              <p>
+                Which calendar do you want to use to determine when you are available&#63;&nbsp;
+                {
+                    this.renderPopover('Available', 'All events in the selected calendar having the specified tag as title will be used to determine when you are availability (typically your working hours).', 'left')
+                }
+              </p>
+              <div className="card">
+                <table className="available">
+                  <tbody>
+                    <tr>
+                      <th>Calendar</th>
+                      <td>
+                        <Selectize
+                            value={this.state.profile.available || ''}
+                            options={this.getCalendarOptions({filterPrimary: true})}
+                            placeholder="Select a calendar..."
+                            onChange={this.handleAvailableChange}
+                            disabled={this.state.saving}
+                            className="form-control"
+                        />
+                      </td>
+                      <td>
+                        <button
+                            className="btn btn-normal"
+                            title="Open a wizard to create a new calendar with availability events"
+                            onClick={this.handleNewCalendar}
+                        ><span className="glyphicon glyphicon-plus"></span> Create</button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>
+                        Tag {
+                          this.renderPopover('Tag', 'All events in the selected calendar having the specified tag as title will be used to determine when you are availability (typically your working hours).', 'top')
+                        }
+                      </th>
+                      <td>
+                        <input
+                            type="text"
+                            className="form-control"
+                            title="Availability tag"
+                            value={this.state.profile.tag || ''}
+                            placeholder="Enter a tag like '#available'"
+                            onChange={this.handleTagChange}
+                            disabled={this.state.saving}
+                        />
+                      </td>
+                      <td>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>
+                        Events {
+                          this.renderPopover('Availability events', 'Availability events are events with a specific tag (like #available) as title. They are used to determine your availability, typically your working hours.', 'top')
+                        }
+                      </th>
+                      <td>
+                        <button
+                            className="btn btn-normal"
+                            title="Open a wizard to generate availability events"
+                            onClick={this.showEventGenerator}
+                            disabled={this.state.saving || !this.state.profile.available}
+                        ><span className="glyphicon glyphicon-plus"></span> Generate</button>
+                        &nbsp;
+                        <button
+                            className="btn btn-danger"
+                            title="Delete all availability events"
+                            onClick={this.deleteAvailabilityEvents}
+                            disabled={this.state.saving || !this.state.profile.available}
+                        ><span className="glyphicon glyphicon-remove"></span></button>
+                      </td>
+                      <td>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>Upcoming</th>
+                      <td className="text">
+                        <AvailabilityEventList calendar={this.state.profile.available} tag={this.state.profile.tag} />
+                      </td>
+                      <td>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td colSpan="3" style={{fontStyle: 'italic'}}>You can edit your availability events straigtaway in <a href="https://www.google.com/calendar/" target="_blank">Google Calendar</a>.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="modal-footer">
+              {
+                this.state.saving ?
+                    <span>saving <img className="loading" src="img/ajax-loader.gif" /></span> :
+                    <span></span>
+              } <button className="btn btn-default" onClick={this.cancel}>Cancel</button>
+              <button className="btn btn-success" onClick={this.save} disabled={this.state.saving}>Save</button>
+            </div>
           </div>
         </div>
       </div>
@@ -312,10 +311,7 @@ var Profile = React.createClass({
   },
 
   showEventGenerator: function (options) {
-    var generator = this.props.generator;
-    if (!generator) {
-      throw new Error('No EventGenerator configured');
-    }
+    var generator = this.refs.generator;
 
     var _options = _.extend({}, {
       createCalendar: false,
@@ -323,8 +319,6 @@ var Profile = React.createClass({
 
       save: function (props) {
         generator.hide();
-
-        console.log('props', props); // TODO: cleanup
 
         var profile = _.extend({}, this.state.profile, {
           available: props.calendar,

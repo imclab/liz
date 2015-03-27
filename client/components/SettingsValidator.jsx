@@ -4,7 +4,7 @@
  *
  * Usage:
  *
- *   <SettingsValidator />
+ *   <SettingsValidator user={Object} />
  *
  */
 var SettingsValidator = React.createClass({
@@ -16,30 +16,38 @@ var SettingsValidator = React.createClass({
   },
 
   componentDidMount: function () {
-    this.loadProfiles(function (err, profiles) {
-      if (err) return;
-
-      var profile = profiles.filter(function (profile) {
-        return profile.role !== 'group';
-      })[0];
-
-      if (profile) {
-        this.hasAvailabilityEvents(profile, function (err, hasEvents) {
-          this.setState({hasEvents: hasEvents});
-        }.bind(this));
-      }
-    }.bind(this));
+    this.refresh();
   },
 
   render: function () {
     var message;
     if (this.state.hasEvents === false) {
       message = <div className="notification">
-        No availability events configured
+        <div className="actions" style={{float: 'right', marginLeft: '10px'}}>
+          <button
+              title="Open a wizard to create an availability profile"
+              className="btn btn-primary"
+              onClick={this.showEventGenerator}
+          >Create</button>
+        </div>
+        Welcome{this.props.user ? <b> {this.props.user.name}</b> : ''}, thanks for using Liz! Please create an availability profile describing your working hours.
+        <EventGenerator ref="generator"/>
       </div>
     }
 
     return <div>{message}</div>;
+  },
+
+  refresh: function () {
+    this.loadProfiles(function (err, profiles) {
+      if (err) return;
+
+      var profile = this.getIndividualProfile(profiles);
+
+      this.hasAvailabilityEvents(profile, function (err, hasEvents) {
+        this.setState({hasEvents: hasEvents});
+      }.bind(this));
+    }.bind(this));
   },
 
   // load the profiles of the user
@@ -61,11 +69,11 @@ var SettingsValidator = React.createClass({
 
   // test whether a profile has availability events
   hasAvailabilityEvents: function (profile, callback) {
-    console.log('Loading availability events. calendar: ' + profile.available + ' tag: ' + profile.tag);
-
-    if (!profile.available || !profile.tag) {
+    if (!profile || !profile.available || !profile.tag) {
       return callback(null, false);
     }
+
+    console.log('Loading availability events. calendar: ' + profile.available + ' tag: ' + profile.tag);
 
     ajax.get('/calendar/' + profile.available)
         .then(function (result) {
@@ -76,5 +84,58 @@ var SettingsValidator = React.createClass({
           callback(null, hasEvents);
         })
         .catch(callback);
+  },
+
+  showEventGenerator: function () {
+    var generator = this.refs.generator;
+    if (!generator) {
+      throw new Error('No EventGenerator configured');
+    }
+
+    generator.show({
+      createCalendar: true,
+      newCalendar: 'Availability',
+      tag: '#available',
+
+      save: function (props) {
+        generator.hide();
+
+        // create a new profile, or update the individual profile
+        var profile = this.getIndividualProfile(this.state.profiles) || this.newProfile();
+        profile.available = props.calendar;
+        profile.tag = props.tag;
+
+        this.saveProfile(profile, function (err, result) {
+          if (!err) {
+            this.refresh();
+          }
+        }.bind(this));
+      }.bind(this)
+    });
+  },
+
+  saveProfile: function (profile, callback) {
+    ajax.put('/profiles', profile)
+        .then(function (result) {
+          callback && callback(null, result);
+        }.bind(this))
+        .catch(function (err) {
+          console.log(err);
+          displayError(err);
+          callback && callback(err);
+        }.bind(this));
+  },
+
+  newProfile: function () {
+    return {
+      _id: UUID(),
+      busy: this.props.user.email
+    }
+  },
+
+  getIndividualProfile: function (profiles) {
+    return profiles.filter(function (profile) {
+      return profile.role !== 'group';
+    })[0];
   }
 });
